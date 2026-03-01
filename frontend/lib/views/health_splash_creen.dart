@@ -14,7 +14,7 @@ class _HealthSplashScreenState extends State<HealthSplashScreen> {
     @override
   void initState() {
     super.initState();
-    Timer(Duration(seconds: 10), () {
+    Timer(Duration(seconds: 2), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const LoginRegisterScreen()),

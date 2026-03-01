@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../widgets/primary_button.dart';
 
 class OtpScreen extends StatefulWidget {
-  const OtpScreen({super.key});
+  final VoidCallback onVerifiedSuccess;
+  const OtpScreen({super.key, required this.onVerifiedSuccess});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -99,6 +100,11 @@ class _OtpScreenState extends State<OtpScreen> {
                 onTap: () {
                   String otp = _controllers.map((e) => e.text).join();
                   print("Mã OTP đã nhập: $otp");
+
+                  //giả lập xác thực OTP thành công
+                  //gọi api xác thực OTP ở đây, nếu thành công thì gọi onVerifiedSuccess
+                  widget.onVerifiedSuccess();
+                  Navigator.pop(context);
                 },
               ),
 

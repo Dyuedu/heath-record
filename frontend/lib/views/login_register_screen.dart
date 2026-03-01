@@ -8,11 +8,12 @@ class LoginRegisterScreen extends StatefulWidget {
   @override
   State<LoginRegisterScreen> createState() => _LoginRegisterScreenState();
 }
-
+enum ForgotPasswordStep { inputEmail, inputNewPassword}
 class _LoginRegisterScreenState extends State<LoginRegisterScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _showForgotPasswordTab = false;
+  ForgotPasswordStep _currentStep = ForgotPasswordStep.inputEmail;
 
   void _enableForgotPasswordTab() {
     setState(() {
@@ -25,6 +26,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
     setState(() {
       _showForgotPasswordTab = false;
       _tabController.animateTo(0);
+    });
+  }
+
+  void _onOtpVerifiedSuccess() {
+    setState(() {
+      _currentStep = ForgotPasswordStep.inputNewPassword;
+      _showForgotPasswordTab = true; 
     });
   }
 
@@ -93,7 +101,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
               children: [
                 _buildRegisterForm(),
                 _showForgotPasswordTab
-                    ? _buildForgotPasswordForm()
+                    ? _buildForgotPasswordStepContent()
                     : _buildLoginForm(),
               ],
             ),
@@ -225,9 +233,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const OtpScreen(),
+                        builder: (context) => OtpScreen(
+                          onVerifiedSuccess: _onOtpVerifiedSuccess,
+                        ),
                       ),
                     );
+                    
                   },
                 ),
               ),
@@ -271,5 +282,41 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
         ),
       ),
     );
+  }
+
+Widget _buildNewPasswordForm() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Xin vui lòng nhập email:", style: TextStyle(fontSize: 14)),
+          const SizedBox(height: 15),
+          const CustomTextField(
+            label: "Mật khẩu mới", 
+            isPassword: true,
+          ),
+          const SizedBox(height: 20),
+          const CustomTextField(
+            label: "Nhập lại mật khẩu mới", 
+            isPassword: true,
+          ),
+          const SizedBox(height: 40),
+          _buildActionButton("Xác nhận", onTap: () {
+             // Xử lý cập nhật mật khẩu lên server tại đây
+             print("Cập nhật mật khẩu thành công!");
+             _disableForgotPasswordTab();
+          }),
+        ],
+      ),
+    );
+  }
+
+Widget _buildForgotPasswordStepContent() {
+    if (_currentStep == ForgotPasswordStep.inputEmail) {
+      return _buildForgotPasswordForm();
+    } else {
+      return _buildNewPasswordForm();
+    }
   }
 }
