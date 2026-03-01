@@ -1,0 +1,275 @@
+import 'package:flutter/material.dart';
+import 'package:frontend/utils/custom_text_field.dart';
+import 'package:frontend/views/otp_screen.dart';
+
+class LoginRegisterScreen extends StatefulWidget {
+  const LoginRegisterScreen({super.key});
+
+  @override
+  State<LoginRegisterScreen> createState() => _LoginRegisterScreenState();
+}
+
+class _LoginRegisterScreenState extends State<LoginRegisterScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool _showForgotPasswordTab = false;
+
+  void _enableForgotPasswordTab() {
+    setState(() {
+      _showForgotPasswordTab = true;
+      _tabController.animateTo(1);
+    });
+  }
+
+  void _disableForgotPasswordTab() {
+    setState(() {
+      _showForgotPasswordTab = false;
+      _tabController.animateTo(0);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300), // Thời gian ẩn/hiện
+            curve: Curves.easeInOut,
+            width: double.infinity,
+            // Nếu bàn phím hiện thì chiều cao bằng 0, ngược lại bằng 40% màn hình
+            height: isKeyboardVisible
+                ? 0
+                : MediaQuery.of(context).size.height * 0.4,
+            child: SingleChildScrollView(
+              // Dùng cái này để tránh lỗi overflow khi đang co lại
+              physics: const NeverScrollableScrollPhysics(),
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.4,
+                child: const Image(
+                  image: AssetImage('assets/images/login_bg.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: isKeyboardVisible ? MediaQuery.of(context).padding.top + 10 : 20),
+          
+          TabBar(
+            controller: _tabController,
+            labelColor: Colors.black,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Colors.blue,
+            indicatorSize: TabBarIndicatorSize.label,
+            labelStyle: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            tabs: [
+              const Tab(text: "Đăng ký"),
+              Tab(text: _showForgotPasswordTab ? "Quên mật khẩu" : "Đăng nhập"),
+            ],
+          ),
+
+          const SizedBox(height: 30),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildRegisterForm(),
+                _showForgotPasswordTab
+                    ? _buildForgotPasswordForm()
+                    : _buildLoginForm(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginForm() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        children: [
+          const CustomTextField(label: "Email"),
+          const SizedBox(height: 20),
+          const CustomTextField(label: "Mật khẩu", isPassword: true),
+
+          const SizedBox(height: 12),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Checkbox(
+                    value: false,
+                    onChanged: (v) {},
+                    activeColor: const Color(0xFF76D7C4),
+                  ),
+                  const Text(
+                    "Nhớ thông tin đăng nhập",
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+              TextButton(
+                onPressed: _enableForgotPasswordTab,
+                child: const Text(
+                  "Quên mật khẩu?",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 30),
+          _buildActionButton("Đăng nhập"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegisterForm() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        children: [
+          const CustomTextField(label: "Email"),
+          const SizedBox(height: 20),
+          const CustomTextField(label: "Mật khẩu", isPassword: true),
+          const SizedBox(height: 20),
+          const CustomTextField(label: "Xác nhận mật khẩu", isPassword: true),
+
+          const SizedBox(height: 30),
+          _buildActionButton("Đăng ký ngay"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(String title, {VoidCallback? onTap}) {
+    return Container(
+      width: double.infinity,
+      height: 55,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF8DE9D5), Color(0xFF76D7C4)],
+        ),
+      ),
+      child: ElevatedButton(
+        onPressed: onTap ?? () {},
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForgotPasswordForm() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Xin vui lòng nhập email:",
+            style: TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 10),
+          const CustomTextField(label: "Email"),
+          const SizedBox(height: 30),
+          Row(
+            children: [
+              Expanded(
+                child: _buildSecondaryButton(
+                  "Quay lại",
+                  _disableForgotPasswordTab,
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildActionButton(
+                  "Lấy mã OTP",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const OtpScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecondaryButton(String title, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(30),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            color: const Color(0xFFF9B886),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Container(
+            height: 50,
+            alignment: Alignment.center,
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
