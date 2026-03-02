@@ -13,6 +13,8 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import backend.service.CustomUserDetailService;
+import backend.service.JWTService;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -37,7 +39,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
         String token = "";
         UUID userId = null;
-        // NẾU LÀ ĐƯỜNG DẪN LOGIN GOOGLE THÌ BỎ QUA KHÔNG CHECK JWT
+        // nếu là google thì bỏ qua, không check jwt
         if (request.getServletPath().contains("/api/auth/google")) {
             filterChain.doFilter(request, response);
             return;
