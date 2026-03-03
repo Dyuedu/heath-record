@@ -25,6 +25,7 @@ public class JWTService {
 
     public String generateToken(UserPrincipal userPrincipal) {
         Map<String, Object> extraClaims = new HashMap<>();
+        // username ở đây là email, vì mình dùng email để login
         String username = userPrincipal.getUsername();
         String userId = String.valueOf(userPrincipal.getId());
         String role = userPrincipal.getAuthorities().stream()
