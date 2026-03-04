@@ -8,7 +8,6 @@ class DioClient {
   DioClient(this.authRepository) {
     dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.33.67.160:8080',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

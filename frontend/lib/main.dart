@@ -8,7 +8,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   await Hive.openBox('userBox');
-  runApp(const HealthRecordApp());
+runApp(
+    MultiProvider(
+      providers: AppProviders.getProviders(),
+      child: const HealthRecordApp(),
+    ),
+  );
 }
 
 class HealthRecordApp extends StatelessWidget {
@@ -16,12 +21,9 @@ class HealthRecordApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: AppProviders.getProviders(),
-      child: MaterialApp(
+    return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: const HealthSplashScreen(),
-      ),
     );
   }
 }

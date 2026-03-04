@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/utils/custom_text_field.dart';
+import 'package:frontend/viewmodels/login_view_model.dart';
 import 'package:frontend/views/otp_screen.dart';
+import 'package:provider/provider.dart';
 
 class LoginRegisterScreen extends StatefulWidget {
   const LoginRegisterScreen({super.key});
@@ -8,12 +10,39 @@ class LoginRegisterScreen extends StatefulWidget {
   @override
   State<LoginRegisterScreen> createState() => _LoginRegisterScreenState();
 }
-enum ForgotPasswordStep { inputEmail, inputNewPassword}
+
+enum ForgotPasswordStep { inputEmail, inputNewPassword }
+
 class _LoginRegisterScreenState extends State<LoginRegisterScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _showForgotPasswordTab = false;
   ForgotPasswordStep _currentStep = ForgotPasswordStep.inputEmail;
+
+  // Controllers cho Login
+  final TextEditingController _loginEmailController = TextEditingController();
+  final TextEditingController _loginPasswordController =
+      TextEditingController();
+
+  // Controllers cho Register
+  final TextEditingController _registerEmailController =
+      TextEditingController();
+  final TextEditingController _registerPasswordController =
+      TextEditingController();
+  final TextEditingController _registerConfirmPasswordController =
+      TextEditingController();
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _loginEmailController.dispose();
+    _loginPasswordController.dispose();
+    _registerEmailController.dispose();
+    _registerPasswordController.dispose();
+    _registerConfirmPasswordController.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
 
   void _enableForgotPasswordTab() {
     setState(() {
@@ -32,7 +61,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
   void _onOtpVerifiedSuccess() {
     setState(() {
       _currentStep = ForgotPasswordStep.inputNewPassword;
-      _showForgotPasswordTab = true; 
+      _showForgotPasswordTab = true;
     });
   }
 
@@ -40,12 +69,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   @override
@@ -76,8 +99,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
               ),
             ),
           ),
-          SizedBox(height: isKeyboardVisible ? MediaQuery.of(context).padding.top + 10 : 20),
-          
+          SizedBox(
+            height: isKeyboardVisible
+                ? MediaQuery.of(context).padding.top + 10
+                : 20,
+          ),
+
           TabBar(
             controller: _tabController,
             labelColor: Colors.black,
@@ -112,13 +139,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
   }
 
   Widget _buildLoginForm() {
+    final isLoading = context.watch<LoginViewModel>().isLoading;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
-          const CustomTextField(label: "Email"),
+          CustomTextField(label: "Email", controller: _loginEmailController),
           const SizedBox(height: 20),
-          const CustomTextField(label: "Mật khẩu", isPassword: true),
+          CustomTextField(
+            label: "Mật khẩu",
+            isPassword: true,
+            controller: _loginPasswordController,
+          ),
 
           const SizedBox(height: 12),
 
@@ -149,7 +181,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
           ),
 
           const SizedBox(height: 30),
-          _buildActionButton("Đăng nhập"),
+          _buildActionButton(
+            "Đăng nhập",
+            onTap: isLoading ? null : () => _handleLogin(context),
+          ),
         ],
       ),
     );
@@ -160,11 +195,19 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
-          const CustomTextField(label: "Email"),
+          CustomTextField(label: "Email", controller: _registerEmailController),
           const SizedBox(height: 20),
-          const CustomTextField(label: "Mật khẩu", isPassword: true),
+          CustomTextField(
+            label: "Mật khẩu",
+            isPassword: true,
+            controller: _registerPasswordController,
+          ),
           const SizedBox(height: 20),
-          const CustomTextField(label: "Xác nhận mật khẩu", isPassword: true),
+          CustomTextField(
+            label: "Xác nhận mật khẩu",
+            isPassword: true,
+            controller: _registerConfirmPasswordController,
+          ),
 
           const SizedBox(height: 30),
           _buildActionButton("Đăng ký ngay"),
@@ -233,12 +276,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => OtpScreen(
-                          onVerifiedSuccess: _onOtpVerifiedSuccess,
-                        ),
+                        builder: (context) =>
+                            OtpScreen(onVerifiedSuccess: _onOtpVerifiedSuccess),
                       ),
                     );
-                    
                   },
                 ),
               ),
@@ -284,39 +325,63 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
     );
   }
 
-Widget _buildNewPasswordForm() {
+  Widget _buildNewPasswordForm() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Xin vui lòng nhập email:", style: TextStyle(fontSize: 14)),
-          const SizedBox(height: 15),
-          const CustomTextField(
-            label: "Mật khẩu mới", 
-            isPassword: true,
+          const Text(
+            "Xin vui lòng nhập email:",
+            style: TextStyle(fontSize: 14),
           ),
+          const SizedBox(height: 15),
+          const CustomTextField(label: "Mật khẩu mới", isPassword: true),
           const SizedBox(height: 20),
           const CustomTextField(
-            label: "Nhập lại mật khẩu mới", 
+            label: "Nhập lại mật khẩu mới",
             isPassword: true,
           ),
           const SizedBox(height: 40),
-          _buildActionButton("Xác nhận", onTap: () {
-             // Xử lý cập nhật mật khẩu lên server tại đây
-             print("Cập nhật mật khẩu thành công!");
-             _disableForgotPasswordTab();
-          }),
+          _buildActionButton(
+            "Xác nhận",
+            onTap: () {
+              // Xử lý cập nhật mật khẩu lên server tại đây
+              print("Cập nhật mật khẩu thành công!");
+              _disableForgotPasswordTab();
+            },
+          ),
         ],
       ),
     );
   }
 
-Widget _buildForgotPasswordStepContent() {
+  Widget _buildForgotPasswordStepContent() {
     if (_currentStep == ForgotPasswordStep.inputEmail) {
       return _buildForgotPasswordForm();
     } else {
       return _buildNewPasswordForm();
+    }
+  }
+
+  void _handleLogin(BuildContext context) async {
+    final viewModel = context.read<LoginViewModel>();
+
+    final success = await viewModel.login(
+      _loginEmailController.text.trim(),
+      _loginPasswordController.text.trim(),
+    );
+
+    if (success && mounted) {
+      // Navigator.pushReplacementNamed(context, '/home');
+      print("Đăng nhập thành công, chuyển sang màn hình chính!");
+    } else if (viewModel.errorMessage != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(viewModel.errorMessage!),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }
