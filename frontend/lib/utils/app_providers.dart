@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
@@ -13,11 +14,15 @@ class AppProviders {
     return [
       Provider<Box>(create: (_) => Hive.box('userBox')),
       ProxyProvider<AuthRepository, DioClient>(
-        update: (_, authRepo, __) => DioClient(authRepo),
+        update: (_, authRepo, _) => DioClient(authRepo),
       ),
       Provider<SecureStorageRepository>(
         create: (_) => SecureStorageRepositoryImp(const FlutterSecureStorage()),
       ),
+      ProxyProvider3<Box, Dio, SecureStorageRepository, AuthRepository>(
+      update: (_, box, dio, secureStorage, _) => 
+          AuthRepositoryImpl(box, dio, secureStorage),
+    ),
     ];
   }
 }

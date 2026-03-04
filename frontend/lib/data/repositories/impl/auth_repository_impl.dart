@@ -21,6 +21,8 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       final String token = response.data['token'];
       await _secureStorageRepository.saveToken(token);
+      String userId = await getUidFromToken(token);
+      _userBox.put('user_info', {'userId': userId});
       return token;
 
     } catch (e) {
