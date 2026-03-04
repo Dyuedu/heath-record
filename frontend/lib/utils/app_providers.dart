@@ -18,7 +18,7 @@ class AppProviders {
         create: (_) => SecureStorageRepositoryImp(const FlutterSecureStorage()),
       ),
       Provider<Dio>(
-        create: (_) => Dio(BaseOptions(baseUrl: 'http://10.33.67.160:8080')),
+        create: (_) => Dio(BaseOptions(baseUrl: 'http://10.33.71.183:8080')),
       ),
       ProxyProvider<AuthRepository, DioClient>(
         update: (_, authRepo, _) => DioClient(authRepo),

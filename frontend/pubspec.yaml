@@ -44,6 +44,7 @@ dependencies:
   fluttertoast: ^9.0.0
   dio: ^5.9.0
   stomp_dart_client: ^3.0.1
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
