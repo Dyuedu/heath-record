@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:frontend/utils/custom_text_field.dart';
 import 'package:frontend/viewmodels/login_view_model.dart';
+import 'package:frontend/viewmodels/register_view_model.dart';
 import 'package:frontend/views/otp_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -191,26 +193,42 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
   }
 
   Widget _buildRegisterForm() {
+    final errorMessage = context.watch<RegisterViewModel>().errorMessage;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
-          CustomTextField(label: "Email", controller: _registerEmailController),
+          CustomTextField(
+            label: "Email",
+            controller: _registerEmailController,
+            errorText: errorMessage?['email'] != null
+                ? errorMessage!['email'].toString()
+                : "",
+          ),
           const SizedBox(height: 20),
           CustomTextField(
             label: "Mật khẩu",
             isPassword: true,
             controller: _registerPasswordController,
+            errorText: errorMessage?['password'] != null
+                ? errorMessage!['password'].toString()
+                : "",
           ),
           const SizedBox(height: 20),
           CustomTextField(
             label: "Xác nhận mật khẩu",
             isPassword: true,
             controller: _registerConfirmPasswordController,
+            errorText: errorMessage?['confirmPassword'] != null
+                ? errorMessage!['confirmPassword'].toString()
+                : "",
           ),
 
           const SizedBox(height: 30),
-          _buildActionButton("Đăng ký ngay"),
+          _buildActionButton(
+            "Đăng ký ngay",
+            onTap: () => _handleRegister(context),
+          ),
         ],
       ),
     );
@@ -381,6 +399,44 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
           content: Text(viewModel.errorMessage!),
           backgroundColor: Colors.red,
         ),
+      );
+    }
+  }
+
+  Future<void> _handleRegister(BuildContext context) async {
+    final viewModel = context.read<RegisterViewModel>();
+    final password = _registerPasswordController.text.trim();
+    final confirmPassword = _registerConfirmPasswordController.text.trim();
+    if (password != confirmPassword) {
+      viewModel.errorMessage = {
+        'confirmPassword': 'Mật khẩu xác nhận không khớp',
+      };
+      return;
+    }
+    final success = await viewModel.register(
+      _registerEmailController.text.trim(),
+      _registerPasswordController.text.trim(),
+    );
+    if (success && mounted) {
+        Fluttertoast.showToast(
+          msg: "Đăng ký thành công! Vui lòng đăng nhập.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP, // Đẩy lên trên đầu
+          timeInSecForIosWeb: 2,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      _tabController.animateTo(1); // Chuyển sang tab Đăng nhập
+    } else if (viewModel.errorMessage != null && mounted) {
+      Fluttertoast.showToast(
+        msg: viewModel.errorMessage.toString(),
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP,
+        timeInSecForIosWeb: 2,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
       );
     }
   }
