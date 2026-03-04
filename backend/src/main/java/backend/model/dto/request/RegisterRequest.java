@@ -2,8 +2,6 @@ package backend.model.dto.request;
 
 import jakarta.validation.constraints.*;
 
-import javax.annotation.RegEx;
-
 public record RegisterRequest(
         @NotBlank(message = "Email is required")
         @Email(message = "Email format is invalid")
