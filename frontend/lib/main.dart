@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/utils/app_providers.dart';
 import 'package:frontend/views/health_splash_creen.dart';
-import 'package:frontend/views/profile/profile_management_screen.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -24,7 +23,7 @@ class HealthRecordApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: ProfileManagementScreen(),
+        home: const HealthSplashScreen(),
     );
   }
 }
