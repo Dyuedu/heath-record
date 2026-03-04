@@ -6,6 +6,7 @@ import 'package:frontend/data/repositories/impl/auth_repository_impl.dart';
 import 'package:frontend/data/repositories/impl/secure_storage_repository_imp.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/viewmodels/login_view_model.dart';
+import 'package:frontend/viewmodels/register_view_model.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
@@ -18,7 +19,7 @@ class AppProviders {
         create: (_) => SecureStorageRepositoryImp(const FlutterSecureStorage()),
       ),
       Provider<Dio>(
-        create: (_) => Dio(BaseOptions(baseUrl: 'http://10.33.71.183:8080')),
+        create: (_) => Dio(BaseOptions(baseUrl: 'http://192.168.1.27:8080')),
       ),
       ProxyProvider<AuthRepository, DioClient>(
         update: (_, authRepo, _) => DioClient(authRepo),
@@ -30,6 +31,10 @@ class AppProviders {
       ChangeNotifierProvider<LoginViewModel>(
         create: (context) =>
             LoginViewModel(authRepository: context.read<AuthRepository>()),
+      ),
+      ChangeNotifierProvider<RegisterViewModel>(
+        create: (context) =>
+            RegisterViewModel(authRepository: context.read<AuthRepository>()),
       ),
     ];
   }

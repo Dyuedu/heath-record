@@ -4,12 +4,14 @@ class CustomTextField extends StatefulWidget {
   final String label;
   final bool isPassword;
   final TextEditingController? controller; // Thêm controller để lấy dữ liệu sau này
+  final String? errorText; // Thêm trường errorText để hiển thị lỗi
 
   const CustomTextField({
     super.key,
     required this.label,
     this.isPassword = false,
     this.controller,
+    this.errorText,
   });
 
   @override
@@ -34,7 +36,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
       decoration: InputDecoration(
         labelText: widget.label,
         labelStyle: const TextStyle(color: Colors.grey),
-        
+        errorText: widget.errorText,
         // Logic hiển thị Icon: 
         // 1. Nếu là mật khẩu -> Hiện icon con mắt để nhấn
         // 2. Nếu không phải mật khẩu -> Không hiện gì
