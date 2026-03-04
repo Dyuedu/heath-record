@@ -31,7 +31,7 @@ public class JWTService {
         String role = userPrincipal.getAuthorities().stream()
                 .findFirst()
                 .map(GrantedAuthority::getAuthority)
-                .orElse("ROLE_USER");
+                .orElse("user");
         extraClaims.put("username", username);
         extraClaims.put("role", role);
         return Jwts.builder()

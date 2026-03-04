@@ -13,16 +13,17 @@ import backend.exception.Error;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
-    private int status;
+    private Integer code;
     private T data;
     private List<Error> errors;
+    private String message;
 
-    public static <T> ApiResponse<T> success(int status, T data) {
-        return new ApiResponse<>(status, data, null);
+    public static <T> ApiResponse<T> success(Integer code, T data, String message) {
+        return new ApiResponse<>(code, data, null, message);
     }
 
-    public static <T> ApiResponse<T> error(int status, List<Error> errors) {
-        return new ApiResponse<>(status,null, errors);
+    public static <T> ApiResponse<T> error(Integer code, List<Error> errors) {
+        return new ApiResponse<>(code,null, errors, null);
     }
 
 }

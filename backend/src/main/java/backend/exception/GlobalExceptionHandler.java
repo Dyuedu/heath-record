@@ -29,6 +29,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(apiResponse);
     }
 
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDuplicateResourceException(DuplicateResourceException ex) {
+        Error error = Error.builder()
+                .idx(ex.getIndex())
+                .message(Map.of(ex.getField(), ex.getMessage()))
+                .build();
+        ApiResponse<Void> apiResponse = ApiResponse.error(400, List.of(error));
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
+
     private int extractIndex(String fieldPath) {
         try {
             if (fieldPath.contains("[") && fieldPath.contains("]")) {
