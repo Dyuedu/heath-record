@@ -201,27 +201,21 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
           CustomTextField(
             label: "Email",
             controller: _registerEmailController,
-            errorText: errorMessage?['email'] != null
-                ? errorMessage!['email'].toString()
-                : "",
+            errorText: errorMessage?['email']?.toString(),
           ),
           const SizedBox(height: 20),
           CustomTextField(
             label: "Mật khẩu",
             isPassword: true,
             controller: _registerPasswordController,
-            errorText: errorMessage?['password'] != null
-                ? errorMessage!['password'].toString()
-                : "",
+            errorText: errorMessage?['password']?.toString(),
           ),
           const SizedBox(height: 20),
           CustomTextField(
             label: "Xác nhận mật khẩu",
             isPassword: true,
             controller: _registerConfirmPasswordController,
-            errorText: errorMessage?['confirmPassword'] != null
-                ? errorMessage!['confirmPassword'].toString()
-                : "",
+            errorText: errorMessage?['confirmPassword']?.toString(),
           ),
 
           const SizedBox(height: 30),
@@ -391,8 +385,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
     );
 
     if (success && mounted) {
-      // Navigator.pushReplacementNamed(context, '/home');
-      print("Đăng nhập thành công, chuyển sang màn hình chính!");
+      Navigator.pushReplacementNamed(context, '/home');
     } else if (viewModel.errorMessage != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -418,15 +411,20 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
       _registerPasswordController.text.trim(),
     );
     if (success && mounted) {
-        Fluttertoast.showToast(
-          msg: "Đăng ký thành công! Vui lòng đăng nhập.",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.TOP, // Đẩy lên trên đầu
-          timeInSecForIosWeb: 2,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
+      Fluttertoast.showToast(
+        msg: "Đăng ký thành công! Vui lòng đăng nhập.",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP, // Đẩy lên trên đầu
+        timeInSecForIosWeb: 2,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      _registerEmailController.clear();
+      _registerPasswordController.clear();
+      _registerConfirmPasswordController.clear();
+
+      viewModel.clearErrors();
       _tabController.animateTo(1); // Chuyển sang tab Đăng nhập
     } else if (viewModel.errorMessage != null && mounted) {
       Fluttertoast.showToast(

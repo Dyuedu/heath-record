@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 class CustomTextField extends StatefulWidget {
   final String label;
   final bool isPassword;
-  final TextEditingController? controller; // Thêm controller để lấy dữ liệu sau này
+  final TextEditingController?
+  controller; // Thêm controller để lấy dữ liệu sau này
   final String? errorText; // Thêm trường errorText để hiển thị lỗi
 
   const CustomTextField({
@@ -34,16 +35,31 @@ class _CustomTextFieldState extends State<CustomTextField> {
       controller: widget.controller,
       obscureText: _isObscure,
       decoration: InputDecoration(
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Colors.red,
+          ), // Màu đỏ khi không focus
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Colors.red,
+            width: 2,
+          ), // Màu đỏ khi đang focus
+        ),
         labelText: widget.label,
         labelStyle: const TextStyle(color: Colors.grey),
         errorText: widget.errorText,
-        // Logic hiển thị Icon: 
+        // Logic hiển thị Icon:
         // 1. Nếu là mật khẩu -> Hiện icon con mắt để nhấn
         // 2. Nếu không phải mật khẩu -> Không hiện gì
         suffixIcon: widget.isPassword
             ? IconButton(
                 icon: Icon(
-                  _isObscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  _isObscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                   color: Colors.grey,
                 ),
                 onPressed: () {

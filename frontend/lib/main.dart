@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/utils/app_providers.dart';
+import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/views/health_splash_creen.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +25,7 @@ class HealthRecordApp extends StatelessWidget {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: const HealthSplashScreen(),
+        onGenerateRoute: AppRouter.generateRoute,
     );
   }
 }
