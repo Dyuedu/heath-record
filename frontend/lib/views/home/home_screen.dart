@@ -110,7 +110,7 @@ class HomeScreen extends StatelessWidget {
                       HomeFeatureItem(
                         imagePath: 'assets/images/home/benh_su.png',
                         title: "Bệnh sử",
-                        onTap: () => Navigator.pushNamed(context, AppRouter.medicalHistory),
+                        onTap: () => Navigator.pushNamed(context, AppRouter.medicalRecord),
                       ),
                       HomeFeatureItem(
                         imagePath: 'assets/images/home/ho_so.png',

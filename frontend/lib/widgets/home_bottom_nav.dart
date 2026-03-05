@@ -46,7 +46,7 @@ class HomeBottomNav extends StatelessWidget {
               _NavItem(
                 imagePath: 'assets/images/home/benh_su.png',
                 label: "Bệnh sử",
-                onTap: () => Navigator.pushNamed(context, AppRouter.medicalHistory),
+                onTap: () => Navigator.pushNamed(context, AppRouter.medicalRecord),
               ),
               _NavItem(
                 imagePath: 'assets/images/home/ho_so.png',

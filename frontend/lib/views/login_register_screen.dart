@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/utils/custom_text_field.dart';
 import 'package:frontend/viewmodels/login_view_model.dart';
 import 'package:frontend/viewmodels/register_view_model.dart';
@@ -385,7 +386,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
     );
 
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, AppRouter.home);
     } else if (viewModel.errorMessage != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

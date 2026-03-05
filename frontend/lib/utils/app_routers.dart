@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/views/login_register_screen.dart';
+import 'package:frontend/views/medical_records.dart';
 import 'package:frontend/views/profile/profile_management_screen.dart';
 import 'package:frontend/views/staff_record_management/staff_home_screen.dart';
 import '../views/home/home_screen.dart';
@@ -12,10 +13,10 @@ class AppRouter {
   static const String booking = '/booking';
   static const String appointment = '/appointment';
   static const String followUp = '/follow-up';
-  static const String medicalHistory = '/medical-history';
   static const String payment = '/payment';
   static const String profile = '/profile';
   static const String loginRegister = '/login-register';
+  static const String medicalRecord = '/medical-record';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -25,7 +26,9 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const LoginRegisterScreen());
       case profile:
         return MaterialPageRoute(builder: (_) => ProfileManagementScreen());
-      case medicalHistory:
+      case medicalRecord:
+        return MaterialPageRoute(builder: (_) => MedicalRecordsScreen());
+      case medicalRecord:
         return MaterialPageRoute(builder: (_) => StaffHomeScreen());
       case booking:
       // return MaterialPageRoute(builder: (_) => const BookingScreen());
