@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/views/login_register_screen.dart';
+import 'package:frontend/views/profile/profile_management_screen.dart';
+import 'package:frontend/views/staff_record_management/staff_home_screen.dart';
 import '../views/home/home_screen.dart';
 
 class AppRouter {
@@ -20,19 +22,19 @@ class AppRouter {
       case home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
       case loginRegister:
-      return MaterialPageRoute(builder: (_) => const LoginRegisterScreen());
+        return MaterialPageRoute(builder: (_) => const LoginRegisterScreen());
+      case profile:
+        return MaterialPageRoute(builder: (_) => ProfileManagementScreen());
+      case medicalHistory:
+        return MaterialPageRoute(builder: (_) => StaffHomeScreen());
       case booking:
       // return MaterialPageRoute(builder: (_) => const BookingScreen());
       case appointment:
       // return MaterialPageRoute(builder: (_) => const AppointmentScreen());
       case followUp:
       // return MaterialPageRoute(builder: (_) => const FollowUpScreen());
-      case medicalHistory:
-      // return MaterialPageRoute(builder: (_) => const MedicalHistoryScreen());
       case payment:
       // return MaterialPageRoute(builder: (_) => const PaymentScreen());
-      case profile:
-      // return MaterialPageRoute(builder: (_) => const ProfileScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
