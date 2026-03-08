@@ -3,6 +3,7 @@ import 'package:frontend/data/models/auth/login_request.dart';
 import 'package:frontend/data/models/auth/register_request.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class AuthRepositoryImp implements AuthRepository {
   final DioClient _dioClient;
@@ -54,10 +55,12 @@ class AuthRepositoryImp implements AuthRepository {
           return false;
         });
   }
-  
+
   @override
   Future<bool> isAuthenticated() {
-    // TODO: implement isAuthenticated
-    throw UnimplementedError();
+    return _secureStorageRepository.getToken().then((token) {
+      if (token == null) return false;
+      return !JwtDecoder.isExpired(token);
+    });
   }
 }

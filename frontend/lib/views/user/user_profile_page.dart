@@ -16,13 +16,16 @@ class UserProfilePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF246BFF)),
-          onPressed: () => Navigator.pop(context),
-        ),
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF246BFF)),
+        //   onPressed: () => Navigator.pop(context),
+        // ),
         title: const Text(
           'My Profile',
-          style: TextStyle(color: Color(0xFF246BFF), fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Color(0xFF246BFF),
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
@@ -35,7 +38,7 @@ class UserProfilePage extends StatelessWidget {
             // 1. Avatar Section với nút Edit
             _buildAvatarSection(context),
             const SizedBox(height: 15),
-            
+
             // 2. User Name
             const Text(
               "John Doe",
@@ -157,38 +160,112 @@ class UserProfilePage extends StatelessWidget {
       ),
       trailing: isLogout
           ? null
-          : const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFFDDE3FF)),
+          : const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Color(0xFFDDE3FF),
+            ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
     );
   }
 
   // Hàm hiển thị hộp thoại xác nhận Logout
+  // Hàm hiển thị hộp thoại xác nhận Logout giống thiết kế ảnh Logout.png
   void _showLogoutDialog(BuildContext context, AuthViewModel vm) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Logout"),
-        content: const Text("Are you sure you want to logout?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30), // Bo góc lớn giống ảnh
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // Để dialog gọn theo nội dung
+            children: [
+              const Text(
+                "Logout",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF246BFF), // Màu xanh chủ đạo
+                ),
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                "are you sure you want to log out?",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                children: [
+                  // Nút Cancel màu nhạt
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDDE3FF),
+                        foregroundColor: const Color(0xFF246BFF),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text(
+                        "Cancel",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  // Nút Yes, Logout màu xanh đậm
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        await vm.logout();
+                        if (context.mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginPage(),
+                            ),
+                            (route) => false,
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF246BFF),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text(
+                        "Yes, Logout",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              // Gọi logic logout từ AuthRepository thông qua ViewModel
-              // await vm.logout(); 
-              if (context.mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
-                  (route) => false,
-                );
-              }
-            },
-            child: const Text("Logout", style: TextStyle(color: Colors.red)),
-          ),
-        ],
+        ),
       ),
     );
   }

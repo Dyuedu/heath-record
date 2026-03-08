@@ -6,5 +6,6 @@ abstract class AuthRepository {
   Future<bool> register(RegisterRequest request);
   Future<void> logout();
   Future<bool> isLoggedIn();
-  Future<dynamic> isAuthenticated() async {}
+  Future<dynamic> isAuthenticated() async {
+  }
 }

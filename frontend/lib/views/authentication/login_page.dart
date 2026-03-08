@@ -137,10 +137,7 @@ class _LoginPageState extends State<LoginPage> {
             );
 
             if (success && mounted) {
-              Navigator.pushReplacement(
-                context, 
-                MaterialPageRoute(builder: (_) => const MedicalTimelinePage())
-              );
+              Navigator.pushReplacementNamed(context, '/home');
             }
           },
           child: const Text("Sign In", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
@@ -153,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
           const Text("Don't have an account?", style: TextStyle(color: Colors.black54)),
           TextButton(
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupPage()));
+              Navigator.pushNamed(context, '/signup');
             },
             child: const Text("Sign Up", style: TextStyle(color: Color(0xFF246BFF), fontWeight: FontWeight.bold)),
           ),

@@ -1,5 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:frontend/utils/app_routers.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
+import 'package:frontend/main.dart'; // Để lấy navigatorKey
 
 class DioClient {
   final SecureStorageRepository _storage;
@@ -8,7 +11,7 @@ class DioClient {
   DioClient(this._storage) {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'http://192.168.1.27:8081',
+        baseUrl: 'http://10.0.2.2:8081',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -19,16 +22,26 @@ class DioClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // Lấy token từ repo đã được inject
           final token = await _storage.getToken();
+          
           if (token != null) {
+            // Kiểm tra hết hạn chủ động phía Client
+            if (JwtDecoder.isExpired(token)) {
+              await _storage.deleteToken();
+              _redirectToLogin();
+              return handler.reject(
+                DioException(requestOptions: options, message: "Token expired"),
+              );
+            }
             options.headers['Authorization'] = 'Bearer $token';
           }
           return handler.next(options);
         },
-        onError: (DioException e, handler) {
+        onError: (DioException e, handler) async {
+          // Xử lý khi Server trả về 401 Unauthorized
           if (e.response?.statusCode == 401) {
-            print("Unauthorized! Redirecting to login...");
+            await _storage.deleteToken();
+            _redirectToLogin();
           }
           return handler.next(e);
         },
@@ -36,6 +49,13 @@ class DioClient {
     );
   }
 
-  // Getter để lấy instance của dio ra dùng
+  // Hàm điều hướng tập trung
+  void _redirectToLogin() {
+    navigatorKey.currentState?.pushNamedAndRemoveUntil(
+      AppRouter.login, 
+      (route) => false,
+    );
+  }
+
   Dio get dio => _dio;
 }

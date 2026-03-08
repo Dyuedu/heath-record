@@ -17,20 +17,18 @@ class CustomBottomNav extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _navItem(context, Icons.home_outlined, () {
-            // Navigator.pushNamed(context, '/home');
+            Navigator.pushReplacementNamed(context, '/home');
           }),
-          _navItem(context, Icons.chat_bubble_outline, () {
-            // Điều hướng sang trang Chat
-          }),
+          // _navItem(context, Icons.chat_bubble_outline, () {
+          //   // Điều hướng sang trang Chat
+          // }),
           // NÚT HÌNH NGƯỜI SANG PROFILE
           _navItem(context, Icons.person_outline, () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const UserProfilePage()),
-            );
+            Navigator.pushReplacementNamed(context, '/profile');
           }),
           _navItem(context, Icons.calendar_month, () {
             // Điều hướng sang trang Lịch hẹn
+            Navigator.pushReplacementNamed(context, '/appointments');
           }),
         ],
       ),

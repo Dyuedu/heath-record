@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/utils/app_providers.dart';
-import 'package:frontend/views/authentication/login_page.dart';
+import 'package:frontend/utils/app_routers.dart';
+import 'package:frontend/utils/auth_wrapper.dart';
 import 'package:provider/provider.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(providers: AppProviders.getProviders(), child: const MyApp()),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -12,11 +16,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: AppProviders.getProviders(),
-      child: const MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: LoginPage()),
+    return MaterialApp(
+      navigatorKey: navigatorKey,
+      debugShowCheckedModeBanner: false,
+      onGenerateRoute: AppRouter.generateRoute,
+      // Sử dụng AuthWrapper thay vì gọi logic trực tiếp ở đây
+      home: const AuthWrapper(),
     );
   }
 }
