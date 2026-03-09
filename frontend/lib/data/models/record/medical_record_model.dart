@@ -1,3 +1,5 @@
+import 'dart:convert' as Convert;
+
 class MedicalRecordModel {
   final String? id;
   final String title;
@@ -19,7 +21,7 @@ class MedicalRecordModel {
     required this.patientId,
   });
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toMap() => {
     'title': title,
     'type': type,
     'tags': tags,
@@ -27,4 +29,19 @@ class MedicalRecordModel {
     'isImportant': isImportant,
     'patientId': patientId,
   };
+
+  String toJson() => Convert.jsonEncode(toMap());
+
+  factory MedicalRecordModel.fromMap(Map<String, dynamic> map) {
+    return MedicalRecordModel(
+      id: map['id'],
+      title: map['title'],
+      type: map['type'],
+      tags: List<String>.from(map['tags'] ?? []),
+      notes: map['notes'] ?? '',
+      isImportant: map['important'] ?? false,
+      createdAt: DateTime.parse(map['createdAt']),
+      patientId: map['patientId'],
+    );
+  }
 }

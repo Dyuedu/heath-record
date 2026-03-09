@@ -5,6 +5,8 @@ import org.springframework.stereotype.Repository;
 
 import backend.model.User;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,4 +15,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     User findByEmail(String email);
     User findByPhoneNumber(String phoneNumber);
     Optional<User> findById(UUID id);
+    List<User> findByPhoneNumberContaining(String phone);
 }

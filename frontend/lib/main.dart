@@ -20,7 +20,6 @@ class MyApp extends StatelessWidget {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       onGenerateRoute: AppRouter.generateRoute,
-      // Sử dụng AuthWrapper thay vì gọi logic trực tiếp ở đây
       home: const AuthWrapper(),
     );
   }

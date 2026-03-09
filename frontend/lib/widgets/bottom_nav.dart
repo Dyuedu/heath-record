@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/views/user/user_profile_page.dart';
 
 class CustomBottomNav extends StatelessWidget {
   const CustomBottomNav({super.key});

@@ -1,5 +1,6 @@
 package backend.exceptionHandler;
 
+import backend.exception.BaseException;
 import backend.exception.MultipleResourceDuplicateException;
 import backend.exception.ResourceDuplicateException;
 import backend.util.ErrorResponse;
@@ -71,5 +72,16 @@ public class GlobalExceptionHandler {
                 .build();
 
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(BaseException.class)
+    public ResponseEntity<ErrorResponse> handleBaseException(BaseException ex) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .status(ex.getStatus().value())
+                .errorCode(ex.getErrorCode())
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return new ResponseEntity<>(errorResponse, ex.getStatus());
     }
 }

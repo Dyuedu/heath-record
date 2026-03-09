@@ -1,10 +1,15 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
+import 'package:frontend/data/repositories/doctor_repository.dart';
 import 'package:frontend/data/repositories/impl/auth_repository_imp.dart';
+import 'package:frontend/data/repositories/impl/doctor_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/secure_storage_repository_imp.dart';
+import 'package:frontend/data/repositories/record_repository.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
+import 'package:frontend/viewmodels/doctor_viewmodel.dart';
+import 'package:frontend/viewmodels/record_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -39,6 +44,26 @@ class AppProviders {
           if (previous != null) return previous;
           return AuthViewModel(authRepository: authRepository);
         },
+      ),
+      ProxyProvider<DioClient, RecordRepository>(
+        update: (context, dioClient, previous) =>
+            RecordRepository(dioClient: dioClient),
+      ),
+      ChangeNotifierProxyProvider<RecordRepository, RecordViewModel>(
+        create: (context) =>
+            RecordViewModel(repository: context.read<RecordRepository>()),
+        update: (context, recordRepository, previous) =>
+            previous ?? RecordViewModel(repository: recordRepository),
+      ),
+      ProxyProvider<DioClient, DoctorRepository>(
+        update: (context, dioClient, previous) =>
+            DoctorRepositoryImp(dioClient),
+      ),
+      ChangeNotifierProxyProvider<DoctorRepository, DoctorViewModel>(
+        create: (context) =>
+            DoctorViewModel(repository: context.read<DoctorRepository>()),
+        update: (context, doctorRepository, previous) =>
+            previous ?? DoctorViewModel(repository: doctorRepository),
       ),
     ];
   }

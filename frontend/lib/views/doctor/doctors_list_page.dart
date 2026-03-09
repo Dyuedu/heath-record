@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/data/models/doctor_model.dart';
+import 'package:frontend/data/models/doctor/doctor_model.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
 import 'package:provider/provider.dart';

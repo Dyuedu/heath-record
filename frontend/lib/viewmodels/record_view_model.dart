@@ -1,19 +1,52 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:frontend/data/models/record/medical_record_model.dart';
+import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/repositories/record_repository.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 
 class RecordViewModel extends ChangeNotifier {
-  final RecordRepository _repository = RecordRepository();
+  final RecordRepository _repository;
   final ImagePicker _picker = ImagePicker();
+
+  RecordViewModel({required RecordRepository repository})
+    : _repository = repository;
 
   // State
   List<File> selectedFiles = [];
   List<String> selectedTags = [];
+  List<Relative> relatives = [];
+  List<MedicalRecordModel> records = [];
   bool isImportant = false;
   bool isLoading = false;
+  String? selectedRelativeId;
+  String? errorMessage;
+
+  Future<void> initData() async {
+    _setLoading(true);
+    relatives = await _repository.getMyRelatives();
+    if (relatives.isNotEmpty) {
+      await fetchRecords(relatives.first.id.toString());
+    }
+    _setLoading(false);
+  }
+
+  Future<void> fetchRecords(String relativeId) async {
+    selectedRelativeId = relativeId;
+    _setLoading(true);
+
+    // Gọi repo và nhận về List<MedicalRecordModel>
+    records = await _repository.getRecordsByRelative(relativeId);
+
+    _setLoading(false);
+  }
+
+  void _setLoading(bool value) {
+    isLoading = value;
+    notifyListeners();
+  }
 
   void toggleImportance(bool value) {
     isImportant = value;
@@ -76,19 +109,46 @@ class RecordViewModel extends ChangeNotifier {
   }
 
   Future<bool> saveRecord(String title, String notes) async {
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) {
+      errorMessage = "Title is required";
+      notifyListeners();
+      return false;
+    }
+
     isLoading = true;
+    errorMessage = null;
     notifyListeners();
 
-    bool success = await _repository.saveMedicalRecord(
-      title: title,
-      tags: selectedTags,
-      notes: notes,
-      isImportant: isImportant,
-      files: selectedFiles,
-    );
+    try {
+      final success = await _repository.saveMedicalRecord(
+        relativeId: "65c3bfdb-e729-451e-8934-3399499a40a3",
+        title: trimmedTitle,
+        tags: List<String>.from(selectedTags),
+        notes: notes,
+        isImportant: isImportant,
+        files: List<File>.from(selectedFiles),
+      );
 
-    isLoading = false;
-    notifyListeners();
-    return success;
+      if (success) {
+        _resetFormState();
+      } else {
+        errorMessage = "Không thể lưu hồ sơ. Vui lòng thử lại.";
+      }
+
+      return success;
+    } catch (e) {
+      errorMessage = "Đã xảy ra lỗi không mong muốn.";
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void _resetFormState() {
+    selectedFiles.clear();
+    selectedTags.clear();
+    isImportant = false;
   }
 }
