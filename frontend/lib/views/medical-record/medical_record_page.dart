@@ -50,8 +50,18 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRecordPage())),
-        backgroundColor: const Color(0xFF246BFF),
+        onPressed: vm.selectedRelativeId == null
+            ? null
+            : () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateRecordPage(
+                      relativeId: vm.selectedRelativeId!,
+                    ),
+                  ),
+                ),
+        backgroundColor:
+            vm.selectedRelativeId == null ? Colors.grey : const Color(0xFF246BFF),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text("New Record", style: TextStyle(color: Colors.white)),
       ),

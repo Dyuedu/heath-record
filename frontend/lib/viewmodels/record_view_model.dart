@@ -116,13 +116,20 @@ class RecordViewModel extends ChangeNotifier {
       return false;
     }
 
+    final targetRelativeId = selectedRelativeId;
+    if (targetRelativeId == null || targetRelativeId.isEmpty) {
+      errorMessage = "Please choose a patient before saving.";
+      notifyListeners();
+      return false;
+    }
+
     isLoading = true;
     errorMessage = null;
     notifyListeners();
 
     try {
       final success = await _repository.saveMedicalRecord(
-        relativeId: "65c3bfdb-e729-451e-8934-3399499a40a3",
+        relativeId: targetRelativeId,
         title: trimmedTitle,
         tags: List<String>.from(selectedTags),
         notes: notes,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/views/search/patient_detail_page.dart';
 import 'package:provider/provider.dart';
+
 import '../../viewmodels/doctor_viewmodel.dart';
 
 class SearchPatientPage extends StatefulWidget {
@@ -97,9 +99,12 @@ class _SearchPatientPageState extends State<SearchPatientPage> {
         subtitle: Text("SĐT: ${patient.phoneNumber}"),
         trailing: const Icon(Icons.chevron_right, color: Color(0xFF246BFF)),
         onTap: () {
-          // Khi nhấn vào, điều hướng tới trang chọn Relative của bệnh nhân đó
-          // Hoặc đi thẳng tới trang CreateRecord nếu mặc định là chính họ
-          Navigator.pushNamed(context, '/patient-relatives', arguments: patient.id);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PatientDetailPage(patient: patient),
+            ),
+          );
         },
       ),
     );

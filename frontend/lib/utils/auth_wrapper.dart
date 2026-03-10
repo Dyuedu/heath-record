@@ -36,7 +36,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
 
         if (snapshot.hasData && snapshot.data == true) {
-          return const SearchPatientPage();
+          return const HomePage();
         } else {
           return const LoginPage();
         }

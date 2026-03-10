@@ -5,7 +5,9 @@ import 'package:frontend/viewmodels/record_view_model.dart';
 import 'package:provider/provider.dart';
 
 class CreateRecordPage extends StatelessWidget {
-  CreateRecordPage({super.key});
+  CreateRecordPage({super.key, required this.relativeId});
+
+  final String relativeId;
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
@@ -19,6 +21,7 @@ class CreateRecordPage extends StatelessWidget {
       ),
       child: Consumer<RecordViewModel>(
         builder: (context, vm, child) {
+          vm.selectedRelativeId ??= relativeId;
           return Scaffold(
             appBar: AppBar(
               title: const Text(
@@ -214,7 +217,7 @@ class CreateRecordPage extends StatelessWidget {
           shape: const StadiumBorder(),
         ),
         onPressed: () async {
-          bool success = await vm.saveRecord(
+          final success = await vm.saveRecord(
             _titleController.text,
             _notesController.text,
           );
@@ -222,11 +225,11 @@ class CreateRecordPage extends StatelessWidget {
           if (success) {
             _titleController.clear();
             _notesController.clear();
-            messenger.showSnackBar(
-              const SnackBar(content: Text("Record saved successfully!")),
-            );
+            Navigator.of(context).pop(true);
           } else if (vm.errorMessage != null) {
-            messenger.showSnackBar(SnackBar(content: Text(vm.errorMessage!)));
+            messenger.showSnackBar(
+              SnackBar(content: Text(vm.errorMessage!)),
+            );
           }
         },
         child: const Text(
