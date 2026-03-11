@@ -108,7 +108,7 @@ class RecordViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> saveRecord(String title, String notes) async {
+  Future<bool> saveRecord(String title, String notes, String type) async {
     final trimmedTitle = title.trim();
     if (trimmedTitle.isEmpty) {
       errorMessage = "Title is required";
@@ -135,6 +135,7 @@ class RecordViewModel extends ChangeNotifier {
         notes: notes,
         isImportant: isImportant,
         files: List<File>.from(selectedFiles),
+        type: type.trim(),
       );
 
       if (success) {

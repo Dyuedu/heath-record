@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import backend.model.Relative;
 import backend.repository.RelativeRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -45,40 +46,37 @@ public class RecordService {
         this.cloudinary = cloudinary;
     }
 
-    public RecordResponse createRecord(UUID userId,
-                                       RecordCreateRequest request,
-                                       List<MultipartFile> files) {
+    public RecordResponse createRecord(UUID doctorId, RecordCreateRequest request, List<MultipartFile> files) {
+        // 1. Xác thực bác sĩ
+        User doctor = userRepository.findById(doctorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bác sĩ không tồn tại"));
 
-        // kiểm tra user tồn tại
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
-
-        // lấy relative
-        Relative relative = relativeRepository.findById(request.getRelativeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người thân"));
-
-        // đảm bảo relative thuộc user
-        if (!relative.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Relative không thuộc user này");
+        // Kiểm tra role của người dùng hiện tại (Phải là DOCTOR mới được tạo record cho người khác)
+        if (!doctor.getRole().getName().equalsIgnoreCase("doctor")) {
+            throw new AccessDeniedException("Chỉ bác sĩ mới có quyền tạo bệnh án");
         }
 
+        // 2. Lấy đối tượng nhận bệnh án (Bệnh nhân/Người thân)
+        Relative relative = relativeRepository.findById(request.getRelativeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ người nhận"));
+
+        // 3. Tiến hành lưu (Bỏ qua bước check relative.getUser().equals(doctorId))
         List<String> uploadedUrls = uploadFiles(files);
-        List<String> normalizedTags = normalizeTags(request.getTags());
 
         MedicalRecord record = MedicalRecord.builder()
                 .title(request.getTitle().trim())
-                .notes(StringUtils.hasText(request.getNotes()) ? request.getNotes().trim() : null)
+                .type(request.getType())
+                .notes(request.getNotes())
                 .important(request.isImportant())
-                .tags(new ArrayList<>(normalizedTags))
+                .tags(new ArrayList<>(normalizeTags(request.getTags())))
                 .attachments(new ArrayList<>(uploadedUrls))
                 .relative(relative)
+                .doctor(doctor)
                 .build();
 
         MedicalRecord saved = medicalRecordRepository.save(record);
-
         return mapToResponse(saved);
     }
-
     private List<String> uploadFiles(List<MultipartFile> files) {
         if (CollectionUtils.isEmpty(files)) {
             return Collections.emptyList();
@@ -139,7 +137,7 @@ public class RecordService {
                 .attachments(List.copyOf(record.getAttachments()))
                 .createdAt(record.getCreatedAt())
                 .relativeId(record.getRelative().getId())
-                .relativeName(record.getRelative().getName())
+                .relativeName(record.getRelative().getProfile().getFullname())
                 .build();
     }
 }
