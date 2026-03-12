@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/views/home/home_page.dart';
-import 'package:frontend/views/medical-record/medical_record_page.dart';
-import 'package:frontend/views/search/search_patient_page.dart';
 import 'package:provider/provider.dart';
 
 class AuthWrapper extends StatefulWidget {

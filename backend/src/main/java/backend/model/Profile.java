@@ -10,6 +10,7 @@ public class Profile {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
     private String fullname;
+    private String nickname;
     private String gender;
     private String dateOfBirth;
     private String address;

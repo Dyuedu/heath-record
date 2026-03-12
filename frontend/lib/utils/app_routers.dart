@@ -12,21 +12,40 @@ class AppRouter {
   static const String signup = '/signup';
   static const String profile = '/profile';
   static const String appointments = '/appointments';
+  static const String medicalRecords = '/medical-records';
+  static const String notifications = '/notifications';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case home:
-        return MaterialPageRoute(builder: (_) => const HomePage());
+        return MaterialPageRoute(builder: (_) => const HomePage(),
+        settings: settings
+        );
       case login:
-        return MaterialPageRoute(builder: (_) => const LoginPage());
+        return MaterialPageRoute(builder: (_) => const LoginPage(),
+        settings: settings
+        );
       case signup:
-        return MaterialPageRoute(builder: (_) => const SignupPage());
+        return MaterialPageRoute(builder: (_) => const SignupPage(),
+        settings: settings
+        );
       case profile:
-        return MaterialPageRoute(builder: (_) => const UserProfilePage());
+        return MaterialPageRoute(builder: (_) => const UserProfilePage(),
+        settings: settings
+        );
       case appointments:
         return MaterialPageRoute(
           builder: (_) => const AppointmentPage(),
+          settings: settings
         );
+      case medicalRecords:
+        // return MaterialPageRoute(
+        //   builder: (_) => const MedicalRecordsPage(),
+        // );
+      case notifications:
+        // return MaterialPageRoute(
+        //   builder: (_) => const NotificationsPage(),
+        // );
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

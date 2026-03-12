@@ -1,21 +1,16 @@
 package backend.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
-
 import java.util.List;
 import java.util.UUID;
-
-import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
 @Table(name = "relatives")
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Relative {
 
     @Id
