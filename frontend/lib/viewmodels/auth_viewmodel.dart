@@ -6,7 +6,8 @@ import 'package:frontend/data/repositories/auth_repository.dart';
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
 
-  AuthViewModel({required AuthRepository authRepository}) : _authRepository = authRepository;
+  AuthViewModel({required AuthRepository authRepository})
+    : _authRepository = authRepository;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -22,11 +23,11 @@ class AuthViewModel extends ChangeNotifier {
     try {
       final request = LoginRequest(email: email, password: password);
       final success = await _authRepository.login(request);
-      
+
       if (!success) {
         _errorMessage = "Email hoặc mật khẩu không chính xác.";
       }
-      
+
       _setLoading(false);
       return success;
     } catch (e) {
@@ -64,30 +65,37 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
+
   Future<bool> isLoggedIn() async {
-    _setLoading(true);
     try {
-      final loggedIn = await _authRepository.isLoggedIn();
-      _setLoading(false);
-      return loggedIn;
+      return await _authRepository.isLoggedIn();
     } catch (e) {
-      _setLoading(false);
       return false;
     }
   }
 
-  Future<bool> register(String fullname, String email, String phone, String password) async {
+  Future<bool> register(
+    String fullname,
+    String email,
+    String phone,
+    String password,
+  ) async {
     _setLoading(true);
     _errorMessage = null;
 
     try {
-      final request = RegisterRequest(fullname: fullname, email: email, phone: phone, password: password);
+      final request = RegisterRequest(
+        fullname: fullname,
+        email: email,
+        phone: phone,
+        password: password,
+      );
       final success = await _authRepository.register(request);
-      
+
       if (!success) {
         _errorMessage = "Đăng ký thất bại. Vui lòng thử lại.";
       }
-      
+
       _setLoading(false);
       return success;
     } catch (e) {

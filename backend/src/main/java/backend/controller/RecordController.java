@@ -72,7 +72,7 @@ public class RecordController {
                 .stream()
                 .map(rel -> RelativeResponse.builder()
                         .id(rel.getId())
-                        .name(rel.getName())
+                        .name(rel.getProfile().getFullname())
                         .relationship(rel.getRelationship())
                         .build())
                 .toList();

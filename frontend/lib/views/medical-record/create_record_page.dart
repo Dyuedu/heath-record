@@ -1,85 +1,113 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/repositories/record_repository.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
-import 'package:provider/provider.dart';
 
-class CreateRecordPage extends StatelessWidget {
-  CreateRecordPage({super.key});
+class CreateRecordPage extends StatefulWidget {
+  final String relativeId;
 
+  const CreateRecordPage({super.key, required this.relativeId});
+
+  @override
+  State<CreateRecordPage> createState() => _CreateRecordPageState();
+}
+
+class _CreateRecordPageState extends State<CreateRecordPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  
+  // Mặc định chọn loại hồ sơ là 'Test'
+  String _selectedType = 'Test';
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Khởi tạo ViewModel
     return ChangeNotifierProvider(
       create: (context) => RecordViewModel(
         repository: RecordRepository(dioClient: context.read<DioClient>()),
-      ),
+      )..selectedRelativeId = widget.relativeId,
       child: Consumer<RecordViewModel>(
         builder: (context, vm, child) {
           return Scaffold(
+            backgroundColor: Colors.white,
             appBar: AppBar(
               title: const Text(
-                "Add New Record",
-                style: TextStyle(
-                  color: Color(0xFF246BFF),
-                  fontWeight: FontWeight.bold,
-                ),
+                "Tạo bệnh án mới",
+                style: TextStyle(color: Color(0xFF246BFF), fontWeight: FontWeight.bold),
               ),
               centerTitle: true,
               elevation: 0,
               backgroundColor: Colors.white,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
             body: Stack(
               children: [
                 SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _label("Title"),
-                      _textField(_titleController, "Enter record title..."),
+                      // 1. Phân loại hồ sơ (Type Selector)
+                      _label("Phân loại hồ sơ"),
+                      _buildTypeSelector(),
+                      const SizedBox(height: 24),
+
+                      // 2. Tiêu đề
+                      _label("Tiêu đề khám"),
+                      _textField(_titleController, "Nhập tiêu đề (vd: Khám tai mũi họng...)"),
                       if (vm.errorMessage != null)
                         Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(
-                            vm.errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.redAccent,
-                              fontSize: 12,
-                            ),
-                          ),
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(vm.errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12)),
                         ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
-                      _label("Tags Management"),
+                      // 3. Quản lý Tags
+                      _label("Từ khóa (Tags)"),
                       _buildTagSearchBar(vm),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       _buildSuggestedTags(vm),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
-                      _label("Attachments (Photo/Docs)"),
+                      // 4. Hình ảnh đính kèm
+                      _label("Hình ảnh & Tài liệu"),
                       _buildUploadSection(vm),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
-                      _label("Notes"),
-                      _textField(
-                        _notesController,
-                        "Add some notes here...",
-                        maxLines: 3,
-                      ),
+                      // 5. Ghi chú
+                      _label("Ghi chú của bác sĩ"),
+                      _textField(_notesController, "Nhập nội dung chi tiết...", maxLines: 4),
+                      const SizedBox(height: 16),
 
+                      // 6. Đánh dấu quan trọng
                       _importanceSwitch(vm),
-                      const SizedBox(height: 30),
-
-                      _saveButton(context, vm),
                     ],
                   ),
                 ),
+
+                // Nút Lưu nằm cố định phía dưới
+                Positioned(
+                  bottom: 20,
+                  left: 20,
+                  right: 20,
+                  child: _saveButton(context, vm),
+                ),
+
                 if (vm.isLoading)
-                  const Center(child: CircularProgressIndicator()),
+                  Container(
+                    color: Colors.black26,
+                    child: const Center(child: CircularProgressIndicator(color: Color(0xFF246BFF))),
+                  ),
               ],
             ),
           );
@@ -90,36 +118,59 @@ class CreateRecordPage extends StatelessWidget {
 
   // --- WIDGET COMPONENTS ---
 
+  Widget _buildTypeSelector() {
+    final types = [
+      {'label': 'Xét nghiệm', 'value': 'Test', 'icon': Icons.science_outlined},
+      {'label': 'Đơn thuốc', 'value': 'Prescription', 'icon': Icons.medication_outlined},
+      {'label': 'Chẩn đoán', 'value': 'Diagnosis', 'icon': Icons.assignment_outlined},
+    ];
+
+    return Wrap(
+      spacing: 10,
+      children: types.map((type) {
+        final bool isSelected = _selectedType == type['value'];
+        return ChoiceChip(
+          label: Text(type['label'] as String),
+          avatar: Icon(type['icon'] as IconData, 
+                  size: 16, color: isSelected ? Colors.white : const Color(0xFF246BFF)),
+          selected: isSelected,
+          selectedColor: const Color(0xFF246BFF),
+          onSelected: (selected) {
+            if (selected) setState(() => _selectedType = type['value'] as String);
+          },
+          labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildTagSearchBar(RecordViewModel vm) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: const Color(0xFFDDE3FF),
+        color: const Color(0xFFF0F3FF),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Wrap(
         spacing: 8,
+        runSpacing: 4,
         children: [
-          ...vm.selectedTags.map(
-            (tag) => Chip(
-              label: Text(
-                tag,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-              backgroundColor: const Color(0xFF246BFF),
-              onDeleted: () => vm.removeTag(tag),
-              deleteIcon: const Icon(
-                Icons.close,
-                size: 14,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(
-            width: 100,
+          ...vm.selectedTags.map((tag) => Chip(
+            label: Text(tag, style: const TextStyle(color: Colors.white, fontSize: 12)),
+            backgroundColor: const Color(0xFF246BFF),
+            onDeleted: () => vm.removeTag(tag),
+            deleteIcon: const Icon(Icons.close, size: 14, color: Colors.white),
+          )),
+          SizedBox(
+            width: 120,
             child: TextField(
-              decoration: InputDecoration(
-                hintText: "Search tag...",
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  vm.addTag(value.trim());
+                }
+              },
+              decoration: const InputDecoration(
+                hintText: "Thêm tag...",
                 border: InputBorder.none,
                 hintStyle: TextStyle(fontSize: 13),
               ),
@@ -131,17 +182,17 @@ class CreateRecordPage extends StatelessWidget {
   }
 
   Widget _buildSuggestedTags(RecordViewModel vm) {
-    final suggested = ["Blood", "Diabetes", "Heart", "COVID-19", "Allergy"];
+    final suggested = ["Máu", "Tiểu đường", "Tim mạch", "Dị ứng"];
     return Wrap(
       spacing: 8,
       children: suggested
           .where((t) => !vm.selectedTags.contains(t))
-          .map(
-            (tag) => ActionChip(
-              label: Text("#$tag"),
-              onPressed: () => vm.addTag(tag),
-            ),
-          )
+          .map((tag) => ActionChip(
+                label: Text("#$tag", style: const TextStyle(fontSize: 12)),
+                onPressed: () => vm.addTag(tag),
+                backgroundColor: Colors.white,
+                shape: const StadiumBorder(side: BorderSide(color: Color(0xFFDDE3FF))),
+              ))
           .toList(),
     );
   }
@@ -151,140 +202,113 @@ class CreateRecordPage extends StatelessWidget {
       children: [
         Row(
           children: [
-            _uploadBox(Icons.camera_alt, "Camera", onTap: vm.pickFromCamera),
+            _uploadBox(Icons.camera_alt_outlined, "Máy ảnh", onTap: vm.pickFromCamera),
             const SizedBox(width: 15),
-            _uploadBox(Icons.file_present, "Files", onTap: vm.pickFiles),
+            _uploadBox(Icons.image_outlined, "Thư viện", onTap: vm.pickFiles),
           ],
         ),
-        if (vm.selectedFiles.isNotEmpty) _previewGrid(vm),
+        if (vm.selectedFiles.isNotEmpty)
+          Container(
+            height: 100,
+            margin: const EdgeInsets.only(top: 15),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: vm.selectedFiles.length,
+              itemBuilder: (context, index) {
+                return Stack(
+                  children: [
+                    Container(
+                      width: 100,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        image: DecorationImage(
+                          image: FileImage(vm.selectedFiles[index]),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 4, right: 16,
+                      child: GestureDetector(
+                        onTap: () => vm.removeFile(index),
+                        child: const CircleAvatar(
+                          radius: 10, backgroundColor: Colors.red,
+                          child: Icon(Icons.close, size: 12, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
       ],
     );
   }
 
-  Widget _previewGrid(RecordViewModel vm) {
-    return Container(
-      height: 120,
-      margin: const EdgeInsets.only(top: 15),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: vm.selectedFiles.length,
-        itemBuilder: (context, index) {
-          return Stack(
-            children: [
-              Container(
-                width: 90,
-                margin: const EdgeInsets.only(right: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  color: const Color(0xFFDDE3FF),
-                  image: DecorationImage(
-                    image: FileImage(
-                      vm.selectedFiles[index],
-                    ), // HIỂN THỊ FILE THẬT
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 2,
-                right: 12,
-                child: GestureDetector(
-                  onTap: () => vm.removeFile(index),
-                  child: const CircleAvatar(
-                    radius: 10,
-                    backgroundColor: Colors.red,
-                    child: Icon(Icons.close, size: 12, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   Widget _saveButton(BuildContext context, RecordViewModel vm) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF246BFF),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: const StadiumBorder(),
-        ),
-        onPressed: () async {
-          bool success = await vm.saveRecord(
-            _titleController.text,
-            _notesController.text,
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF246BFF),
+        minimumSize: const Size(double.infinity, 54),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        elevation: 2,
+      ),
+      onPressed: () async {
+        final success = await vm.saveRecord(
+          _titleController.text,
+          _notesController.text,
+          _selectedType, // Truyền Type đã chọn vào hàm save
+        );
+        if (success && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Lưu bệnh án thành công!")),
           );
-          final messenger = ScaffoldMessenger.of(context);
-          if (success) {
-            _titleController.clear();
-            _notesController.clear();
-            messenger.showSnackBar(
-              const SnackBar(content: Text("Record saved successfully!")),
-            );
-          } else if (vm.errorMessage != null) {
-            messenger.showSnackBar(SnackBar(content: Text(vm.errorMessage!)));
-          }
-        },
-        child: const Text(
-          "Save Record",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+          Navigator.pop(context, true); // Trả về true để màn hình trước refresh
+        }
+      },
+      child: const Text(
+        "LƯU HỒ SƠ",
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
       ),
     );
   }
 
   // --- HELPERS ---
   Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(
-      text,
-      style: const TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF246BFF),
-      ),
-    ),
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2A44), fontSize: 15)),
   );
 
-  Widget _textField(
-    TextEditingController controller,
-    String hint, {
-    int maxLines = 1,
-  }) => TextField(
+  Widget _textField(TextEditingController controller, String hint, {int maxLines = 1}) => TextField(
     controller: controller,
     maxLines: maxLines,
     decoration: InputDecoration(
       hintText: hint,
       filled: true,
-      fillColor: const Color(0xFFDDE3FF).withOpacity(0.5),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide.none,
-      ),
+      fillColor: const Color(0xFFF5F7FF),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
   );
 
-  Widget _uploadBox(
-    IconData icon,
-    String label, {
-    required VoidCallback onTap,
-  }) => Expanded(
+  Widget _uploadBox(IconData icon, String label, {required VoidCallback onTap}) => Expanded(
     child: GestureDetector(
       onTap: onTap,
       child: Container(
         height: 80,
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF246BFF)),
+          border: Border.all(color: const Color(0xFFDDE3FF)),
           borderRadius: BorderRadius.circular(15),
+          color: const Color(0xFFFBFBFF),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFF246BFF)),
-            Text(label),
+            Icon(icon, color: const Color(0xFF246BFF), size: 28),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF4A5C8A))),
           ],
         ),
       ),
@@ -293,15 +317,12 @@ class CreateRecordPage extends StatelessWidget {
 
   Widget _importanceSwitch(RecordViewModel vm) => Row(
     children: [
-      Checkbox(
+      Switch(
         value: vm.isImportant,
         activeColor: const Color(0xFF246BFF),
-        onChanged: (v) => vm.toggleImportance(v!),
+        onChanged: (v) => vm.toggleImportance(v),
       ),
-      const Text(
-        "Mark as important record",
-        style: TextStyle(color: Color(0xFF246BFF)),
-      ),
+      const Text("Đánh dấu hồ sơ quan trọng", style: TextStyle(color: Color(0xFF4A5C8A), fontWeight: FontWeight.w500)),
     ],
   );
 }

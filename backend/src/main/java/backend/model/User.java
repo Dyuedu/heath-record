@@ -1,15 +1,10 @@
 package backend.model;
 
 import java.sql.Date;
+import java.util.List;
 import java.util.UUID;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
@@ -19,16 +14,18 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    private String email;
-    private String password;
-    private String fullname;
-    private Date dateOfBirth;
-    private String gender;
     private String phoneNumber;
-    private String address;
-    private String avatarUrl;
+    private String password;
+    private String email;
+
+    @OneToOne
+    @JoinColumn(name = "profile_id")
+    private Profile profile;
 
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;
+
+    @OneToMany(mappedBy = "user")
+    private List<Relative> relatives;
 }

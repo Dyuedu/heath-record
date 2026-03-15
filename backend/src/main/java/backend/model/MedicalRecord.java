@@ -56,9 +56,16 @@ public class MedicalRecord {
     @Builder.Default
     private List<String> attachments = new ArrayList<>();
 
+    @Column(name = "record_type")
+    private String type;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "relative_id", nullable = false)
     private Relative relative;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "doctor_id", nullable = false)
+    private User doctor;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -1,38 +1,96 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/data/repositories/secure_storage_repository.dart';
+import 'package:frontend/views/search/search_patient_page.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:provider/provider.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String? _userRole;
+  bool _isRoleLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveUserRole();
+  }
+
+  Future<void> _resolveUserRole() async {
+    try {
+      final storage = context.read<SecureStorageRepository>();
+      final token = await storage.getToken();
+      if (token != null && token.isNotEmpty) {
+        final decoded = JwtDecoder.decode(token);
+        if (mounted) {
+          setState(() {
+            _userRole = decoded['role']?.toString();
+          });
+        }
+      }
+    } catch (error) {
+      debugPrint('Unable to decode role: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _isRoleLoading = false);
+      }
+    }
+  }
+
+  bool get _isDoctor => (_userRole?.toLowerCase() == 'role_doctor');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F9FD), // Màu nền nhẹ nhàng hơn
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. User Header (Avatar, Name, Notifications, Settings)
+              // 1. Header Section
               const _UserHeaderSection(),
-              const SizedBox(height: 25),
+              const SizedBox(height: 30),
 
-              // 2. Quick Actions & Search Bar
-              const _SearchAndActionsSection(),
-              const SizedBox(height: 25),
+              // 2. Banner/Search Section (chỉ hiển thị với bác sĩ)
+              if (!_isRoleLoading && _isDoctor) ...[
+                const Text(
+                  "Tìm kiếm thông tin",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2A44)),
+                ),
+                const SizedBox(height: 15),
+                _DoctorSearchInput(
+                  isDoctor: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SearchPatientPage()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 30),
+              ] else
+                const SizedBox(height: 20),
 
-              // 3. Weekly Calendar Strip
-              const _WeeklyCalendarSection(),
-              const SizedBox(height: 25),
+              // 3. Featured Categories/Services
+              const _SectionHeader(title: "Dịch vụ y tế"),
+              const SizedBox(height: 15),
+              _QuickServicesGrid(),
+              const SizedBox(height: 30),
 
-              // 4. Today's Appointment Timeline
-              const _TodayAppointmentSection(),
-              const SizedBox(height: 25),
-
-              // 5. Featured Doctors List
+              // 4. Featured Doctors (Dành cho bệnh nhân) hoặc Patient OverView (Dành cho bác sĩ)
+              const _SectionHeader(title: "Bác sĩ nổi bật"),
+              const SizedBox(height: 15),
               const _FeaturedDoctorsSection(),
-              const SizedBox(height: 100), // Khoảng trống cho BottomNav
+              
+              const SizedBox(height: 100), // Padding cho BottomNav
             ],
           ),
         ),
@@ -42,9 +100,8 @@ class HomePage extends StatelessWidget {
   }
 }
 
-// --- Tách các Widget thành phần ---
+// --- Các thành phần Widget con ---
 
-// 1. User Header
 class _UserHeaderSection extends StatelessWidget {
   const _UserHeaderSection();
 
@@ -53,228 +110,151 @@ class _UserHeaderSection extends StatelessWidget {
     return Row(
       children: [
         const CircleAvatar(
-          radius: 30,
-          backgroundImage: NetworkImage('https://via.placeholder.com/150'), // Thay bằng ảnh thật
+          radius: 28,
+          backgroundColor: Color(0xFF246BFF),
+          child: Icon(Icons.person, color: Colors.white, size: 30),
         ),
         const SizedBox(width: 15),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
-            Text("Hi, Welcome Back", style: TextStyle(color: Color(0xFF246BFF), fontSize: 12)),
-            Text("John Doe", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+            Text("Chào ngày mới,", style: TextStyle(color: Colors.grey, fontSize: 13)),
+            Text("Duy Hoàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2A44))),
           ],
         ),
         const Spacer(),
-        _iconButton(Icons.notifications_none),
-        const SizedBox(width: 10),
-        _iconButton(Icons.settings_outlined),
+        _notificationBadge(Icons.notifications_none_rounded),
       ],
     );
   }
 
-  Widget _iconButton(IconData icon) => Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: const Color(0xFFDDE3FF), shape: BoxShape.circle),
-        child: Icon(icon, color: const Color(0xFF246BFF), size: 24),
-      );
-}
-
-// 2. Quick Actions & Search
-class _SearchAndActionsSection extends StatelessWidget {
-  const _SearchAndActionsSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _actionItem(Icons.medical_services_outlined, "Doctors"),
-        const SizedBox(width: 15),
-        _actionItem(Icons.favorite_border, "Favorite"),
-        const SizedBox(width: 20),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-            decoration: BoxDecoration(color: const Color(0xFFDDE3FF), borderRadius: BorderRadius.circular(25)),
-            child: Row(
-              children: const [
-                Icon(Icons.tune, color: Color(0xFF246BFF), size: 20),
-                Spacer(),
-                Icon(Icons.search, color: Color(0xFF246BFF), size: 20),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _actionItem(IconData icon, String label) => Column(
-        children: [
-          Icon(icon, color: const Color(0xFF246BFF), size: 30),
-          const SizedBox(height: 5),
-          Text(label, style: const TextStyle(color: Color(0xFF246BFF), fontSize: 12)),
-        ],
-      );
-}
-
-// 3. Weekly Calendar
-class _WeeklyCalendarSection extends StatelessWidget {
-  const _WeeklyCalendarSection();
-
-  @override
-  Widget build(BuildContext context) {
-    // Dữ liệu demo cho lịch tuần
-    final days = [
-      {"day": "9", "weekday": "MON", "selected": false},
-      {"day": "10", "weekday": "TUE", "selected": false},
-      {"day": "11", "weekday": "WED", "selected": true}, // Đang chọn
-      {"day": "12", "weekday": "THU", "selected": false},
-      {"day": "13", "weekday": "FRI", "selected": true}, // Đang chọn
-      {"day": "14", "weekday": "SAT", "selected": true}, // Đang chọn
-    ];
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: days.map((d) => _calendarDay(d)).toList(),
-    );
-  }
-
-  Widget _calendarDay(Map<String, dynamic> data) {
-    bool isSelected = data["selected"];
-    return Container(
-      width: 55, height: 70,
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF246BFF) : const Color(0xFFDDE3FF),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(data["day"], style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.black)),
-          Text(data["weekday"], style: TextStyle(fontSize: 10, color: isSelected ? Colors.white : Colors.black54)),
-        ],
-      ),
-    );
-  }
-}
-
-// 4. Today Appointment
-class _TodayAppointmentSection extends StatelessWidget {
-  const _TodayAppointmentSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: const [
-            Text("11 Wednesday - Today", style: TextStyle(color: Color(0xFF246BFF), fontSize: 14, fontWeight: FontWeight.w500)),
-            Spacer(),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Stack(
-          children: [
-            // Đường kẻ Timeline (Demo)
-            Positioned.fill(
-              child: Align(alignment: Alignment.centerRight, child: Container(width: double.infinity, height: 1, color: const Color(0xFFDDE3FF))),
-            ),
-            Row(
-              children: [
-                _timeLabel("9 AM"), _timeLabel("10 AM"), _timeLabel("11 AM"), _timeLabel("12 AM"),
-              ],
-            ),
-            // Thẻ lịch hẹn đè lên (Demo)
-            Positioned(
-              left: 70, top: 15,
-              child: _appointmentCard(),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _timeLabel(String time) => Padding(padding: const EdgeInsets.only(right: 25), child: Text(time, style: const TextStyle(color: Color(0xFF246BFF), fontSize: 12)));
-
-  Widget _appointmentCard() => Container(
+  Widget _notificationBadge(IconData icon) => Container(
     padding: const EdgeInsets.all(10),
-    width: 200,
-    decoration: BoxDecoration(color: const Color(0xFFDDE3FF), borderRadius: BorderRadius.circular(15)),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: const [
-            Text("Dr. Olivia Turner, M.D.", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF246BFF), fontSize: 13)),
-            Spacer(), Icon(Icons.check_circle_outline, size: 16, color: Colors.green), SizedBox(width: 5), Icon(Icons.cancel_outlined, size: 16, color: Colors.red),
-          ],
-        ),
-        const Text("Treatment and prevention of skin and photodermatitis.", style: TextStyle(color: Colors.black54, fontSize: 11), maxLines: 2),
-      ],
-    ),
+    decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.black12)),
+    child: Icon(icon, color: const Color(0xFF1F2A44), size: 24),
   );
 }
 
-// 5. Featured Doctors
+class _DoctorSearchInput extends StatelessWidget {
+  final bool isDoctor;
+  final VoidCallback onTap;
+
+  const _DoctorSearchInput({required this.isDoctor, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: isDoctor ? onTap : null,
+      child: Container(
+        height: 60,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.search_rounded, color: Color(0xFF246BFF), size: 28),
+            const SizedBox(width: 15),
+            Text(
+              isDoctor ? "Tìm kiếm bệnh nhân..." : "Tìm bác sĩ, bệnh viện...",
+              style: const TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w500),
+            ),
+            const Spacer(),
+            if (isDoctor)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: const Color(0xFF246BFF), borderRadius: BorderRadius.circular(10)),
+                child: const Text("Bác sĩ", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2A44))),
+        const Text("Xem tất cả", style: TextStyle(color: Color(0xFF246BFF), fontWeight: FontWeight.bold, fontSize: 13)),
+      ],
+    );
+  }
+}
+
+class _QuickServicesGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _serviceItem(Icons.calendar_month_rounded, "Lịch khám", const Color(0xFFE8F1FF)),
+        _serviceItem(Icons.folder_shared_rounded, "Hồ sơ", const Color(0xFFFFF1E8)),
+        _serviceItem(Icons.local_hospital_rounded, "Bệnh viện", const Color(0xFFE8FFF1)),
+        _serviceItem(Icons.more_horiz_rounded, "Thêm", const Color(0xFFF1E8FF)),
+      ],
+    );
+  }
+
+  Widget _serviceItem(IconData icon, String label, Color bgColor) => Column(
+    children: [
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(20)),
+        child: Icon(icon, color: const Color(0xFF1F2A44), size: 28),
+      ),
+      const SizedBox(height: 8),
+      Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF1F2A44))),
+    ],
+  );
+}
+
 class _FeaturedDoctorsSection extends StatelessWidget {
   const _FeaturedDoctorsSection();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Demo 1 bác sĩ
-        _doctorCard(
-          name: "Dr. Olivia Turner, M.D.",
-          specialty: "Dermato-Endocrinology",
-          rating: "5",
-          reviews: "60",
-          imageUrl: 'https://via.placeholder.com/150',
-        ),
-        const SizedBox(height: 15),
-        // Thêm các bác sĩ khác tương tự...
-      ],
-    );
-  }
-
-  Widget _doctorCard({required String name, required String specialty, required String rating, required String reviews, required String imageUrl}) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFFDDE3FF), borderRadius: BorderRadius.circular(24)),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE3E8FF)),
+      ),
       child: Row(
         children: [
-          CircleAvatar(radius: 40, backgroundImage: NetworkImage(imageUrl)),
+          const CircleAvatar(radius: 35, backgroundColor: Color(0xFFDDE3FF), child: Icon(Icons.medical_services_rounded, color: Color(0xFF246BFF), size: 30)),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF246BFF), fontSize: 14)),
-                Text(specialty, style: const TextStyle(color: Colors.black54, fontSize: 12)),
-                const SizedBox(height: 10),
+              children: const [
+                Text("Dr. Olivia Turner", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1F2A44))),
+                Text("Chuyên khoa Nội tiết", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                SizedBox(height: 8),
                 Row(
                   children: [
-                    _infoBadge(Icons.star, rating, const Color(0xFF246BFF)),
-                    const SizedBox(width: 10),
-                    _infoBadge(Icons.chat_bubble_outline, reviews, const Color(0xFF246BFF)),
-                    const Spacer(),
-                    const Icon(Icons.help_outline, color: Color(0xFF246BFF), size: 20),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.favorite, color: Color(0xFF246BFF), size: 20),
+                    Icon(Icons.star_rounded, color: Colors.amber, size: 18),
+                    Text(" 4.9 ", style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text("(120 đánh giá)", style: TextStyle(color: Colors.grey, fontSize: 12)),
                   ],
                 )
               ],
             ),
-          )
+          ),
         ],
       ),
     );
   }
-
-  Widget _infoBadge(IconData icon, String text, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-    child: Row(children: [Icon(icon, size: 14, color: color), const SizedBox(width: 4), Text(text, style: TextStyle(color: color, fontSize: 11))]),
-  );
 }
