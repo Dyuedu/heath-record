@@ -1,57 +1,68 @@
 package backend.service;
 
+import backend.exception.EmailDuplicateException;
 import backend.exception.InvalidRequestException;
+import backend.exception.PhoneDuplicateException;
 import backend.exception.ResourceNotFoundException;
-import backend.model.MedicalRecord;
 import backend.model.Profile;
-import backend.model.Relative;
 import backend.model.User;
 import backend.model.dto.request.ChangePasswordRequest;
 import backend.model.dto.request.UpdateMyProfileRequest;
 import backend.model.dto.request.VerifyOtpRequest;
 import backend.model.dto.response.PatientDetailResponse;
-import backend.model.dto.response.PatientRelativeRecordResponse;
-import backend.model.dto.response.RecordResponse;
+import backend.model.dto.response.RelativeHealthHistoryResponse;
 import backend.model.dto.response.UserResponse;
 import backend.repository.MedicalRecordRepository;
 import backend.repository.ProfileRepository;
 import backend.repository.RelativeRepository;
 import backend.repository.UserRepository;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import backend.service.mapper.MedicalRecordMapper;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
+import java.util.regex.Pattern;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
     private final RelativeRepository relativeRepository;
     private final MedicalRecordRepository medicalRecordRepository;
-        private final ProfileRepository profileRepository;
-        private final PasswordEncoder passwordEncoder;
-        private final StringRedisTemplate stringRedisTemplate;
-        private final EmailService emailService;
+    private final MedicalRecordMapper medicalRecordMapper;
+    private final ProfileRepository profileRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private static final String PASSWORD_OTP_KEY_PREFIX = "user:password:otp:";
+    private static final Duration OTP_TTL = Duration.ofMinutes(5);
+    private static final Pattern OTP_PATTERN = Pattern.compile("\\d{6}");
+    private static final SecureRandom OTP_RANDOM = new SecureRandom();
+    private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final int MAX_PASSWORD_LENGTH = 64;
 
     public UserService(UserRepository userRepository,
                        RelativeRepository relativeRepository,
-                                           MedicalRecordRepository medicalRecordRepository,
-                                           ProfileRepository profileRepository,
-                                           PasswordEncoder passwordEncoder,
-                                           StringRedisTemplate stringRedisTemplate,
-                                           EmailService emailService) {
+                       MedicalRecordRepository medicalRecordRepository,
+                       MedicalRecordMapper medicalRecordMapper,
+                       ProfileRepository profileRepository,
+                       PasswordEncoder passwordEncoder,
+                       EmailService emailService,
+                       RedisTemplate<String, String> redisTemplate) {
         this.userRepository = userRepository;
         this.relativeRepository = relativeRepository;
         this.medicalRecordRepository = medicalRecordRepository;
-                this.profileRepository = profileRepository;
-                this.passwordEncoder = passwordEncoder;
-                this.stringRedisTemplate = stringRedisTemplate;
-                this.emailService = emailService;
+        this.medicalRecordMapper = medicalRecordMapper;
+        this.profileRepository = profileRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+        this.redisTemplate = redisTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -69,25 +80,12 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bệnh nhân"));
 
         // 2. Lấy danh sách Relatives (Bao gồm cả bản ghi "Me" và người thân)
-        List<PatientRelativeRecordResponse> relatives = relativeRepository.findByUserId(patientId)
+        List<RelativeHealthHistoryResponse> relatives = relativeRepository.findByUserId(patientId)
                 .stream()
-                .map(relative -> {
-                    // Lấy profile của người thân/bản thân để có thông tin chi tiết
-                    Profile relProfile = relative.getProfile();
-
-                    return PatientRelativeRecordResponse.builder()
-                            .id(relative.getId())
-                            // Lấy tên từ Profile thay vì bảng Relative trực tiếp
-                            .name(relProfile != null ? relProfile.getFullname() : "N/A")
-                            .relationship(relative.getRelationship())
-                            .records(
-                                    medicalRecordRepository.findByRelativeId(relative.getId())
-                                            .stream()
-                                            .map(this::mapToRecordResponse)
-                                            .toList()
-                            )
-                            .build();
-                })
+                .map(relative -> medicalRecordMapper.toRelativeHistory(
+                        relative,
+                        medicalRecordRepository.findByRelativeId(relative.getId())
+                ))
                 .toList();
 
         return PatientDetailResponse.builder()
@@ -96,141 +94,99 @@ public class UserService {
                 .build();
     }
 
-        @Transactional(readOnly = true)
-        public UserResponse getCurrentUser(UUID userId) {
-                User user = userRepository.findById(userId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
-                return mapToUserResponse(user);
+    @Transactional(readOnly = true)
+    public UserResponse getCurrentUser(UUID userId) {
+        User user = getUser(userId);
+        return mapToUserResponse(user);
+    }
+
+    @Transactional
+    public UserResponse updateCurrentUser(UUID userId, UpdateMyProfileRequest request) {
+        User user = getUser(userId);
+
+        String newEmail = trimToNull(request.email());
+        if (StringUtils.hasText(newEmail) && !newEmail.equalsIgnoreCase(user.getEmail())) {
+            User emailOwner = userRepository.findByEmail(newEmail);
+            if (emailOwner != null && !emailOwner.getId().equals(userId)) {
+                throw new EmailDuplicateException(newEmail);
+            }
+            user.setEmail(newEmail);
         }
 
-        @Transactional
-        public UserResponse updateCurrentUser(UUID userId, UpdateMyProfileRequest request) {
-                User user = userRepository.findById(userId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
-
-                if (request.email() != null && !request.email().isBlank()) {
-                        String normalizedEmail = request.email().trim();
-                        User existedUserByEmail = userRepository.findByEmail(normalizedEmail);
-                        if (existedUserByEmail != null && !existedUserByEmail.getId().equals(userId)) {
-                                throw new InvalidRequestException("EMAIL_DUPLICATE", "Email already exists");
-                        }
-                        user.setEmail(normalizedEmail);
-                }
-
-                if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
-                        String normalizedPhone = request.phoneNumber().trim();
-                        User existedUserByPhone = userRepository.findByPhoneNumber(normalizedPhone);
-                        if (existedUserByPhone != null && !existedUserByPhone.getId().equals(userId)) {
-                                throw new InvalidRequestException("PHONE_DUPLICATE", "Phone number already exists");
-                        }
-                        user.setPhoneNumber(normalizedPhone);
-                }
-
-                Profile profile = user.getProfile();
-                if (profile == null) {
-                        profile = new Profile();
-                        user.setProfile(profile);
-                }
-
-                if (request.fullName() != null && !request.fullName().isBlank()) {
-                        profile.setFullname(request.fullName().trim());
-                }
-                if (request.gender() != null && !request.gender().isBlank()) {
-                        profile.setGender(request.gender().trim());
-                }
-                if (request.dateOfBirth() != null && !request.dateOfBirth().isBlank()) {
-                        profile.setDateOfBirth(request.dateOfBirth().trim());
-                }
-                if (request.address() != null && !request.address().isBlank()) {
-                        profile.setAddress(request.address().trim());
-                }
-                if (request.avatarUrl() != null && !request.avatarUrl().isBlank()) {
-                        profile.setAvatarUrl(request.avatarUrl().trim());
-                }
-
-                Profile savedProfile = profileRepository.save(profile);
-                user.setProfile(savedProfile);
-                User savedUser = userRepository.save(user);
-                return mapToUserResponse(savedUser);
+        String newPhone = trimToNull(request.phoneNumber());
+        if (StringUtils.hasText(newPhone) && !newPhone.equals(user.getPhoneNumber())) {
+            User phoneOwner = userRepository.findByPhoneNumber(newPhone);
+            if (phoneOwner != null && !phoneOwner.getId().equals(userId)) {
+                throw new PhoneDuplicateException(newPhone);
+            }
+            user.setPhoneNumber(newPhone);
         }
 
-        @Transactional
-        public Map<String, String> updateMyPassword(UUID userId, ChangePasswordRequest request) {
-                User user = userRepository.findById(userId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
-
-                String otpKey = buildOtpKey(userId);
-                String incomingOtp = request.otp() == null ? "" : request.otp().trim();
-
-                if (incomingOtp.isBlank()) {
-                        if (user.getEmail() == null || user.getEmail().isBlank()) {
-                                throw new InvalidRequestException("EMAIL_REQUIRED", "Cannot send OTP because account email is empty");
-                        }
-                        String otp = generateOtp();
-                        stringRedisTemplate.opsForValue().set(
-                                        otpKey,
-                                        passwordEncoder.encode(otp),
-                                        Duration.ofMinutes(5)
-                        );
-                        emailService.sendPasswordOtp(user.getEmail(), otp);
-                        return Map.of("message", "OTP has been sent to your email");
-                }
-
-                if (request.newPassword() == null || request.newPassword().isBlank()) {
-                        throw new InvalidRequestException("NEW_PASSWORD_REQUIRED", "New password is required when OTP is provided");
-                }
-                String normalizedNewPassword = request.newPassword().trim();
-                if (normalizedNewPassword.length() < 6 || normalizedNewPassword.length() > 20) {
-                        throw new InvalidRequestException("PASSWORD_INVALID", "Password must be between 6 and 20 characters");
-                }
-
-                String otpHash = stringRedisTemplate.opsForValue().get(otpKey);
-                if (otpHash == null) {
-                        throw new InvalidRequestException("OTP_EXPIRED", "OTP is invalid or expired. Please request a new OTP");
-                }
-                if (!passwordEncoder.matches(incomingOtp, otpHash)) {
-                        throw new InvalidRequestException("OTP_INVALID", "OTP is invalid");
-                }
-                if (passwordEncoder.matches(normalizedNewPassword, user.getPassword())) {
-                        throw new InvalidRequestException("PASSWORD_NOT_CHANGED", "New password must be different from current password");
-                }
-
-                user.setPassword(passwordEncoder.encode(normalizedNewPassword));
-                userRepository.save(user);
-                stringRedisTemplate.delete(otpKey);
-
-                return Map.of("message", "Password updated successfully");
+        Profile profile = user.getProfile();
+        if (profile == null) {
+            profile = new Profile();
+            profile = profileRepository.save(profile);
+            user.setProfile(profile);
         }
 
-        @Transactional(readOnly = true)
-        public Map<String, String> verifyMyPasswordOtp(UUID userId, VerifyOtpRequest request) {
-                User user = userRepository.findById(userId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
+        profile.setFullname(trimToNull(request.fullName()));
+        profile.setGender(trimToNull(request.gender()));
+        profile.setDateOfBirth(trimToNull(request.dateOfBirth()));
+        profile.setAddress(trimToNull(request.address()));
+        profile.setAvatarUrl(trimToNull(request.avatarUrl()));
 
-                String incomingOtp = request.otp() == null ? "" : request.otp().trim();
-                if (incomingOtp.isBlank()) {
-                        throw new InvalidRequestException("OTP_REQUIRED", "OTP is required");
-                }
+        userRepository.save(user);
+        return mapToUserResponse(user);
+    }
 
-                String otpHash = stringRedisTemplate.opsForValue().get(buildOtpKey(user.getId()));
-                if (otpHash == null) {
-                        throw new InvalidRequestException("OTP_EXPIRED", "OTP is invalid or expired. Please request a new OTP");
-                }
-                if (!passwordEncoder.matches(incomingOtp, otpHash)) {
-                        throw new InvalidRequestException("OTP_INVALID", "OTP is invalid");
-                }
+    @Transactional
+    public Map<String, String> updateMyPassword(UUID userId, ChangePasswordRequest request) {
+        User user = getUser(userId);
+        String otp = trimToNull(request.otp());
+        String newPassword = trimToNull(request.newPassword());
 
-                return Map.of("message", "OTP verified successfully");
+        boolean isOtpRequest = !StringUtils.hasText(otp) && !StringUtils.hasText(newPassword);
+        if (isOtpRequest) {
+            return sendPasswordOtp(user);
         }
 
-        private String buildOtpKey(UUID userId) {
-                return "user:password:otp:" + userId;
+        if (!StringUtils.hasText(otp) || !StringUtils.hasText(newPassword)) {
+            throw new InvalidRequestException("PASSWORD_REQUEST_INVALID", "OTP và mật khẩu mới là bắt buộc");
         }
 
-        private String generateOtp() {
-                int code = new Random().nextInt(900000) + 100000;
-                return String.valueOf(code);
+        validateOtpFormat(otp);
+        validatePasswordStrength(newPassword);
+
+        String cachedOtp = redisTemplate.opsForValue().get(buildOtpKey(userId));
+        if (cachedOtp == null) {
+            throw new InvalidRequestException("OTP_NOT_FOUND", "OTP chưa được yêu cầu hoặc đã hết hạn");
         }
+        if (!cachedOtp.equals(otp)) {
+            throw new InvalidRequestException("OTP_INVALID", "OTP không chính xác");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        redisTemplate.delete(buildOtpKey(userId));
+
+        return Map.of("message", "Đổi mật khẩu thành công");
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, String> verifyMyPasswordOtp(UUID userId, VerifyOtpRequest request) {
+        String otp = trimToNull(request.otp());
+        validateOtpFormat(otp);
+
+        String cachedOtp = redisTemplate.opsForValue().get(buildOtpKey(userId));
+        if (cachedOtp == null) {
+            throw new InvalidRequestException("OTP_NOT_FOUND", "OTP chưa được yêu cầu hoặc đã hết hạn");
+        }
+        if (!cachedOtp.equals(otp)) {
+            throw new InvalidRequestException("OTP_INVALID", "OTP không chính xác");
+        }
+
+        return Map.of("message", "OTP hợp lệ");
+    }
 
     private UserResponse mapToUserResponse(User user) {
         // Lấy profile từ User
@@ -250,24 +206,53 @@ public class UserService {
                 .build();
     }
 
-    private RecordResponse mapToRecordResponse(MedicalRecord record) {
-        // Lấy tên hiển thị từ Profile của Relative gắn với Record đó
-        String displayName = "N/A";
-        if (record.getRelative() != null && record.getRelative().getProfile() != null) {
-            displayName = record.getRelative().getProfile().getFullname();
+    private User getUser(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+    }
+
+    private Map<String, String> sendPasswordOtp(User user) {
+        String email = trimToNull(user.getEmail());
+        if (!StringUtils.hasText(email)) {
+            throw new InvalidRequestException("EMAIL_MISSING", "Tài khoản cần có email trước khi đổi mật khẩu");
         }
 
-        return RecordResponse.builder()
-                .id(record.getId())
-                .title(record.getTitle())
-                .type(record.getType()) // Đã thêm trường type như thảo luận trước
-                .notes(record.getNotes())
-                .important(record.isImportant())
-                .tags(record.getTags() != null ? List.copyOf(record.getTags()) : List.of())
-                .attachments(record.getAttachments() != null ? List.copyOf(record.getAttachments()) : List.of())
-                .createdAt(record.getCreatedAt())
-                .relativeId(record.getRelative().getId())
-                .relativeName(displayName)
-                .build();
+        String otp = generateOtp();
+        redisTemplate.opsForValue().set(buildOtpKey(user.getId()), otp, OTP_TTL);
+        emailService.sendPasswordOtp(email, otp);
+        return Map.of("message", "OTP đã được gửi tới email của bạn");
+    }
+
+    private void validateOtpFormat(String otp) {
+        if (!StringUtils.hasText(otp) || !OTP_PATTERN.matcher(otp).matches()) {
+            throw new InvalidRequestException("OTP_INVALID", "OTP phải gồm 6 chữ số");
+        }
+    }
+
+    private void validatePasswordStrength(String newPassword) {
+        if (!StringUtils.hasText(newPassword)
+                || newPassword.length() < MIN_PASSWORD_LENGTH
+                || newPassword.length() > MAX_PASSWORD_LENGTH) {
+            throw new InvalidRequestException(
+                    "PASSWORD_INVALID",
+                    "Mật khẩu mới phải có độ dài từ " + MIN_PASSWORD_LENGTH + " đến " + MAX_PASSWORD_LENGTH + " ký tự"
+            );
+        }
+    }
+
+    private String buildOtpKey(UUID userId) {
+        return PASSWORD_OTP_KEY_PREFIX + userId;
+    }
+
+    private String generateOtp() {
+        return String.format("%06d", OTP_RANDOM.nextInt(1_000_000));
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

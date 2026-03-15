@@ -4,7 +4,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import backend.model.Relative;
+import backend.model.dto.response.MedicalRecordResponse;
+import backend.model.dto.response.RelativeHealthHistoryResponse;
 import backend.model.dto.response.RelativeResponse;
 import backend.service.RelativeService;
 import org.springframework.http.HttpStatus;
@@ -18,7 +19,6 @@ import jakarta.validation.Valid;
 
 import backend.model.UserPrincipal;
 import backend.model.dto.request.RecordCreateRequest;
-import backend.model.dto.response.RecordResponse;
 import backend.service.RecordService;
 
 @RestController
@@ -37,7 +37,7 @@ public class RecordController {
             value = "/relatives/{relativeId}/create-record",
             consumes = {"multipart/form-data"}
     )
-    public ResponseEntity<RecordResponse> createRecord(
+    public ResponseEntity<MedicalRecordResponse> createRecord(
             @ModelAttribute @Valid RecordCreateRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
@@ -45,12 +45,12 @@ public class RecordController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         List<MultipartFile> safeFiles = files == null ? Collections.emptyList() : files;
-        RecordResponse response = recordService.createRecord(userPrincipal.getId(), request, safeFiles);
+        MedicalRecordResponse response = recordService.createRecord(userPrincipal.getId(), request, safeFiles);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/relatives/{relativeId}/records")
-    public ResponseEntity<List<RecordResponse>> getRecordsByRelative(
+    public ResponseEntity<RelativeHealthHistoryResponse> getRecordsByRelative(
             @PathVariable UUID relativeId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
@@ -58,7 +58,7 @@ public class RecordController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        List<RecordResponse> records =
+        RelativeHealthHistoryResponse records =
                 recordService.getRecordsByRelative(userPrincipal.getId(), relativeId);
 
         return ResponseEntity.ok(records);

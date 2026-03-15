@@ -1,5 +1,7 @@
 package backend.model;
 
+import java.util.UUID;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -8,7 +10,7 @@ import lombok.Data;
 public class Profile {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    private UUID id;
     private String fullname;
     private String nickname;
     private String gender;
