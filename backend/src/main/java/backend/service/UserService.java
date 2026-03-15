@@ -1,35 +1,35 @@
 package backend.service;
 
 import backend.exception.ResourceNotFoundException;
-import backend.model.MedicalRecord;
 import backend.model.Profile;
-import backend.model.Relative;
 import backend.model.User;
 import backend.model.dto.response.PatientDetailResponse;
-import backend.model.dto.response.PatientRelativeRecordResponse;
-import backend.model.dto.response.RecordResponse;
+import backend.model.dto.response.RelativeHealthHistoryResponse;
 import backend.model.dto.response.UserResponse;
 import backend.repository.MedicalRecordRepository;
 import backend.repository.RelativeRepository;
 import backend.repository.UserRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import backend.service.mapper.MedicalRecordMapper;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
-    private final RelativeRepository relativeRepository;
-    private final MedicalRecordRepository medicalRecordRepository;
+        private final RelativeRepository relativeRepository;
+        private final MedicalRecordRepository medicalRecordRepository;
+        private final MedicalRecordMapper medicalRecordMapper;
 
     public UserService(UserRepository userRepository,
-                       RelativeRepository relativeRepository,
-                       MedicalRecordRepository medicalRecordRepository) {
+                                           RelativeRepository relativeRepository,
+                                           MedicalRecordRepository medicalRecordRepository,
+                                           MedicalRecordMapper medicalRecordMapper) {
         this.userRepository = userRepository;
         this.relativeRepository = relativeRepository;
         this.medicalRecordRepository = medicalRecordRepository;
+                this.medicalRecordMapper = medicalRecordMapper;
     }
 
     @Transactional(readOnly = true)
@@ -47,25 +47,12 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bệnh nhân"));
 
         // 2. Lấy danh sách Relatives (Bao gồm cả bản ghi "Me" và người thân)
-        List<PatientRelativeRecordResponse> relatives = relativeRepository.findByUserId(patientId)
+        List<RelativeHealthHistoryResponse> relatives = relativeRepository.findByUserId(patientId)
                 .stream()
-                .map(relative -> {
-                    // Lấy profile của người thân/bản thân để có thông tin chi tiết
-                    Profile relProfile = relative.getProfile();
-
-                    return PatientRelativeRecordResponse.builder()
-                            .id(relative.getId())
-                            // Lấy tên từ Profile thay vì bảng Relative trực tiếp
-                            .name(relProfile != null ? relProfile.getFullname() : "N/A")
-                            .relationship(relative.getRelationship())
-                            .records(
-                                    medicalRecordRepository.findByRelativeId(relative.getId())
-                                            .stream()
-                                            .map(this::mapToRecordResponse)
-                                            .toList()
-                            )
-                            .build();
-                })
+                .map(relative -> medicalRecordMapper.toRelativeHistory(
+                        relative,
+                        medicalRecordRepository.findByRelativeId(relative.getId())
+                ))
                 .toList();
 
         return PatientDetailResponse.builder()
@@ -92,24 +79,4 @@ public class UserService {
                 .build();
     }
 
-    private RecordResponse mapToRecordResponse(MedicalRecord record) {
-        // Lấy tên hiển thị từ Profile của Relative gắn với Record đó
-        String displayName = "N/A";
-        if (record.getRelative() != null && record.getRelative().getProfile() != null) {
-            displayName = record.getRelative().getProfile().getFullname();
-        }
-
-        return RecordResponse.builder()
-                .id(record.getId())
-                .title(record.getTitle())
-                .type(record.getType()) // Đã thêm trường type như thảo luận trước
-                .notes(record.getNotes())
-                .important(record.isImportant())
-                .tags(record.getTags() != null ? List.copyOf(record.getTags()) : List.of())
-                .attachments(record.getAttachments() != null ? List.copyOf(record.getAttachments()) : List.of())
-                .createdAt(record.getCreatedAt())
-                .relativeId(record.getRelative().getId())
-                .relativeName(displayName)
-                .build();
-    }
 }

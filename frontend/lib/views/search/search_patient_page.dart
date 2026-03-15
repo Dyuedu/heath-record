@@ -34,7 +34,7 @@ class _SearchPatientPageState extends State<SearchPatientPage> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: "Nhập SĐT...",
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF246B03FF)),
+                prefixIcon: const Icon(Icons.search, color: Color(0xff246b03ff)),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.send, color: Color(0xFF246BFF)),
                   onPressed: () {

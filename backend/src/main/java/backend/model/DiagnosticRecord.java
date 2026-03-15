@@ -22,35 +22,28 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "encounters")
+@Table(name = "diagnostic_records")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MedicalRecord {
+public class DiagnosticRecord {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private String title;
+    private String category;
 
     @Column(name = "tag")
     private String tag;
 
-    @Column(name = "note", columnDefinition = "TEXT")
-    private String note;
+    @Column(name = "doctor")
+    private String doctor;
 
-    @Column(name = "doctor_user_id")
-    private Long doctorUserId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hospital_id")
-    private Hospital hospital;
-
-    @Column(name = "datetime_start")
-    private LocalDateTime datetimeStart;
+    @Column(name = "data", columnDefinition = "TEXT")
+    private String data;
 
     @Column(name = "datetime_end")
     private LocalDateTime datetimeEnd;
@@ -62,15 +55,23 @@ public class MedicalRecord {
     @JoinColumn(name = "relative_id", nullable = false)
     private Relative relative;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "encounter_id")
+    private MedicalRecord encounter;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hospital_id")
+    private Hospital hospital;
+
     @ManyToMany
     @JoinTable(
-            name = "encounter_tags",
-            joinColumns = @JoinColumn(name = "encounter_id"),
+            name = "diagnostic_record_tags",
+            joinColumns = @JoinColumn(name = "diagnostic_record_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id"))
     @Builder.Default
     private List<Tag> tags = new ArrayList<>();
 
-    @OneToMany(mappedBy = "encounter", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "diagnosticRecord", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<DiagnosticRecord> diagnosticRecords = new ArrayList<>();
+    private List<Attachment> attachments = new ArrayList<>();
 }
