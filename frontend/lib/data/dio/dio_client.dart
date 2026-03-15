@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:frontend/utils/app_routers.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
@@ -9,9 +10,18 @@ class DioClient {
   late final Dio _dio;
 
   DioClient(this._storage) {
+    final configuredBaseUrl = const String.fromEnvironment('API_BASE_URL');
+    final fallbackBaseUrl = kIsWeb
+        ? 'http://localhost:8081'
+        : defaultTargetPlatform == TargetPlatform.android
+        ? 'http://10.0.2.2:8081'
+        : 'http://localhost:8081';
+
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.33.67.160:8081',
+        baseUrl: configuredBaseUrl.isNotEmpty
+            ? configuredBaseUrl
+            : fallbackBaseUrl,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -23,7 +33,7 @@ class DioClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await _storage.getToken();
-          
+
           if (token != null) {
             // Kiểm tra hết hạn chủ động phía Client
             if (JwtDecoder.isExpired(token)) {
@@ -52,7 +62,7 @@ class DioClient {
   // Hàm điều hướng tập trung
   void _redirectToLogin() {
     navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      AppRouter.login, 
+      AppRouter.login,
       (route) => false,
     );
   }

@@ -5,11 +5,14 @@ import 'package:frontend/data/repositories/doctor_repository.dart';
 import 'package:frontend/data/repositories/impl/auth_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/doctor_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/secure_storage_repository_imp.dart';
+import 'package:frontend/data/repositories/impl/user_repository_imp.dart';
 import 'package:frontend/data/repositories/record_repository.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
+import 'package:frontend/data/repositories/user_repository.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
+import 'package:frontend/viewmodels/user_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -64,6 +67,15 @@ class AppProviders {
             DoctorViewModel(repository: context.read<DoctorRepository>()),
         update: (context, doctorRepository, previous) =>
             previous ?? DoctorViewModel(repository: doctorRepository),
+      ),
+      ProxyProvider<DioClient, UserRepository>(
+        update: (context, dioClient, previous) => UserRepositoryImp(dioClient),
+      ),
+      ChangeNotifierProxyProvider<UserRepository, UserViewModel>(
+        create: (context) =>
+            UserViewModel(repository: context.read<UserRepository>()),
+        update: (context, userRepository, previous) =>
+            previous ?? UserViewModel(repository: userRepository),
       ),
     ];
   }
