@@ -11,7 +11,7 @@ class DioClient {
   DioClient(this._storage) {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.33.67.160:8081',
+        baseUrl: 'http://10.0.2.2:8081',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

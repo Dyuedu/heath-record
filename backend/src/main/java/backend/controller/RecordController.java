@@ -33,36 +33,36 @@ public class RecordController {
         this.relativeService = relativeService;
     }
 
-    @PostMapping(
-            value = "/relatives/{relativeId}/create-record",
-            consumes = {"multipart/form-data"}
-    )
-    public ResponseEntity<RecordResponse> createRecord(
-            @ModelAttribute @Valid RecordCreateRequest request,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files,
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        if (userPrincipal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        List<MultipartFile> safeFiles = files == null ? Collections.emptyList() : files;
-        RecordResponse response = recordService.createRecord(userPrincipal.getId(), request, safeFiles);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @GetMapping("/relatives/{relativeId}/records")
-    public ResponseEntity<List<RecordResponse>> getRecordsByRelative(
-            @PathVariable UUID relativeId,
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
-
-        if (userPrincipal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        List<RecordResponse> records =
-                recordService.getRecordsByRelative(userPrincipal.getId(), relativeId);
-
-        return ResponseEntity.ok(records);
-    }
+//    @PostMapping(
+//            value = "/relatives/{relativeId}/create-record",
+//            consumes = {"multipart/form-data"}
+//    )
+//    public ResponseEntity<RecordResponse> createRecord(
+//            @ModelAttribute @Valid RecordCreateRequest request,
+//            @RequestPart(value = "files", required = false) List<MultipartFile> files,
+//            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+//        if (userPrincipal == null) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+//        }
+//        List<MultipartFile> safeFiles = files == null ? Collections.emptyList() : files;
+//        RecordResponse response = recordService.createRecord(userPrincipal.getId(), request, safeFiles);
+//        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+//    }
+//
+//    @GetMapping("/relatives/{relativeId}/records")
+//    public ResponseEntity<List<RecordResponse>> getRecordsByRelative(
+//            @PathVariable UUID relativeId,
+//            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+//
+//        if (userPrincipal == null) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+//        }
+//
+//        List<RecordResponse> records =
+//                recordService.getRecordsByRelative(userPrincipal.getId(), relativeId);
+//
+//        return ResponseEntity.ok(records);
+//    }
 
     @GetMapping("/relatives")
     public ResponseEntity<List<RelativeResponse>> getRelatives(@AuthenticationPrincipal UserPrincipal userPrincipal) {

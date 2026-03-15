@@ -23,18 +23,18 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/doctor/search-patients")
-    @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<List<UserResponse>> searchPatients(
-            @RequestParam String phone) {
-        List<UserResponse> patients = userService.searchPatients(phone);
-        return ResponseEntity.ok(patients);
-    }
-
-    @GetMapping("/doctor/patients/{patientId}")
-    @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<PatientDetailResponse> getPatientDetail(
-            @PathVariable UUID patientId) {
-        return ResponseEntity.ok(userService.getPatientDetail(patientId));
-    }
+//    @GetMapping("/doctor/search-patients")
+//    @PreAuthorize("hasRole('DOCTOR')")
+//    public ResponseEntity<List<UserResponse>> searchPatients(
+//            @RequestParam String phone) {
+//        List<UserResponse> patients = userService.searchPatients(phone);
+//        return ResponseEntity.ok(patients);
+//    }
+//
+//    @GetMapping("/doctor/patients/{patientId}")
+//    @PreAuthorize("hasRole('DOCTOR')")
+//    public ResponseEntity<PatientDetailResponse> getPatientDetail(
+//            @PathVariable UUID patientId) {
+//        return ResponseEntity.ok(userService.getPatientDetail(patientId));
+//    }
 }

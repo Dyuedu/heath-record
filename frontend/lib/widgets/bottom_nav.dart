@@ -75,7 +75,7 @@ class CustomBottomNav extends StatelessWidget {
     return GestureDetector(
       onTap: isActive 
           ? null 
-          : () => Navigator.pushReplacementNamed(context, route),
+          : () => Navigator.pushNamed(context, route),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
         width: MediaQuery.of(context).size.width / 4,

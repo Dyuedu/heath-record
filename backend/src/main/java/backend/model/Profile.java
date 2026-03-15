@@ -9,12 +9,11 @@ public class Profile {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+    private String cccd;
     private String fullname;
-    private String nickname;
     private String gender;
     private String dateOfBirth;
     private String address;
-    private String avatarUrl;
 
     @OneToOne(mappedBy = "profile")
     private User user;

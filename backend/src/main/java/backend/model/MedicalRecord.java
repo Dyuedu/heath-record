@@ -1,77 +1,60 @@
 package backend.model;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import jakarta.persistence.*;
+import lombok.*;
 
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "medical_records")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class MedicalRecord {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue
+    @Column(columnDefinition = "uuid")
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(name = "title", nullable = false, length = 255)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
-    private String notes;
+    @Column(name = "note", columnDefinition = "jsonb")
+    private String note;
 
-    @Column(name = "is_important")
-    private boolean important;
+    @Column(name = "datetime_start")
+    private LocalDateTime datetimeStart;
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "medical_record_tags", joinColumns = @JoinColumn(name = "record_id"))
-    @Column(name = "tag_value")
-    @Builder.Default
-    private List<String> tags = new ArrayList<>();
-
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "medical_record_attachments", joinColumns = @JoinColumn(name = "record_id"))
-    @Column(name = "file_url")
-    @Builder.Default
-    private List<String> attachments = new ArrayList<>();
-
-    @Column(name = "record_type")
-    private String type;
-
+    // Patient profile
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "relative_id", nullable = false)
-    private Relative relative;
+    @JoinColumn(name = "profile_id")
+    private Profile profile;
 
+    // Doctor
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "doctor_id", nullable = false)
+    @JoinColumn(name = "doctor_id")
     private User doctor;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    // Hospital
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hospital_id")
+    private Hospital hospital;
 
-    @PrePersist
-    void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
+    // Tags
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "medical_record_tags",
+            joinColumns = @JoinColumn(name = "medical_record_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags;
+
+    @OneToMany(fetch = FetchType.LAZY)
+    private List<DiagnosticRecord> diagnosticRecords;
 }

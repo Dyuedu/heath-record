@@ -20,8 +20,8 @@ public class Relative {
     @Column(name = "relationship")
     private String relationship; // Mom, Dad, Brother...
 
-    @OneToMany(mappedBy = "relative")
-    private List<MedicalRecord> medicalRecords;
+//    @OneToMany(mappedBy = "relative")
+//    private List<MedicalRecord> medicalRecords;
 
     @OneToOne()
     @JoinColumn(name = "profile_id")

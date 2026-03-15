@@ -3,6 +3,7 @@ import 'package:frontend/views/appointment/appointment_page.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/views/authentication/signup_page.dart';
 import 'package:frontend/views/home/home_page.dart';
+import 'package:frontend/views/temp_medical_record/medical_record_screen.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
 
 class AppRouter {
@@ -18,7 +19,7 @@ class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case home:
-        return MaterialPageRoute(builder: (_) => const HomePage(),
+        return MaterialPageRoute(builder: (_) => const MedicalRecordScreen(),
         settings: settings
         );
       case login:

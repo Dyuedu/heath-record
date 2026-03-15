@@ -18,8 +18,6 @@ public class RecordCreateRequest {
 
     private String notes;
 
-    private String type;
-
     private List<String> tags = new ArrayList<>();
 
     private boolean important;
