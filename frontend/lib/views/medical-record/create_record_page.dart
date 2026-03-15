@@ -319,7 +319,7 @@ class _CreateRecordPageState extends State<CreateRecordPage> {
     children: [
       Switch(
         value: vm.isImportant,
-        activeColor: const Color(0xFF246BFF),
+        activeThumbColor: const Color(0xFF246BFF),
         onChanged: (v) => vm.toggleImportance(v),
       ),
       const Text("Đánh dấu hồ sơ quan trọng", style: TextStyle(color: Color(0xFF4A5C8A), fontWeight: FontWeight.w500)),
