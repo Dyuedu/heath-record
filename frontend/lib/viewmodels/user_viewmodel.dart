@@ -5,7 +5,8 @@ import 'package:frontend/data/repositories/user_repository.dart';
 class UserViewModel extends ChangeNotifier {
   final UserRepository _repository;
 
-  UserViewModel({required UserRepository repository}) : _repository = repository;
+  UserViewModel({required UserRepository repository})
+    : _repository = repository;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -77,6 +78,23 @@ class UserViewModel extends ChangeNotifier {
     }
 
     _successMessage = 'OTP has been sent to your email';
+    _setLoading(false);
+    return true;
+  }
+
+  Future<bool> verifyPasswordOtp({required String otp}) async {
+    _setLoading(true);
+    _errorMessage = null;
+    _successMessage = null;
+
+    final ok = await _repository.verifyPasswordOtp(otp: otp);
+    if (!ok) {
+      _errorMessage = 'OTP is invalid or expired';
+      _setLoading(false);
+      return false;
+    }
+
+    _successMessage = 'OTP verified successfully';
     _setLoading(false);
     return true;
   }

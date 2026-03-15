@@ -1,23 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/views/authentication/login_page.dart';
+import 'package:frontend/views/user/change_password_page.dart';
 import 'package:provider/provider.dart';
-import '../../viewmodels/auth_viewmodel.dart';
-import '../../widgets/bottom_nav.dart';
-import 'edit_profile_page.dart'; // Giả sử bạn đã có file này từ lượt trước
 
-class UserProfilePage extends StatelessWidget {
+import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/user_viewmodel.dart';
+import '../../widgets/bottom_nav.dart';
+import 'edit_profile_page.dart';
+
+class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
 
   @override
+  State<UserProfilePage> createState() => _UserProfilePageState();
+}
+
+class _UserProfilePageState extends State<UserProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserViewModel>().loadMyProfile();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Lấy thông tin từ AuthViewModel nếu cần (ví dụ: tên, ảnh từ Backend)
     final authVM = context.watch<AuthViewModel>();
+    final userVM = context.watch<UserViewModel>();
+    final profile = userVM.profile;
+    final avatar = (profile?.avatarUrl ?? '').trim();
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'My Profile',
+          'Thông tin cá nhân',
           style: TextStyle(
             color: Color(0xFF246BFF),
             fontWeight: FontWeight.bold,
@@ -27,242 +45,150 @@ class UserProfilePage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            // 1. Avatar Section với nút Edit
-            _buildAvatarSection(context),
-            const SizedBox(height: 15),
-
-            // 2. User Name
-            const Text(
-              "John Doe",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+      body: userVM.isLoading && profile == null
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 8),
+                  Center(child: _buildAvatar(avatar)),
+                  const SizedBox(height: 20),
+                  _buildInfoRow('ID:', profile?.id ?? ''),
+                  _buildInfoRow('Họ và tên:', profile?.fullName ?? ''),
+                  _buildInfoRow('Email:', profile?.email ?? ''),
+                  _buildInfoRow('Số điện thoại:', profile?.phoneNumber ?? ''),
+                  _buildInfoRow('Vai trò:', profile?.role ?? ''),
+                  _buildInfoRow('Giới tính:', profile?.gender ?? ''),
+                  _buildInfoRow('Ngày sinh:', profile?.dateOfBirth ?? ''),
+                  _buildInfoRow('Địa chỉ:', profile?.address ?? ''),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _openEditProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF246BFF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Chỉnh sửa thông tin'),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChangePasswordPage(),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF246BFF),
+                      side: const BorderSide(color: Color(0xFF246BFF)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: const Icon(Icons.password_outlined),
+                    label: const Text('Đổi mật khẩu'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: () => _showLogoutDialog(context, authVM),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Đăng xuất'),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 30),
-
-            // 3. Menu List
-            _buildMenuItem(
-              icon: Icons.person_outline,
-              title: "Profile",
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const EditProfilePage()),
-              ),
-            ),
-            _buildMenuItem(
-              icon: Icons.favorite_border,
-              title: "Favorite",
-              onTap: () {},
-            ),
-            _buildMenuItem(
-              icon: Icons.account_balance_wallet_outlined,
-              title: "Payment Method",
-              onTap: () {},
-            ),
-            _buildMenuItem(
-              icon: Icons.lock_outline,
-              title: "Privacy Policy",
-              onTap: () {},
-            ),
-            _buildMenuItem(
-              icon: Icons.settings_outlined,
-              title: "Settings",
-              onTap: () {},
-            ),
-            _buildMenuItem(
-              icon: Icons.help_outline,
-              title: "Help",
-              onTap: () {},
-            ),
-            _buildMenuItem(
-              icon: Icons.logout,
-              title: "Logout",
-              isLogout: true,
-              onTap: () => _showLogoutDialog(context, authVM),
-            ),
-            const SizedBox(height: 100), // Khoảng trống cho BottomNav
-          ],
-        ),
-      ),
       bottomNavigationBar: const CustomBottomNav(),
     );
   }
 
-  // --- Widget Components ---
+  Widget _buildAvatar(String avatarUrl) {
+    if (avatarUrl.isEmpty) {
+      return const CircleAvatar(
+        radius: 52,
+        backgroundColor: Color(0xFFDDE3FF),
+        child: Icon(Icons.person, size: 52, color: Color(0xFF246BFF)),
+      );
+    }
 
-  Widget _buildAvatarSection(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFDDE3FF), width: 4),
-          ),
-          child: const CircleAvatar(
-            radius: 60,
-            backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=3'), // Ảnh đại diện mẫu
-          ),
+    return ClipOval(
+      child: Image.network(
+        avatarUrl,
+        width: 104,
+        height: 104,
+        fit: BoxFit.cover,
+        errorBuilder: (_, error, stackTrace) => const CircleAvatar(
+          radius: 52,
+          backgroundColor: Color(0xFFDDE3FF),
+          child: Icon(Icons.person, size: 52, color: Color(0xFF246BFF)),
         ),
-        Positioned(
-          bottom: 0,
-          right: 5,
-          child: GestureDetector(
-            onTap: () {
-              // Logic đổi ảnh hoặc sang trang edit
-            },
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Color(0xFF246BFF),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.edit, color: Colors.white, size: 18),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    bool isLogout = false,
-  }) {
-    return ListTile(
-      onTap: onTap,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFDDE3FF).withOpacity(0.6),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: const Color(0xFF246BFF), size: 24),
+  Widget _buildInfoRow(String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFDDE3FF).withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(12),
       ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-      ),
-      trailing: isLogout
-          ? null
-          : const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Color(0xFFDDE3FF),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
+          children: [
+            TextSpan(
+              text: '$label ',
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+            TextSpan(text: value.isEmpty ? '-' : value),
+          ],
+        ),
+      ),
     );
   }
 
-  // Hàm hiển thị hộp thoại xác nhận Logout
-  // Hàm hiển thị hộp thoại xác nhận Logout giống thiết kế ảnh Logout.png
   void _showLogoutDialog(BuildContext context, AuthViewModel vm) {
     showDialog(
       context: context,
-      barrierDismissible: true,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30), // Bo góc lớn giống ảnh
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // Để dialog gọn theo nội dung
-            children: [
-              const Text(
-                "Logout",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF246BFF), // Màu xanh chủ đạo
-                ),
-              ),
-              const SizedBox(height: 15),
-              const Text(
-                "are you sure you want to log out?",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 30),
-              Row(
-                children: [
-                  // Nút Cancel màu nhạt
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFDDE3FF),
-                        foregroundColor: const Color(0xFF246BFF),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: const Text(
-                        "Cancel",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  // Nút Yes, Logout màu xanh đậm
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        await vm.logout();
-                        if (context.mounted) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LoginPage(),
-                            ),
-                            (route) => false,
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF246BFF),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: const Text(
-                        "Yes, Logout",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Đăng xuất'),
+        content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Hủy'),
           ),
-        ),
+          ElevatedButton(
+            onPressed: () async {
+              await vm.logout();
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
+            },
+            child: const Text('Đăng xuất'),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _openEditProfile() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const EditProfilePage()),
+    );
+
+    if (!mounted) return;
+    context.read<UserViewModel>().loadMyProfile();
   }
 }
