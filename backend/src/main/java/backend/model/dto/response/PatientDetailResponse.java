@@ -9,5 +9,5 @@ import lombok.Value;
 @Builder
 public class PatientDetailResponse {
     UserResponse patient;
-    List<PatientRelativeRecordResponse> relatives;
+    List<RelativeHealthHistoryResponse> relatives;
 }
