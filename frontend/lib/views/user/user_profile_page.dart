@@ -16,10 +16,6 @@ class UserProfilePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        // leading: IconButton(
-        //   icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF246BFF)),
-        //   onPressed: () => Navigator.pop(context),
-        // ),
         title: const Text(
           'My Profile',
           style: TextStyle(
@@ -110,7 +106,7 @@ class UserProfilePage extends StatelessWidget {
           ),
           child: const CircleAvatar(
             radius: 60,
-            backgroundImage: NetworkImage('https://via.placeholder.com/150'),
+            backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=3'), // Ảnh đại diện mẫu
           ),
         ),
         Positioned(

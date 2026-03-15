@@ -108,10 +108,17 @@ class RecordViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> saveRecord(String title, String notes) async {
+  Future<bool> saveRecord(String title, String notes, String type) async {
     final trimmedTitle = title.trim();
     if (trimmedTitle.isEmpty) {
       errorMessage = "Title is required";
+      notifyListeners();
+      return false;
+    }
+
+    final targetRelativeId = selectedRelativeId;
+    if (targetRelativeId == null || targetRelativeId.isEmpty) {
+      errorMessage = "Please choose a patient before saving.";
       notifyListeners();
       return false;
     }
@@ -122,12 +129,13 @@ class RecordViewModel extends ChangeNotifier {
 
     try {
       final success = await _repository.saveMedicalRecord(
-        relativeId: "65c3bfdb-e729-451e-8934-3399499a40a3",
+        relativeId: targetRelativeId,
         title: trimmedTitle,
         tags: List<String>.from(selectedTags),
         notes: notes,
         isImportant: isImportant,
         files: List<File>.from(selectedFiles),
+        type: type.trim(),
       );
 
       if (success) {

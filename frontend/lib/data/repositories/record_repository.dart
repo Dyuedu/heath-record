@@ -51,6 +51,7 @@ class RecordRepository {
   Future<bool> saveMedicalRecord({
     required String relativeId,
     required String title,
+    required String type,
     required List<String> tags,
     required String notes,
     required bool isImportant,
@@ -60,7 +61,9 @@ class RecordRepository {
       final formData = FormData();
       formData.fields
         ..add(MapEntry('title', title.trim()))
+        ..add(MapEntry('type', type.trim()))
         ..add(MapEntry('important', isImportant.toString()));
+
 
       if (notes.trim().isNotEmpty) {
         formData.fields.add(MapEntry('notes', notes.trim()));

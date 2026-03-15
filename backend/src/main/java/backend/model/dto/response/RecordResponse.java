@@ -14,9 +14,12 @@ public class RecordResponse {
     String title;
     String notes;
     boolean important;
+    String type;
     List<String> tags;
     List<String> attachments;
     LocalDateTime createdAt;
     UUID relativeId;
     String relativeName;
+    String patientName;
+    String doctorName;
 }
