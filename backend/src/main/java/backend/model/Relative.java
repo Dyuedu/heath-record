@@ -47,4 +47,5 @@ public class Relative {
     @OneToMany(mappedBy = "relative", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<MedicalRecord> medicalRecords = new ArrayList<>();
+
 }

@@ -3,7 +3,6 @@ package backend.model.dto.response;
 import lombok.Builder;
 import lombok.Value;
 
-import java.sql.Date;
 import java.util.UUID;
 
 @Value
