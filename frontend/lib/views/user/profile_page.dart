@@ -7,6 +7,7 @@ import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/views/medical-record/medical_record_page.dart';
 import 'package:frontend/views/user/add_profile_page.dart';
+import 'package:frontend/views/user/relative_detail_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
 import 'package:image_picker/image_picker.dart';
@@ -232,48 +233,59 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildFamilyCard(Relative relative) {
     final relationship = _formatValue(relative.relationship);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0E6FF)),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RelativeDetailPage(
+            relativeId: relative.id,
+            relativeName: relative.name,
+          ),
+        ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              color: Color(0xFF246BFF),
-              shape: BoxShape.circle,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE0E6FF)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: Color(0xFF246BFF),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.person, color: Colors.white),
             ),
-            child: const Icon(Icons.person, color: Colors.white),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  relative.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Color(0xFF1F2D3D),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    relative.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Color(0xFF1F2D3D),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  relationship,
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    relationship,
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ],
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
