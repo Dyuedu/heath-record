@@ -13,6 +13,7 @@ public class Profile {
     private UUID id;
     private String fullname;
     private String nickname;
+    private String identityNumber;
     private String gender;
     private String dateOfBirth;
     private String address;
