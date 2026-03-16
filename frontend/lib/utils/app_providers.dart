@@ -1,7 +1,9 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:frontend/data/dio/dio_client.dart';
+import 'package:frontend/data/repositories/admin_repository.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
 import 'package:frontend/data/repositories/doctor_repository.dart';
+import 'package:frontend/data/repositories/impl/admin_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/auth_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/doctor_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/secure_storage_repository_imp.dart';
@@ -11,6 +13,7 @@ import 'package:frontend/data/repositories/impl/profile_repository_imp.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/data/repositories/user_repository.dart';
 import 'package:frontend/data/repositories/profile_repository.dart';
+import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
@@ -36,19 +39,28 @@ class AppProviders {
         update: (context, secureStorageRepository, previous) =>
             DioClient(secureStorageRepository),
       ),
+      ProxyProvider<DioClient, UserRepository>(
+        update: (context, dioClient, previous) => UserRepositoryImp(dioClient),
+      ),
       ProxyProvider2<DioClient, SecureStorageRepository, AuthRepository>(
         update: (context, dioClient, secureStorageRepository, previous) =>
             AuthRepositoryImp(dioClient, secureStorageRepository),
       ),
-      // Thay đổi ProxyProvider thành ChangeNotifierProxyProvider
-      ChangeNotifierProxyProvider<AuthRepository, AuthViewModel>(
-        create: (context) =>
-            AuthViewModel(authRepository: context.read<AuthRepository>()),
-        update: (context, authRepository, previous) {
-          // Nếu previous đã tồn tại, ta trả về chính nó để giữ state
-          // Nếu AuthRepository thay đổi, previous sẽ được cập nhật
+      ChangeNotifierProxyProvider2<
+        AuthRepository,
+        UserRepository,
+        AuthViewModel
+      >(
+        create: (context) => AuthViewModel(
+          authRepository: context.read<AuthRepository>(),
+          userRepository: context.read<UserRepository>(),
+        ),
+        update: (context, authRepository, userRepository, previous) {
           if (previous != null) return previous;
-          return AuthViewModel(authRepository: authRepository);
+          return AuthViewModel(
+            authRepository: authRepository,
+            userRepository: userRepository,
+          );
         },
       ),
       ProxyProvider<DioClient, RecordRepository>(
@@ -71,9 +83,6 @@ class AppProviders {
         update: (context, doctorRepository, previous) =>
             previous ?? DoctorViewModel(repository: doctorRepository),
       ),
-      ProxyProvider<DioClient, UserRepository>(
-        update: (context, dioClient, previous) => UserRepositoryImp(dioClient),
-      ),
       ChangeNotifierProxyProvider<UserRepository, UserViewModel>(
         create: (context) =>
             UserViewModel(repository: context.read<UserRepository>()),
@@ -92,6 +101,15 @@ class AppProviders {
             ProfileViewModel(repository: context.read<ProfileRepository>()),
         update: (context, profileRepository, previous) =>
             previous ?? ProfileViewModel(repository: profileRepository),
+      ),
+      ProxyProvider<DioClient, AdminRepository>(
+        update: (context, dioClient, previous) => AdminRepositoryImp(dioClient),
+      ),
+      ChangeNotifierProxyProvider<AdminRepository, AdminViewModel>(
+        create: (context) =>
+            AdminViewModel(repository: context.read<AdminRepository>()),
+        update: (context, repository, previous) =>
+            previous ?? AdminViewModel(repository: repository),
       ),
     ];
   }

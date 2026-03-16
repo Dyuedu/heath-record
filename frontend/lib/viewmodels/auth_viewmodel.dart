@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/auth/login_request.dart';
 import 'package:frontend/data/models/auth/register_request.dart';
+import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
+import 'package:frontend/data/repositories/user_repository.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
+  final UserRepository _userRepository;
 
-  AuthViewModel({required AuthRepository authRepository})
-    : _authRepository = authRepository;
+  AuthViewModel({
+    required AuthRepository authRepository,
+    required UserRepository userRepository,
+  }) : _authRepository = authRepository,
+       _userRepository = userRepository;
 
   bool _isLoading = false;
   String? _errorMessage;
+  String? _currentRole;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get currentRole => _currentRole;
+  bool get isAdmin => (_currentRole ?? '').toUpperCase().contains('ADMIN');
 
   // Logic Đăng nhập
   Future<bool> login(String email, String password) async {
@@ -26,6 +35,8 @@ class AuthViewModel extends ChangeNotifier {
 
       if (!success) {
         _errorMessage = "Email hoặc mật khẩu không chính xác.";
+      } else {
+        await refreshCurrentRole();
       }
 
       _setLoading(false);
@@ -41,10 +52,12 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading(true);
     try {
       await _authRepository.logout();
+      _currentRole = null;
     } catch (e) {
       // Có thể log lỗi nếu cần, nhưng không cần thiết phải hiển thị lỗi logout cho người dùng
     } finally {
       _setLoading(false);
+      notifyListeners();
     }
   }
 
@@ -64,7 +77,6 @@ class AuthViewModel extends ChangeNotifier {
       return false;
     }
   }
-
 
   Future<bool> isLoggedIn() async {
     try {
@@ -109,6 +121,30 @@ class AuthViewModel extends ChangeNotifier {
   void clearError() {
     if (_errorMessage != null) {
       _errorMessage = null;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refreshCurrentRole() async {
+    try {
+      final profile = await _userRepository.getMyProfile();
+      _setCurrentRole(profile);
+    } catch (_) {
+      _setCurrentRole(null);
+    }
+  }
+
+  void _setCurrentRole(UserProfileModel? profile) {
+    final role = profile?.role;
+    if (_currentRole != role) {
+      _currentRole = role;
+      notifyListeners();
+    }
+  }
+
+  void setRoleFromString(String? role) {
+    if (_currentRole != role) {
+      _currentRole = role;
       notifyListeners();
     }
   }
