@@ -28,9 +28,8 @@ public class JwtFilter extends OncePerRequestFilter {
     private final CustomUserDetailService userDetailsService;
     private final RedisTemplate<String, String> redisTemplate;
 
-    public JwtFilter(JWTService jwtService,
-                     CustomUserDetailService userDetailsService,
-                     @Qualifier("redisTemplate") RedisTemplate<String, String> redisTemplate) {
+    public JwtFilter(JWTService jwtService, CustomUserDetailService userDetailsService,
+            @Qualifier("redisTemplate") RedisTemplate<String, String> redisTemplate) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.redisTemplate = redisTemplate;
@@ -38,8 +37,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
-                                    @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
         String token = "";
         UUID userId = null;
@@ -53,7 +52,7 @@ public class JwtFilter extends OncePerRequestFilter {
             userId = UUID.fromString(jwtService.extractUserId(token));
         }
         Boolean isLogout = redisTemplate.hasKey(token);
-        if(Boolean.TRUE.equals(isLogout)){
+        if (Boolean.TRUE.equals(isLogout)) {
             SecurityContextHolder.clearContext();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
@@ -65,8 +64,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
-                        userDetails.getAuthorities()
-                );
+                        userDetails.getAuthorities());
                 // Gắn thêm thông tin request (IP, Browser...)
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);

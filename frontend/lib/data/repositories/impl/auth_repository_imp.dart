@@ -63,4 +63,16 @@ class AuthRepositoryImp implements AuthRepository {
       return !JwtDecoder.isExpired(token);
     });
   }
+
+  @override
+  Future<String?> getUserRole() async {
+    final token = await _secureStorageRepository.getToken();
+    if (token == null) return null;
+    try {
+      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+      return decodedToken['role'] as String?;
+    } catch (e) {
+      return null;
+    }
+  }
 }

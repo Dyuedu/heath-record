@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import backend.model.dto.request.AddRelativeRequest;
 import backend.model.dto.response.MedicalRecordResponse;
 import backend.model.dto.response.RelativeHealthHistoryResponse;
 import backend.model.dto.response.RelativeResponse;
@@ -79,7 +78,8 @@ public class RecordController {
 
     @GetMapping("/relatives")
     public ResponseEntity<List<RelativeResponse>> getRelatives(@AuthenticationPrincipal UserPrincipal userPrincipal) {
-        if (userPrincipal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (userPrincipal == null)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         List<RelativeResponse> responses = relativeService.findByUserId(userPrincipal.getId())
                 .stream()

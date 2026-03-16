@@ -19,6 +19,7 @@ public class RecordResponse {
     List<String> attachments;
     LocalDateTime createdAt;
     UUID relativeId;
+    UUID patientProfileId;
     String relativeName;
     String patientName;
     String doctorName;

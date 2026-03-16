@@ -4,6 +4,10 @@ import backend.exception.ResourceNotFoundException;
 import backend.model.MedicalRecord;
 import backend.model.Relative;
 import backend.model.User;
+import backend.model.DiagnosticRecord;
+import backend.model.Attachment;
+import backend.model.Hospital;
+import backend.model.Tag;
 import backend.model.dto.request.RecordCreateRequest;
 import backend.model.dto.response.MedicalRecordResponse;
 import backend.model.dto.response.RelativeHealthHistoryResponse;
@@ -85,4 +89,5 @@ public class RecordService {
     private String buildAuditField(User doctor) {
         return doctor.getEmail() != null ? "created-by:" + doctor.getEmail() : "created-by:unknown";
     }
+
 }

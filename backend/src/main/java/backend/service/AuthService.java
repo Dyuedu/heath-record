@@ -34,8 +34,9 @@ public class AuthService {
     private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    public AuthService(PasswordEncoder passwordEncoder, RoleRepository roleRepository, UserRepository userRepository, ProfileRepository profileRepository, RelativeRepository relativeRepository, JWTService jwtService,
-                       AuthenticationManager authenticationManager) {
+    public AuthService(PasswordEncoder passwordEncoder, RoleRepository roleRepository, UserRepository userRepository,
+            ProfileRepository profileRepository, RelativeRepository relativeRepository, JWTService jwtService,
+            AuthenticationManager authenticationManager) {
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
@@ -78,6 +79,7 @@ public class AuthService {
         self.setProfile(savedProfile);
         relativeRepository.save(self);
     }
+
     public String login(LoginRequest loginRequest) {
         return verify(loginRequest);
     }
@@ -96,6 +98,7 @@ public class AuthService {
     private Boolean isEmailExist(String email) {
         return userRepository.findByEmail(email) != null;
     }
+
     private Boolean isPhoneNumberExist(String phoneNumber) {
         return userRepository.findByPhoneNumber(phoneNumber) != null;
     }

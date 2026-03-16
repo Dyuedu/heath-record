@@ -59,8 +59,17 @@ public class MedicalRecord {
     private String auditField;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "relative_id", nullable = false)
-    private Relative relative;
+    @JoinColumn(name = "hospital_id")
+    private Hospital hospital;
+
+    @Column(name = "datetime_start")
+    private LocalDateTime datetimeStart;
+
+    @Column(name = "datetime_end")
+    private LocalDateTime datetimeEnd;
+
+    @Column(name = "audit_field")
+    private String auditField;
 
     @ManyToMany
     @JoinTable(

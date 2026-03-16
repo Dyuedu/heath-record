@@ -25,4 +25,5 @@ public class RecordCreateRequest {
     private boolean important;
 
     private UUID relativeId;
+    private UUID patientProfileId;
 }

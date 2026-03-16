@@ -80,7 +80,11 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<bool> isLoggedIn() async {
     try {
-      return await _authRepository.isLoggedIn();
+      final isLogged = await _authRepository.isLoggedIn();
+      if (isLogged) {
+        _userRole = await _authRepository.getUserRole();
+      }
+      return isLogged;
     } catch (e) {
       return false;
     }

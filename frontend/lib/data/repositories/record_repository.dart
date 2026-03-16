@@ -5,6 +5,8 @@ import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/models/record/add_relative_request.dart';
 import 'package:frontend/data/models/record/medical_record_model.dart';
 import 'package:frontend/data/models/record/relative.dart';
+import 'package:frontend/data/models/hospital_response.dart';
+import 'package:frontend/data/models/relative_search_response.dart';
 
 class RecordRepository {
   final DioClient _dioClient;

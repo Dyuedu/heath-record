@@ -6,6 +6,8 @@ import 'package:frontend/views/authentication/signup_page.dart';
 import 'package:frontend/views/home/home_page.dart';
 import 'package:frontend/views/user/profile_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
+import 'package:frontend/views/doctor/doctor_dashboard_page.dart';
+import 'package:frontend/views/doctor/create_medical_record_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -45,6 +47,10 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => const ProfilePage(),
           settings: settings,
+        );
+      case personalProfile:
+        return MaterialPageRoute(builder: (_) => const ProfilePage(),
+        settings: settings
         );
       case appointments:
         return MaterialPageRoute(
