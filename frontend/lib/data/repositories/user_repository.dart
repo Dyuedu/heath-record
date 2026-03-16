@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:frontend/data/models/user/user_profile_model.dart';
 
 abstract class UserRepository {
@@ -21,4 +23,6 @@ abstract class UserRepository {
     required String otp,
     required String newPassword,
   });
+
+  Future<UserProfileModel?> uploadAvatar({required File avatarFile});
 }

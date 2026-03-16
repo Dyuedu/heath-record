@@ -8,6 +8,7 @@ import backend.model.dto.response.PatientDetailResponse;
 import backend.model.dto.response.UserResponse;
 import backend.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -84,5 +87,15 @@ public class UserController {
             return ResponseEntity.status(401).build();
         }
         return ResponseEntity.ok(userService.updateCurrentUser(userPrincipal.getId(), request));
+    }
+
+    @PutMapping(value = "/users/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserResponse> updateMyAvatar(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestPart("avatar") MultipartFile avatarFile) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(userService.updateMyAvatar(userPrincipal.getId(), avatarFile));
     }
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
@@ -11,15 +13,19 @@ class ProfileViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _isFamilyLoading = false;
+  bool _isAvatarUploading = false;
   String? _errorMessage;
   String? _familyErrorMessage;
+  String? _avatarErrorMessage;
   UserProfileModel? _profile;
   List<Relative> _familyProfiles = const [];
 
   bool get isLoading => _isLoading;
   bool get isFamilyLoading => _isFamilyLoading;
+  bool get isAvatarUploading => _isAvatarUploading;
   String? get errorMessage => _errorMessage;
   String? get familyErrorMessage => _familyErrorMessage;
+  String? get avatarErrorMessage => _avatarErrorMessage;
   UserProfileModel? get profile => _profile;
   List<Relative> get familyProfiles => List.unmodifiable(_familyProfiles);
 
@@ -63,6 +69,27 @@ class ProfileViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateAvatar(File avatarFile) async {
+    _avatarErrorMessage = null;
+    _setAvatarUploading(true);
+
+    try {
+      final updatedProfile = await _repository.uploadAvatar(avatarFile);
+      if (updatedProfile == null) {
+        _avatarErrorMessage = 'Không thể cập nhật ảnh đại diện.';
+        return false;
+      }
+
+      _profile = updatedProfile;
+      return true;
+    } catch (_) {
+      _avatarErrorMessage = 'Không thể cập nhật ảnh đại diện.';
+      return false;
+    } finally {
+      _setAvatarUploading(false);
+    }
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
@@ -70,6 +97,11 @@ class ProfileViewModel extends ChangeNotifier {
 
   void _setFamilyLoading(bool value) {
     _isFamilyLoading = value;
+    notifyListeners();
+  }
+
+  void _setAvatarUploading(bool value) {
+    _isAvatarUploading = value;
     notifyListeners();
   }
 }

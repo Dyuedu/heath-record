@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/user_repository.dart';
@@ -97,5 +100,38 @@ class UserRepositoryImp implements UserRepository {
     } catch (_) {
       return false;
     }
+  }
+
+  @override
+  Future<UserProfileModel?> uploadAvatar({required File avatarFile}) async {
+    try {
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(
+          avatarFile.path,
+          filename: _extractFileName(avatarFile),
+        ),
+      });
+
+      final response = await _dioClient.dio.put(
+        '/api/users/me/avatar',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return UserProfileModel.fromMap(
+          Map<String, dynamic>.from(response.data),
+        );
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _extractFileName(File file) {
+    final segments = file.path.split(RegExp(r'[\\/]'));
+    return segments.isNotEmpty ? segments.last : 'avatar.jpg';
   }
 }
