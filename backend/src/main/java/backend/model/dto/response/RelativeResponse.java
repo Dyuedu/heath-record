@@ -9,6 +9,7 @@ import java.util.UUID;
 @Builder
 public class RelativeResponse {
     UUID id;
+    UUID profileId;
     String name;
     String relationship;
 }

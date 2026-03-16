@@ -52,8 +52,12 @@ public class DiagnosticRecord {
     private String auditField;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "relative_id", nullable = false)
+    @JoinColumn(name = "relative_id")
     private Relative relative;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_id")
+    private Profile profile;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "encounter_id")

@@ -18,6 +18,7 @@ import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
+import 'package:frontend/viewmodels/relative_detail_viewmodel.dart';
 import 'package:frontend/viewmodels/user_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
@@ -72,6 +73,11 @@ class AppProviders {
             RecordViewModel(repository: context.read<RecordRepository>()),
         update: (context, recordRepository, previous) =>
             previous ?? RecordViewModel(repository: recordRepository),
+      ),
+      ChangeNotifierProvider<RelativeDetailViewModel>(
+        create: (context) => RelativeDetailViewModel(
+          repository: context.read<RecordRepository>(),
+        ),
       ),
       ProxyProvider<DioClient, DoctorRepository>(
         update: (context, dioClient, previous) =>

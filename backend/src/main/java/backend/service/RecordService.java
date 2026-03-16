@@ -32,9 +32,9 @@ public class RecordService {
     private final MedicalRecordMapper medicalRecordMapper;
 
     public RecordService(MedicalRecordRepository medicalRecordRepository,
-                         RelativeRepository relativeRepository,
-                         UserRepository userRepository,
-                         MedicalRecordMapper medicalRecordMapper) {
+            RelativeRepository relativeRepository,
+            UserRepository userRepository,
+            MedicalRecordMapper medicalRecordMapper) {
         this.medicalRecordRepository = medicalRecordRepository;
         this.relativeRepository = relativeRepository;
         this.userRepository = userRepository;
@@ -56,8 +56,9 @@ public class RecordService {
                 .title(request.getTitle() != null ? request.getTitle().trim() : null)
                 .tag(resolvePrimaryTag(request))
                 .note(request.getNotes())
-                .doctorUserId(null)
+                .doctor(doctor)
                 .relative(relative)
+                .profile(relative.getProfile())
                 .datetimeStart(LocalDateTime.now())
                 .datetimeEnd(LocalDateTime.now())
                 .auditField(buildAuditField(doctor))
@@ -76,6 +77,18 @@ public class RecordService {
         }
 
         List<MedicalRecord> records = medicalRecordRepository.findByRelativeId(relativeId);
+        return medicalRecordMapper.toRelativeHistory(relative, records);
+    }
+
+    public RelativeHealthHistoryResponse getRecordsByProfile(UUID userId, UUID profileId) {
+        Relative relative = relativeRepository.findByProfileId(profileId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người thân"));
+
+        if (!relative.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Relative không thuộc user này");
+        }
+
+        List<MedicalRecord> records = medicalRecordRepository.findByProfileId(profileId);
         return medicalRecordMapper.toRelativeHistory(relative, records);
     }
 

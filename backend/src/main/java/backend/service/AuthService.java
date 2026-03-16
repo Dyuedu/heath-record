@@ -96,10 +96,10 @@ public class AuthService {
     }
 
     private Boolean isEmailExist(String email) {
-        return userRepository.findByEmail(email) != null;
+        return userRepository.findByEmail(email).isPresent();
     }
 
     private Boolean isPhoneNumberExist(String phoneNumber) {
-        return userRepository.findByPhoneNumber(phoneNumber) != null;
+        return userRepository.findByPhoneNumber(phoneNumber).isPresent();
     }
 }

@@ -30,6 +30,7 @@ class _PatientDetailBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<PatientDetailViewModel>();
     final currentPatient = vm.patient ?? initialPatient;
+    final selectedRelative = vm.selectedRelative;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FD),
@@ -99,11 +100,17 @@ class _PatientDetailBody extends StatelessWidget {
                     ),
         ],
       ),
+
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: vm.selectedRelativeId == null
+        onPressed: selectedRelative?.profileId == null
             ? null
-            : () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateRecordPage(relativeId: vm.selectedRelativeId!))),
-        backgroundColor: vm.selectedRelativeId == null ? Colors.grey : const Color(0xFF246BFF),
+            : () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateRecordPage(patientProfileId: selectedRelative!.profileId!),
+                  ),
+                ),
+        backgroundColor: selectedRelative?.profileId == null ? Colors.grey : const Color(0xFF246BFF),
         label: const Text("Thêm bệnh án", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add_task, color: Colors.white),
       ),

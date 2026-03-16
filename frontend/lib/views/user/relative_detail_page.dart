@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/data/models/record/medical_record_model.dart';
-import 'package:frontend/data/repositories/record_repository.dart';
-import 'package:frontend/views/medical-record/create_record_page.dart';
+import 'package:frontend/data/models/record/diagnostic_model.dart';
+import 'package:frontend/data/models/record/encounter_model.dart';
+import 'package:frontend/data/models/record/relative_history_model.dart';
+import 'package:frontend/viewmodels/relative_detail_viewmodel.dart';
 import 'package:provider/provider.dart';
 
-/// Trang hiển thị hồ sơ sức khoẻ (medical records) của một người thân.
 class RelativeDetailPage extends StatefulWidget {
-  final String relativeId;
   final String relativeName;
+  final String profileId;
 
   const RelativeDetailPage({
     super.key,
-    required this.relativeId,
     required this.relativeName,
+    required this.profileId,
   });
 
   @override
@@ -20,41 +20,28 @@ class RelativeDetailPage extends StatefulWidget {
 }
 
 class _RelativeDetailPageState extends State<RelativeDetailPage> {
-  List<MedicalRecordModel> _records = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-
   @override
   void initState() {
     super.initState();
-    _loadRecords();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<RelativeDetailViewModel>().loadHistory(widget.profileId);
+    });
   }
 
-  Future<void> _loadRecords() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final repo = context.read<RecordRepository>();
-      final records = await repo.getRecordsByRelative(widget.relativeId);
-      if (!mounted) return;
-      setState(() {
-        _records = records;
-        _isLoading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Không thể tải hồ sơ sức khoẻ. Vui lòng thử lại.';
-        _isLoading = false;
-      });
-    }
+  Future<void> _handleRefresh() {
+    return context.read<RelativeDetailViewModel>().refresh(widget.profileId);
   }
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<RelativeDetailViewModel>();
+    final bool isActiveProfile = vm.activeProfileId == widget.profileId;
+    final RelativeHistoryModel? history =
+        isActiveProfile ? vm.history : null;
+    final String? errorMessage = isActiveProfile ? vm.errorMessage : null;
+    final bool showGlobalLoading =
+        vm.isLoading && (history == null || !isActiveProfile);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       appBar: AppBar(
@@ -76,185 +63,343 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
       body: RefreshIndicator(
         color: const Color(0xFF246BFF),
         backgroundColor: Colors.white,
-        onRefresh: _loadRecords,
-        child: _buildBody(),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  CreateRecordPage(relativeId: widget.relativeId),
-            ),
-          );
-          if (result == true) {
-            _loadRecords();
-          }
-        },
-        backgroundColor: const Color(0xFF246BFF),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label:
-            const Text('Thêm hồ sơ', style: TextStyle(color: Colors.white)),
+        onRefresh: _handleRefresh,
+        child: _buildBody(
+          context,
+          history,
+          errorMessage,
+          showGlobalLoading,
+          vm.isLoading && history != null,
+        ),
       ),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_errorMessage != null) {
+  Widget _buildBody(
+    BuildContext context,
+    RelativeHistoryModel? history,
+    String? errorMessage,
+    bool showGlobalLoading,
+    bool showInlineLoading,
+  ) {
+    if (showGlobalLoading && history == null) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           SizedBox(
             height: MediaQuery.of(context).size.height * 0.6,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
-                  const SizedBox(height: 12),
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.redAccent, fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadRecords,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF246BFF),
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Thử lại'),
-                  ),
-                ],
-              ),
-            ),
+            child: const Center(child: CircularProgressIndicator()),
           ),
         ],
       );
     }
 
-    if (_records.isEmpty) {
+    if (errorMessage != null) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(24),
         children: [
-          SizedBox(
-            height: MediaQuery.of(context).size.height * 0.6,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.folder_open_rounded, size: 80, color: Colors.grey[300]),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Chưa có hồ sơ sức khoẻ',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Bấm nút + để thêm hồ sơ mới',
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _buildErrorState(errorMessage),
         ],
       );
     }
 
-    return ListView.builder(
+    if (history == null) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        children: [
+          _buildEmptyState(),
+        ],
+      );
+    }
+
+    final encounters = history.encounters;
+    return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      itemCount: _records.length,
-      itemBuilder: (context, index) => _buildRecordCard(_records[index]),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: [
+        _buildRelativeHeader(history, showInlineLoading),
+        const SizedBox(height: 16),
+        if (encounters.isEmpty)
+          _buildEmptyState()
+        else
+          ...encounters.map(_buildEncounterCard),
+      ],
     );
   }
 
-  Widget _buildRecordCard(MedicalRecordModel record) {
+  Widget _buildRelativeHeader(RelativeHistoryModel history, bool loading) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 48,
+                width: 48,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF246BFF),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.person, color: Colors.white),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      history.relativeName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Color(0xFF1F2D3D),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      history.relationship,
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              if (loading)
+                const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Tổng số lần khám: ${history.encounters.length}',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF4E5D78)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEncounterCard(EncounterModel encounter) {
+    final diagnostics = encounter.diagnostics;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: ExpansionTile(
-        shape: const RoundedRectangleBorder(side: BorderSide.none),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        tilePadding: const EdgeInsets.all(16),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: _getTypeColor(record.type).withOpacity(0.1),
+            color: const Color(0xFF246BFF).withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(_getTypeIcon(record.type),
-              color: _getTypeColor(record.type)),
+          child: const Icon(
+            Icons.medical_services_outlined,
+            color: Color(0xFF246BFF),
+          ),
         ),
         title: Text(
-          record.title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          encounter.title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: Color(0xFF1F2D3D),
+          ),
         ),
         subtitle: Text(
-          '${record.type} • ${record.createdAt.day}/${record.createdAt.month}/${record.createdAt.year}',
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-        trailing: Icon(
-          record.isImportant ? Icons.bookmark : Icons.bookmark_border,
-          color: record.isImportant
-              ? const Color(0xFF246BFF)
-              : Colors.grey,
+          _buildEncounterSubtitle(encounter),
+          style: const TextStyle(color: Colors.grey, fontSize: 12),
         ),
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+          if ((encounter.note ?? '').isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildSection(
+                title: 'Ghi chú',
+                child: Text(
+                  encounter.note ?? '',
+                  style: const TextStyle(fontSize: 13, height: 1.5),
+                ),
+              ),
+            ),
+          if (encounter.tagNames.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildSection(
+                title: 'Tags',
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children:
+                      encounter.tagNames.map((tag) => _tagChip(tag)).toList(),
+                ),
+              ),
+            ),
+          if (diagnostics.isEmpty)
+            _buildEmptyDiagnostics()
+          else
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Divider(),
-                const Text(
-                  'Ghi chú:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Color(0xFF246BFF),
-                  ),
+              children: diagnostics.map(_buildDiagnosticCard).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiagnosticCard(DiagnosticModel diagnostic) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F9FF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF246BFF).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                diagnostic.category,
+                style: const TextStyle(
+                  color: Color(0xFF246BFF),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  record.notes.isEmpty
-                      ? 'Không có ghi chú thêm.'
-                      : record.notes,
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-                if (record.tags.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children:
-                        record.tags.map((tag) => _miniTag(tag)).toList(),
-                  ),
-                ],
-              ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (diagnostic.tag != null && diagnostic.tag!.isNotEmpty)
+              Text(
+                '#${diagnostic.tag}',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            const Spacer(),
+            if (diagnostic.datetimeEnd != null)
+              Text(
+                '${diagnostic.datetimeEnd!.day}/${diagnostic.datetimeEnd!.month}/${diagnostic.datetimeEnd!.year}',
+                style: const TextStyle(color: Colors.grey, fontSize: 11),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if ((diagnostic.data ?? '').isNotEmpty)
+          Text(
+            diagnostic.data!,
+            style: const TextStyle(fontSize: 13, height: 1.4),
+          ),
+        if (diagnostic.doctor != null && diagnostic.doctor!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Bác sĩ: ${diagnostic.doctor}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF4E5D78),
+              ),
+            ),
+          ),
+        if (diagnostic.hospitalName != null && diagnostic.hospitalName!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Cơ sở y tế: ${diagnostic.hospitalName}',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF4E5D78)),
+            ),
+          ),
+        if (diagnostic.tagNames.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: diagnostic.tagNames.map(_tagChip).toList(),
+            ),
+          ),
+        if (diagnostic.attachmentUrls.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: diagnostic.attachmentUrls
+                  .map((url) => _attachmentChip(url))
+                  .toList(),
+            ),
+          ),
+      ],
+    ),
+    );
+  }
+
+  Widget _buildSection({required String title, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: Color(0xFF246BFF),
+          ),
+        ),
+        const SizedBox(height: 6),
+        child,
+      ],
+    );
+  }
+
+  Widget _buildEmptyDiagnostics() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FE),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.grey),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Chưa có chẩn đoán chi tiết cho lần khám này.',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ),
         ],
@@ -262,33 +407,120 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
     );
   }
 
-  // --- Helpers ---
-
-  IconData _getTypeIcon(String type) {
-    if (type == 'Test') return Icons.biotech_rounded;
-    if (type == 'Prescription') return Icons.medication_rounded;
-    return Icons.assignment_rounded;
-  }
-
-  Color _getTypeColor(String type) {
-    if (type == 'Test') return Colors.purple;
-    if (type == 'Prescription') return Colors.orange;
-    return const Color(0xFF246BFF);
-  }
-
-  Widget _miniTag(String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF0F3FF),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          '#$text',
-          style: const TextStyle(
-            color: Color(0xFF246BFF),
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
+  Widget _buildErrorState(String message) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: const TextStyle(color: Colors.redAccent, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: _handleRefresh,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF246BFF),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Thử lại'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.folder_open, size: 60, color: Colors.grey[300]),
+          const SizedBox(height: 12),
+          const Text(
+            'Chưa có lần khám nào được lưu lại.',
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tagChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF4FF),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        '#$text',
+        style: const TextStyle(
+          color: Color(0xFF246BFF),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
         ),
-      );
+      ),
+    );
+  }
+
+  Widget _attachmentChip(String url) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF26BC9B).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.link, size: 14, color: Color(0xFF26BC9B)),
+          const SizedBox(width: 6),
+          Text(
+            'Tệp đính kèm',
+            style: const TextStyle(
+              color: Color(0xFF26BC9B),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _buildEncounterSubtitle(EncounterModel encounter) {
+    final String hospital =
+        (encounter.hospitalName ?? '').isEmpty ? 'Cơ sở chưa rõ' : encounter.hospitalName!;
+    final dateText = encounter.datetimeStart != null
+        ? '${encounter.datetimeStart!.day}/${encounter.datetimeStart!.month}/${encounter.datetimeStart!.year}'
+        : 'Ngày chưa rõ';
+    return '$hospital • $dateText';
+  }
 }

@@ -46,6 +46,29 @@ public class CloudinaryService {
         }
     }
 
+    public String uploadImage(MultipartFile file) {
+        validateFile(file);
+        try {
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "health-record/uploads",
+                            "public_id", "record_" + UUID.randomUUID(),
+                            "resource_type", "image"));
+
+            Object secureUrl = uploadResult.get("secure_url");
+            if (secureUrl == null) {
+                throw new InvalidRequestException(
+                        "IMAGE_UPLOAD_FAILED", "Không thể tải ảnh lên Cloudinary.");
+            }
+
+            return secureUrl.toString();
+        } catch (IOException exception) {
+            throw new InvalidRequestException(
+                    "IMAGE_UPLOAD_FAILED", "Không thể tải ảnh lên Cloudinary, vui lòng thử lại.");
+        }
+    }
+
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new InvalidRequestException("AVATAR_REQUIRED", "Vui lòng chọn ảnh đại diện.");

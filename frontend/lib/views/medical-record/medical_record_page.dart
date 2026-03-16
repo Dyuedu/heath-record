@@ -89,7 +89,9 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => CreateRecordPage(relativeId: vm.selectedRelativeId!),
+                    builder: (_) => CreateRecordPage(
+                      patientProfileId: vm.selectedPatientProfileId ?? vm.selectedRelativeId!,
+                    ),
                   ),
                 );
                 // Tự động reload nếu lưu thành công (trả về true)

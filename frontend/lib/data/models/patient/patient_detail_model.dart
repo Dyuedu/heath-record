@@ -26,12 +26,14 @@ class PatientDetailModel {
 
 class PatientRelativeRecordModel {
   final String id;
+  final String? profileId;
   final String name;
   final String? relationship;
   final List<MedicalRecordModel> records;
 
   PatientRelativeRecordModel({
     required this.id,
+    required this.profileId,
     required this.name,
     required this.relationship,
     required this.records,
@@ -45,6 +47,7 @@ class PatientRelativeRecordModel {
 
     return PatientRelativeRecordModel(
       id: relativeId,
+      profileId: map['profileId']?.toString(),
       name: map['name'] ?? '',
       relationship: map['relationship']?.toString(),
       records: rawRecords

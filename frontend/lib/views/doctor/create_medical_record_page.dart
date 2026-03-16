@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,6 +12,12 @@ class DiagnosticFormModel {
   TextEditingController tagController = TextEditingController();
   TextEditingController dataController = TextEditingController();
   List<File> images = [];
+
+  void dispose() {
+    categoryController.dispose();
+    tagController.dispose();
+    dataController.dispose();
+  }
 }
 
 class CreateMedicalRecordPage extends StatefulWidget {
@@ -29,6 +36,11 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
   ProfileSearchResponse? _selectedRelative;
   HospitalResponse? _selectedHospital;
   List<HospitalResponse> _hospitals = [];
+  List<ProfileSearchResponse> _relativeOptions = <ProfileSearchResponse>[];
+  Timer? _relativeSearchDebounce;
+  TextEditingController? _relativeFieldController;
+  TextEditingController? _hospitalFieldController;
+  String _lastRelativeQuery = '';
 
   final List<DiagnosticFormModel> _diagnostics = [];
   bool _isLoading = false;
@@ -36,18 +48,36 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
   @override
   void initState() {
     super.initState();
+    _diagnostics.add(DiagnosticFormModel());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadHospitals();
     });
   }
 
+  @override
+  void dispose() {
+    _relativeSearchDebounce?.cancel();
+    _relativeFieldController?.removeListener(_handleRelativeQueryChanged);
+    _hospitalFieldController?.removeListener(_handleHospitalQueryChanged);
+    _titleController.dispose();
+    _noteController.dispose();
+    for (final diag in _diagnostics) {
+      diag.dispose();
+    }
+    super.dispose();
+  }
+
   Future<void> _loadHospitals() async {
-    final repository = context.read<RecordRepository>();
-    final h = await repository.getHospitals();
-    if (mounted) {
-      setState(() {
-        _hospitals = h;
-      });
+    try {
+      final repository = context.read<RecordRepository>();
+      final h = await repository.getHospitals();
+      if (mounted) {
+        setState(() {
+          _hospitals = h;
+        });
+      }
+    } catch (_) {
+      // Ignore silently; UI will show empty state.
     }
   }
 
@@ -58,9 +88,10 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
   }
 
   void _removeDiagnostic(int index) {
-    setState(() {
-      _diagnostics.removeAt(index);
-    });
+    if (index < 0 || index >= _diagnostics.length) return;
+    final removed = _diagnostics.removeAt(index);
+    removed.dispose();
+    setState(() {});
   }
 
   Future<void> _pickImages(int index) async {
@@ -73,8 +104,78 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
     }
   }
 
+  void _handleRelativeQueryChanged() {
+    final controller = _relativeFieldController;
+    if (controller == null) return;
+    final query = controller.text;
+    _relativeSearchDebounce?.cancel();
+
+    final trimmed = query.trim();
+
+    if (trimmed.isEmpty) {
+      setState(() {
+        _relativeOptions = <ProfileSearchResponse>[];
+        _selectedRelative = null;
+      });
+      return;
+    }
+
+    if (_selectedRelative != null &&
+        !_equalsIgnoreCase(_selectedRelative!.fullName, query)) {
+      setState(() {
+        _selectedRelative = null;
+      });
+    }
+
+    if (_relativeOptions.isNotEmpty) {
+      setState(() {
+        _relativeOptions = <ProfileSearchResponse>[];
+      });
+    }
+
+    _relativeSearchDebounce = Timer(const Duration(milliseconds: 350), () {
+      _lastRelativeQuery = trimmed;
+      _fetchRelativeOptions(trimmed);
+    });
+  }
+
+  void _handleHospitalQueryChanged() {
+    final controller = _hospitalFieldController;
+    if (controller == null) return;
+    final query = controller.text.trim();
+    if (query.isEmpty && _selectedHospital != null) {
+      setState(() {
+        _selectedHospital = null;
+      });
+    } else if (_selectedHospital != null &&
+        !_equalsIgnoreCase(_selectedHospital!.name, query)) {
+      setState(() {
+        _selectedHospital = null;
+      });
+    }
+  }
+
+  Future<void> _fetchRelativeOptions(String query) async {
+    try {
+      final repository = context.read<RecordRepository>();
+      final results = await repository.searchPatientProfiles(query);
+      if (!mounted || query != _lastRelativeQuery) return;
+      setState(() {
+        _relativeOptions = results;
+      });
+    } catch (_) {
+      if (!mounted || query != _lastRelativeQuery) return;
+      setState(() {
+        _relativeOptions = <ProfileSearchResponse>[];
+      });
+    }
+  }
+
+  bool _equalsIgnoreCase(String a, String b) =>
+      a.toLowerCase() == b.toLowerCase();
+
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_selectedRelative == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a patient.')));
       return;
@@ -168,6 +269,8 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                      ],
                    ),
                    const SizedBox(height: 10),
+                   if (_diagnostics.isEmpty)
+                     const Text('No diagnostics added yet.', style: TextStyle(color: Colors.grey)),
                    ..._diagnostics.asMap().entries.map((entry) {
                      int idx = entry.key;
                      DiagnosticFormModel diag = entry.value;
@@ -255,7 +358,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
         labelText: '$label${required ? ' *' : ''}',
         prefixIcon: Icon(icon, color: const Color(0xFF246BFF)),
         filled: true,
-        fillColor: const Color(0xFFDDE3FF).withOpacity(0.3),
+        fillColor: const Color(0xFFDDE3FF).withValues(alpha: 0.3),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       ),
       validator: required ? ((v) => (v == null || v.isEmpty) ? 'This field is required' : null) : null,
@@ -265,12 +368,16 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
   Widget _buildRelativeSearch() {
     return Autocomplete<ProfileSearchResponse>(
       displayStringForOption: (option) => option.fullName,
-      optionsBuilder: (TextEditingValue textEditingValue) async {
-        if (textEditingValue.text.isEmpty) {
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        final query = textEditingValue.text;
+        if (query.isEmpty) {
           return const Iterable<ProfileSearchResponse>.empty();
         }
-        final repository = context.read<RecordRepository>();
-        return await repository.searchPatientProfiles(textEditingValue.text);
+        final lowerQuery = query.toLowerCase();
+        return _relativeOptions.where(
+          (option) => option.fullName.toLowerCase().contains(lowerQuery) ||
+              option.phoneNumber.toLowerCase().contains(lowerQuery),
+        );
       },
       onSelected: (ProfileSearchResponse selection) {
         setState(() {
@@ -311,6 +418,11 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
         );
       },
       fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+        if (_relativeFieldController != textEditingController) {
+          _relativeFieldController?.removeListener(_handleRelativeQueryChanged);
+          _relativeFieldController = textEditingController;
+          _relativeFieldController!.addListener(_handleRelativeQueryChanged);
+        }
         return TextFormField(
           controller: textEditingController,
           focusNode: focusNode,
@@ -322,12 +434,15 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                   icon: const Icon(Icons.clear),
                   onPressed: () {
                     textEditingController.clear();
-                    setState(() => _selectedRelative = null);
+                    setState(() {
+                      _selectedRelative = null;
+                      _relativeOptions = <ProfileSearchResponse>[];
+                    });
                   },
                 )
               : null,
             filled: true,
-            fillColor: const Color(0xFFDDE3FF).withOpacity(0.3),
+            fillColor: const Color(0xFFDDE3FF).withValues(alpha: 0.3),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
           ),
           validator: (v) => _selectedRelative == null ? 'Please select a patient' : null,
@@ -379,6 +494,11 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
         );
       },
       fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+        if (_hospitalFieldController != textEditingController) {
+          _hospitalFieldController?.removeListener(_handleHospitalQueryChanged);
+          _hospitalFieldController = textEditingController;
+          _hospitalFieldController!.addListener(_handleHospitalQueryChanged);
+        }
         return TextFormField(
           controller: textEditingController,
           focusNode: focusNode,
@@ -395,7 +515,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                 )
               : null,
             filled: true,
-            fillColor: const Color(0xFFDDE3FF).withOpacity(0.3),
+            fillColor: const Color(0xFFDDE3FF).withValues(alpha: 0.3),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
           ),
         );

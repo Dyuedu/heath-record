@@ -22,6 +22,7 @@ class RecordViewModel extends ChangeNotifier {
   bool isImportant = false;
   bool isLoading = false;
   String? selectedRelativeId;
+  String? selectedPatientProfileId;
   String? errorMessage;
 
   Future<void> initData() async {
@@ -35,6 +36,13 @@ class RecordViewModel extends ChangeNotifier {
 
   Future<void> fetchRecords(String relativeId) async {
     selectedRelativeId = relativeId;
+    try {
+      selectedPatientProfileId = relatives
+          .firstWhere((rel) => rel.id == relativeId)
+          .profileId;
+    } catch (_) {
+      selectedPatientProfileId = null;
+    }
     _setLoading(true);
 
     // Gọi repo và nhận về List<MedicalRecordModel>
@@ -137,6 +145,69 @@ class RecordViewModel extends ChangeNotifier {
         files: List<File>.from(selectedFiles),
         type: type.trim(),
       );
+
+      if (success) {
+        _resetFormState();
+      } else {
+        errorMessage = "Không thể lưu hồ sơ. Vui lòng thử lại.";
+      }
+
+      return success;
+    } catch (e) {
+      errorMessage = "Đã xảy ra lỗi không mong muốn.";
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> saveDoctorRecord(String title, String notes, String category) async {
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) {
+      errorMessage = "Title is required";
+      notifyListeners();
+      return false;
+    }
+
+    final profileId = selectedPatientProfileId;
+    if (profileId == null || profileId.isEmpty) {
+      if (selectedRelativeId != null && selectedRelativeId!.isNotEmpty) {
+        return saveRecord(title, notes, category);
+      }
+      errorMessage = "Please choose a patient profile before saving.";
+      notifyListeners();
+      return false;
+    }
+
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      final imageUrls = <String>[];
+      for (final file in selectedFiles) {
+        final uploadedUrl = await _repository.uploadDiagnosticImage(file);
+        if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
+          imageUrls.add(uploadedUrl);
+        }
+      }
+
+      final diagnosticPayload = <String, dynamic>{
+        'category': category.trim().isEmpty ? 'Diagnosis' : category.trim(),
+        'tag': selectedTags.isEmpty ? null : selectedTags.join(','),
+        'data': '',
+        'imageUrls': imageUrls,
+      }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+
+      final payload = <String, dynamic>{
+        'patientProfileId': profileId,
+        'title': trimmedTitle,
+        if (notes.trim().isNotEmpty) 'note': notes.trim(),
+        'diagnostics': [diagnosticPayload],
+      };
+
+      final success = await _repository.createFullMedicalRecord(payload);
 
       if (success) {
         _resetFormState();

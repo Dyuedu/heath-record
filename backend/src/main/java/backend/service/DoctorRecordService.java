@@ -14,6 +14,7 @@ import backend.repository.HospitalRepository;
 import backend.repository.TagRepository;
 import backend.repository.MedicalRecordRepository;
 import backend.repository.ProfileRepository;
+import backend.repository.RelativeRepository;
 import backend.repository.UserRepository;
 import backend.service.mapper.MedicalRecordMapper;
 import backend.model.dto.response.RelativeSearchResponse;
@@ -35,19 +36,22 @@ public class DoctorRecordService {
     private final MedicalRecordMapper medicalRecordMapper;
     private final HospitalRepository hospitalRepository;
     private final TagRepository tagRepository;
+    private final RelativeRepository relativeRepository;
 
     public DoctorRecordService(MedicalRecordRepository medicalRecordRepository,
             ProfileRepository profileRepository,
             UserRepository userRepository,
             MedicalRecordMapper medicalRecordMapper,
             HospitalRepository hospitalRepository,
-            TagRepository tagRepository) {
+            TagRepository tagRepository,
+            RelativeRepository relativeRepository) {
         this.medicalRecordRepository = medicalRecordRepository;
         this.profileRepository = profileRepository;
         this.userRepository = userRepository;
         this.medicalRecordMapper = medicalRecordMapper;
         this.hospitalRepository = hospitalRepository;
         this.tagRepository = tagRepository;
+        this.relativeRepository = relativeRepository;
     }
 
     private String buildAuditField(User doctor) {
@@ -65,6 +69,8 @@ public class DoctorRecordService {
         backend.model.Profile profile = profileRepository.findById(request.getPatientProfileId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ bệnh nhân"));
 
+        backend.model.Relative relative = relativeRepository.findByProfileId(profile.getId()).orElse(null);
+
         Hospital hospital = null;
         if (request.getHospitalId() != null) {
             hospital = hospitalRepository.findById(request.getHospitalId())
@@ -75,6 +81,7 @@ public class DoctorRecordService {
                 .title(request.getTitle() != null ? request.getTitle().trim() : null)
                 .note(request.getNote())
                 .doctor(doctor)
+                .relative(relative)
                 .profile(profile)
                 .hospital(hospital)
                 .datetimeStart(LocalDateTime.now())
@@ -92,6 +99,7 @@ public class DoctorRecordService {
                         .datetimeEnd(LocalDateTime.now())
                         .auditField(buildAuditField(doctor))
                         .profile(profile)
+                        .relative(relative)
                         .encounter(record)
                         .hospital(hospital)
                         .build();

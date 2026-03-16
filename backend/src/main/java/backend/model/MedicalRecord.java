@@ -42,21 +42,17 @@ public class MedicalRecord {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
-    @Column(name = "doctor_user_id")
-    private Long doctorUserId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "doctor_user_id")
+    private User doctor;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hospital_id")
-    private Hospital hospital;
+    @JoinColumn(name = "relative_id")
+    private Relative relative;
 
-    @Column(name = "datetime_start")
-    private LocalDateTime datetimeStart;
-
-    @Column(name = "datetime_end")
-    private LocalDateTime datetimeEnd;
-
-    @Column(name = "audit_field")
-    private String auditField;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_id")
+    private Profile profile;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hospital_id")

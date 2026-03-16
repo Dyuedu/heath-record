@@ -110,19 +110,23 @@ public class UserService {
 
         String newEmail = trimToNull(request.email());
         if (StringUtils.hasText(newEmail) && !newEmail.equalsIgnoreCase(user.getEmail())) {
-            User emailOwner = userRepository.findByEmail(newEmail);
-            if (emailOwner != null && !emailOwner.getId().equals(userId)) {
-                throw new EmailDuplicateException(newEmail);
-            }
+            userRepository.findByEmail(newEmail)
+                    .ifPresent(existing -> {
+                        if (!existing.getId().equals(userId)) {
+                            throw new EmailDuplicateException(newEmail);
+                        }
+                    });
             user.setEmail(newEmail);
         }
 
         String newPhone = trimToNull(request.phoneNumber());
         if (StringUtils.hasText(newPhone) && !newPhone.equals(user.getPhoneNumber())) {
-            User phoneOwner = userRepository.findByPhoneNumber(newPhone);
-            if (phoneOwner != null && !phoneOwner.getId().equals(userId)) {
-                throw new PhoneDuplicateException(newPhone);
-            }
+            userRepository.findByPhoneNumber(newPhone)
+                    .ifPresent(existing -> {
+                        if (!existing.getId().equals(userId)) {
+                            throw new PhoneDuplicateException(newPhone);
+                        }
+                    });
             user.setPhoneNumber(newPhone);
         }
 

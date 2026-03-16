@@ -54,6 +54,7 @@ public class RelativeService {
         Relative savedRelative = relativeRepository.save(relative);
         return RelativeResponse.builder()
                 .id(savedRelative.getId())
+            .profileId(savedRelative.getProfile() != null ? savedRelative.getProfile().getId() : null)
                 .name(savedRelative.getProfile().getFullname())
                 .relationship(savedRelative.getRelationship())
                 .build();

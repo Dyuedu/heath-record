@@ -82,10 +82,14 @@ class AuthViewModel extends ChangeNotifier {
     try {
       final isLogged = await _authRepository.isLoggedIn();
       if (isLogged) {
-        _userRole = await _authRepository.getUserRole();
+        final fetchedRole = await _authRepository.getUserRole();
+        setRoleFromString(fetchedRole);
+      } else {
+        setRoleFromString(null);
       }
       return isLogged;
     } catch (e) {
+      setRoleFromString(null);
       return false;
     }
   }

@@ -70,14 +70,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   MaterialPageRoute(builder: (_) => const UserProfilePage()),
                 ),
               ),
-              _buildMenuItem(
-                Icons.favorite_border,
-                'Thông tin sức khỏe',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MedicalRecordPage()),
-                ),
-              ),
+              // _buildMenuItem(
+              //   Icons.favorite_border,
+              //   'Thông tin sức khỏe',
+              //   onTap: () => Navigator.push(
+              //     context,
+              //     MaterialPageRoute(builder: (_) => const MedicalRecordPage()),
+              //   ),
+              // ),
               const SizedBox(height: 8),
               _buildSectionTitle('Hồ sơ người thân'),
               _buildFamilySection(vm),
@@ -234,15 +234,26 @@ class _ProfilePageState extends State<ProfilePage> {
     final relationship = _formatValue(relative.relationship);
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => RelativeDetailPage(
-            relativeId: relative.id,
-            relativeName: relative.name,
+      onTap: () {
+        final profileId = relative.profileId;
+        if (profileId == null || profileId.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Hồ sơ này chưa có thông tin chi tiết.'),
+            ),
+          );
+          return;
+        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RelativeDetailPage(
+              relativeName: relative.name,
+              profileId: profileId,
+            ),
           ),
-        ),
-      ),
+        );
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),

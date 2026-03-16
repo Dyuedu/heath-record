@@ -114,20 +114,24 @@ public class AdminUserService {
         if (!StringUtils.hasText(email)) {
             throw new InvalidRequestException("EMAIL_REQUIRED", "Email là bắt buộc");
         }
-        User existing = userRepository.findByEmail(email);
-        if (existing != null && (currentUserId == null || !existing.getId().equals(currentUserId))) {
-            throw new EmailDuplicateException(email);
-        }
+        userRepository.findByEmail(email)
+                .ifPresent(existing -> {
+                    if (currentUserId == null || !existing.getId().equals(currentUserId)) {
+                        throw new EmailDuplicateException(email);
+                    }
+                });
     }
 
     private void validatePhone(String phone, UUID currentUserId) {
         if (!StringUtils.hasText(phone)) {
             throw new InvalidRequestException("PHONE_REQUIRED", "Số điện thoại là bắt buộc");
         }
-        User existing = userRepository.findByPhoneNumber(phone);
-        if (existing != null && (currentUserId == null || !existing.getId().equals(currentUserId))) {
-            throw new PhoneDuplicateException(phone);
-        }
+        userRepository.findByPhoneNumber(phone)
+                .ifPresent(existing -> {
+                    if (currentUserId == null || !existing.getId().equals(currentUserId)) {
+                        throw new PhoneDuplicateException(phone);
+                    }
+                });
     }
 
     private void applyProfile(Profile profile, AdminUserRequest request) {

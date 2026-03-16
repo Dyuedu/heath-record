@@ -4,11 +4,22 @@ class Relative {
   String id;
   String name;
   String relationship;
+  String? profileId;
 
-  Relative({required this.id, required this.name, required this.relationship});
+  Relative({
+    required this.id,
+    required this.name,
+    required this.relationship,
+    this.profileId,
+  });
 
   Map<String, dynamic> toMap() {
-    return {'id': id, 'name': name, 'relationship': relationship};
+    return {
+      'id': id,
+      'name': name,
+      'relationship': relationship,
+      if (profileId != null) 'profileId': profileId,
+    };
   }
 
   String toJson() => Convert.jsonEncode(toMap());
@@ -18,6 +29,7 @@ class Relative {
       id: map['id']?.toString() ?? '',
       name: map['name'] ?? '',
       relationship: map['relationship']?.toString() ?? '',
+      profileId: map['profileId']?.toString(),
     );
   }
 }

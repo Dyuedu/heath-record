@@ -5,9 +5,9 @@ import 'package:frontend/data/repositories/record_repository.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
 
 class CreateRecordPage extends StatefulWidget {
-  final String relativeId;
+  final String patientProfileId;
 
-  const CreateRecordPage({super.key, required this.relativeId});
+  const CreateRecordPage({super.key, required this.patientProfileId});
 
   @override
   State<CreateRecordPage> createState() => _CreateRecordPageState();
@@ -32,7 +32,7 @@ class _CreateRecordPageState extends State<CreateRecordPage> {
     return ChangeNotifierProvider(
       create: (context) => RecordViewModel(
         repository: RecordRepository(dioClient: context.read<DioClient>()),
-      )..selectedRelativeId = widget.relativeId,
+      )..selectedPatientProfileId = widget.patientProfileId,
       child: Consumer<RecordViewModel>(
         builder: (context, vm, child) {
           return Scaffold(
@@ -256,7 +256,7 @@ class _CreateRecordPageState extends State<CreateRecordPage> {
         elevation: 2,
       ),
       onPressed: () async {
-        final success = await vm.saveRecord(
+        final success = await vm.saveDoctorRecord(
           _titleController.text,
           _notesController.text,
           _selectedType, // Truyền Type đã chọn vào hàm save
