@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
@@ -6,6 +9,7 @@ import 'package:frontend/views/medical-record/medical_record_page.dart';
 import 'package:frontend/views/user/add_profile_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -16,6 +20,8 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final ImagePicker _imagePicker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
@@ -43,7 +49,7 @@ class _ProfilePageState extends State<ProfilePage> {
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
-              _buildHeader(profile),
+              _buildHeader(profile, vm),
               if (vm.errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -81,11 +87,11 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildHeader(UserProfileModel? profile) {
+  Widget _buildHeader(UserProfileModel? profile, ProfileViewModel vm) {
     final avatarUrl = (profile?.avatarUrl ?? '').trim();
     final displayName = _formatValue(profile?.fullName);
-    final phone = _formatValue(profile?.phoneNumber);
-    final email = _formatValue(profile?.email);
+    // final phone = _formatValue(profile?.phoneNumber);
+    // final email = _formatValue(profile?.email);
 
     return Stack(
       alignment: Alignment.center,
@@ -106,24 +112,33 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Column(
             children: [
               Stack(
+                alignment: Alignment.center,
                 children: [
-                  _buildAvatar(avatarUrl),
+                  _buildAvatar(avatarUrl, vm.isAvatarUploading),
                   Positioned(
                     bottom: 0,
                     right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(color: Colors.black12, blurRadius: 2),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        size: 14,
-                        color: Colors.grey,
+                    child: GestureDetector(
+                      onTap: vm.isAvatarUploading
+                          ? null
+                          : () => _onPickAvatar(vm),
+                      child: Opacity(
+                        opacity: vm.isAvatarUploading ? 0.4 : 1,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(color: Colors.black12, blurRadius: 2),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -135,10 +150,18 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: Color.fromARGB(255, 255, 255, 255),
+                  color: Color(0xFF333333),
                 ),
               ),
               const SizedBox(height: 4),
+              // Text(
+              //   phone,
+              //   style: const TextStyle(color: Colors.white70, fontSize: 13),
+              // ),
+              // Text(
+              //   email,
+              //   style: const TextStyle(color: Colors.white70, fontSize: 13),
+              // ),
             ],
           ),
         ),
@@ -318,28 +341,84 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildAvatar(String avatarUrl) {
-    if (avatarUrl.isEmpty) {
-      return const CircleAvatar(
-        radius: 40,
-        backgroundColor: Colors.white,
-        child: CircleAvatar(
-          radius: 38,
-          backgroundColor: Color(0xFFE0E0FF),
-          child: Icon(Icons.person, color: Color(0xFF246BFF), size: 36),
+  Widget _buildAvatar(String avatarUrl, bool isUploading) {
+    final Widget avatar = avatarUrl.isEmpty
+        ? const CircleAvatar(
+            radius: 40,
+            backgroundColor: Colors.white,
+            child: CircleAvatar(
+              radius: 38,
+              backgroundColor: Color(0xFFE0E0FF),
+              child: Icon(Icons.person, color: Color(0xFF246BFF), size: 36),
+            ),
+          )
+        : CircleAvatar(
+            radius: 40,
+            backgroundColor: Colors.white,
+            child: CircleAvatar(
+              radius: 38,
+              backgroundImage: NetworkImage(avatarUrl),
+              onBackgroundImageError: (_, __) {},
+            ),
+          );
+
+    if (!isUploading) return avatar;
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        avatar,
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.45),
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(
+          width: 30,
+          height: 30,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _onPickAvatar(ProfileViewModel vm) async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (pickedFile == null) return;
+
+      final avatarFile = File(pickedFile.path);
+      final success = await vm.updateAvatar(avatarFile);
+      if (!mounted) return;
+
+      final message = success
+          ? 'Ảnh đại diện đã được cập nhật.'
+          : vm.avatarErrorMessage ?? 'Không thể cập nhật ảnh đại diện.';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message ?? 'Không thể truy cập thư viện ảnh.'),
+          backgroundColor: Colors.red,
         ),
       );
     }
-
-    return CircleAvatar(
-      radius: 40,
-      backgroundColor: Colors.white,
-      child: CircleAvatar(
-        radius: 38,
-        backgroundImage: NetworkImage(avatarUrl),
-        onBackgroundImageError: (_, __) {},
-      ),
-    );
   }
 
   Future<void> _openAddProfile() async {

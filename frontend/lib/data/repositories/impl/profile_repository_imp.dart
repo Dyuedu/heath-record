@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/profile_repository.dart';
@@ -22,5 +24,10 @@ class ProfileRepositoryImp implements ProfileRepository {
   @override
   Future<List<Relative>> fetchFamilyProfiles() {
     return _recordRepository.getMyRelatives();
+  }
+
+  @override
+  Future<UserProfileModel?> uploadAvatar(File avatarFile) {
+    return _userRepository.uploadAvatar(avatarFile: avatarFile);
   }
 }

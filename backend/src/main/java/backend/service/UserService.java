@@ -28,6 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class UserService {
@@ -39,6 +40,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final RedisTemplate<String, String> redisTemplate;
+    private final CloudinaryService cloudinaryService;
 
     private static final String PASSWORD_OTP_KEY_PREFIX = "user:password:otp:";
     private static final Duration OTP_TTL = Duration.ofMinutes(5);
@@ -54,7 +56,8 @@ public class UserService {
                        ProfileRepository profileRepository,
                        PasswordEncoder passwordEncoder,
                        EmailService emailService,
-                       RedisTemplate<String, String> redisTemplate) {
+                       RedisTemplate<String, String> redisTemplate,
+                       CloudinaryService cloudinaryService) {
         this.userRepository = userRepository;
         this.relativeRepository = relativeRepository;
         this.medicalRecordRepository = medicalRecordRepository;
@@ -63,6 +66,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.redisTemplate = redisTemplate;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @Transactional(readOnly = true)
@@ -135,6 +139,22 @@ public class UserService {
         profile.setAddress(trimToNull(request.address()));
         profile.setAvatarUrl(trimToNull(request.avatarUrl()));
 
+        userRepository.save(user);
+        return mapToUserResponse(user);
+    }
+
+    @Transactional
+    public UserResponse updateMyAvatar(UUID userId, MultipartFile avatar) {
+        User user = getUser(userId);
+        Profile profile = user.getProfile();
+        if (profile == null) {
+            profile = new Profile();
+            profile = profileRepository.save(profile);
+            user.setProfile(profile);
+        }
+
+        String avatarUrl = cloudinaryService.uploadAvatar(userId, avatar);
+        profile.setAvatarUrl(avatarUrl);
         userRepository.save(user);
         return mapToUserResponse(user);
     }
