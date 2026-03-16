@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:frontend/data/models/record/add_relative_request.dart';
 import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 
@@ -9,4 +10,6 @@ abstract class ProfileRepository {
   Future<List<Relative>> fetchFamilyProfiles();
 
   Future<UserProfileModel?> uploadAvatar(File avatarFile);
+
+  Future<Relative?> addRelative(AddRelativeRequest request);
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:frontend/data/dio/dio_client.dart';
+import 'package:frontend/data/models/record/add_relative_request.dart';
 import 'package:frontend/data/models/record/medical_record_model.dart';
 import 'package:frontend/data/models/record/relative.dart';
 
@@ -64,7 +65,6 @@ class RecordRepository {
         ..add(MapEntry('type', type.trim()))
         ..add(MapEntry('important', isImportant.toString()));
 
-
       if (notes.trim().isNotEmpty) {
         formData.fields.add(MapEntry('notes', notes.trim()));
       }
@@ -106,6 +106,27 @@ class RecordRepository {
       print('Unexpected error when saving record: $error');
       return false;
     }
+  }
+
+  Future<Relative?> addRelative(AddRelativeRequest request) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/api/relatives',
+        data: request.toMap(),
+      );
+
+      if (response.statusCode == 201 && response.data != null) {
+        return Relative.fromMap(response.data);
+      }
+    } on DioException catch (error) {
+      print(
+        'Add relative API error: ${error.response?.statusCode} - ${error.message}',
+      );
+    } catch (error) {
+      print('Unexpected error when adding relative: $error');
+    }
+
+    return null;
   }
 
   String _extractFileName(File file) {

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:frontend/data/models/record/add_relative_request.dart';
 import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/profile_repository.dart';
@@ -29,5 +30,10 @@ class ProfileRepositoryImp implements ProfileRepository {
   @override
   Future<UserProfileModel?> uploadAvatar(File avatarFile) {
     return _userRepository.uploadAvatar(avatarFile: avatarFile);
+  }
+
+  @override
+  Future<Relative?> addRelative(AddRelativeRequest request) {
+    return _recordRepository.addRelative(request);
   }
 }

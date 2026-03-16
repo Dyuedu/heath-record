@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:frontend/data/models/record/add_relative_request.dart';
 import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/profile_repository.dart';
@@ -14,18 +15,22 @@ class ProfileViewModel extends ChangeNotifier {
   bool _isLoading = false;
   bool _isFamilyLoading = false;
   bool _isAvatarUploading = false;
+  bool _isAddLoading = false;
   String? _errorMessage;
   String? _familyErrorMessage;
   String? _avatarErrorMessage;
+  String? _addErrorMessage;
   UserProfileModel? _profile;
   List<Relative> _familyProfiles = const [];
 
   bool get isLoading => _isLoading;
   bool get isFamilyLoading => _isFamilyLoading;
   bool get isAvatarUploading => _isAvatarUploading;
+  bool get isAddLoading => _isAddLoading;
   String? get errorMessage => _errorMessage;
   String? get familyErrorMessage => _familyErrorMessage;
   String? get avatarErrorMessage => _avatarErrorMessage;
+  String? get addErrorMessage => _addErrorMessage;
   UserProfileModel? get profile => _profile;
   List<Relative> get familyProfiles => List.unmodifiable(_familyProfiles);
 
@@ -90,6 +95,28 @@ class ProfileViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> addRelative(AddRelativeRequest request) async {
+    _addErrorMessage = null;
+    _setAddLoading(true);
+
+    try {
+      final relative = await _repository.addRelative(request);
+      if (relative == null) {
+        _addErrorMessage = 'Không thể thêm hồ sơ mới.';
+        return false;
+      }
+
+      _familyProfiles = [..._familyProfiles, relative];
+      notifyListeners();
+      return true;
+    } catch (_) {
+      _addErrorMessage = 'Không thể thêm hồ sơ mới.';
+      return false;
+    } finally {
+      _setAddLoading(false);
+    }
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
@@ -102,6 +129,11 @@ class ProfileViewModel extends ChangeNotifier {
 
   void _setAvatarUploading(bool value) {
     _isAvatarUploading = value;
+    notifyListeners();
+  }
+
+  void _setAddLoading(bool value) {
+    _isAddLoading = value;
     notifyListeners();
   }
 }

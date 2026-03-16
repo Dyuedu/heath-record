@@ -16,6 +16,7 @@ public class Profile {
     private String identityNumber;
     private String gender;
     private String dateOfBirth;
+    private String phoneNumber;
     private String address;
     private String avatarUrl;
 
