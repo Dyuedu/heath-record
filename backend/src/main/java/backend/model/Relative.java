@@ -44,5 +44,8 @@ public class Relative {
     @JoinColumn(name = "profile_id", nullable = false)
     private Profile profile;
 
+    @OneToMany(mappedBy = "relative", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<MedicalRecord> medicalRecords = new ArrayList<>();
 
 }

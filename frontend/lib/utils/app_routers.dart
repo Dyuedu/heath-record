@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/views/appointment/appointment_page.dart';
+import 'package:frontend/views/admin/admin_page.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/views/authentication/signup_page.dart';
 import 'package:frontend/views/home/home_page.dart';
@@ -14,30 +15,38 @@ class AppRouter {
   static const String login = '/login';
   static const String signup = '/signup';
   static const String profile = '/profile';
-  static const String doctorDashboard = '/doctor-dashboard';
-  static const String createMedicalRecord = '/doctor/create-record';
   static const String personalProfile = '/personal-profile';
   static const String appointments = '/appointments';
   static const String medicalRecords = '/medical-records';
   static const String notifications = '/notifications';
+  static const String admin = '/admin';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case home:
-        return MaterialPageRoute(builder: (_) => const HomePage(),
-        settings: settings
+        return MaterialPageRoute(
+          builder: (_) => const HomePage(),
+          settings: settings,
         );
       case login:
-        return MaterialPageRoute(builder: (_) => const LoginPage(),
-        settings: settings
+        return MaterialPageRoute(
+          builder: (_) => const LoginPage(),
+          settings: settings,
         );
       case signup:
-        return MaterialPageRoute(builder: (_) => const SignupPage(),
-        settings: settings
+        return MaterialPageRoute(
+          builder: (_) => const SignupPage(),
+          settings: settings,
         );
       case profile:
-        return MaterialPageRoute(builder: (_) => const UserProfilePage(),
-        settings: settings
+        return MaterialPageRoute(
+          builder: (_) => const UserProfilePage(),
+          settings: settings,
+        );
+      case personalProfile:
+        return MaterialPageRoute(
+          builder: (_) => const ProfilePage(),
+          settings: settings,
         );
       case personalProfile:
         return MaterialPageRoute(builder: (_) => const ProfilePage(),
@@ -46,26 +55,21 @@ class AppRouter {
       case appointments:
         return MaterialPageRoute(
           builder: (_) => const AppointmentPage(),
-          settings: settings
+          settings: settings,
+        );
+      case admin:
+        return MaterialPageRoute(
+          builder: (_) => const AdminPage(),
+          settings: settings,
         );
       case medicalRecords:
-        // return MaterialPageRoute(
-        //   builder: (_) => const MedicalRecordsPage(),
-        // );
+      // return MaterialPageRoute(
+      //   builder: (_) => const MedicalRecordsPage(),
+      // );
       case notifications:
-        // return MaterialPageRoute(
-        //   builder: (_) => const NotificationsPage(),
-        // );
-      case doctorDashboard:
-        return MaterialPageRoute(
-          builder: (_) => const DoctorDashboardPage(),
-          settings: settings
-        );
-      case createMedicalRecord:
-        return MaterialPageRoute(
-          builder: (_) => const CreateMedicalRecordPage(),
-          settings: settings
-        );
+      // return MaterialPageRoute(
+      //   builder: (_) => const NotificationsPage(),
+      // );
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

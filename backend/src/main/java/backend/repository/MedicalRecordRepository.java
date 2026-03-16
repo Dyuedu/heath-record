@@ -6,5 +6,5 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Long> {
-    List<MedicalRecord> findByProfileId(UUID profileId);
+    List<MedicalRecord> findByRelativeId(UUID relativeId);
 }

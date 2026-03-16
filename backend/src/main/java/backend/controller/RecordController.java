@@ -33,7 +33,10 @@ public class RecordController {
         this.relativeService = relativeService;
     }
 
-    @PostMapping(value = "/relatives/{relativeId}/create-record", consumes = { "multipart/form-data" })
+    @PostMapping(
+            value = "/relatives/{relativeId}/create-record",
+            consumes = {"multipart/form-data"}
+    )
     public ResponseEntity<MedicalRecordResponse> createRecord(
             @ModelAttribute @Valid RecordCreateRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
@@ -55,9 +58,22 @@ public class RecordController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        RelativeHealthHistoryResponse records = recordService.getRecordsByRelative(userPrincipal.getId(), relativeId);
+        RelativeHealthHistoryResponse records =
+                recordService.getRecordsByRelative(userPrincipal.getId(), relativeId);
 
         return ResponseEntity.ok(records);
+    }
+
+    @PostMapping("/relatives")
+    public ResponseEntity<RelativeResponse> addRelative(
+            @Valid @RequestBody AddRelativeRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        RelativeResponse response = relativeService.addRelative(userPrincipal.getId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/relatives")

@@ -16,7 +16,6 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -43,10 +42,8 @@ public class MedicalRecord {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "doctor_user_id", nullable = false)
-    private User doctor;
-
+    @Column(name = "doctor_user_id")
+    private Long doctorUserId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hospital_id")
@@ -62,8 +59,17 @@ public class MedicalRecord {
     private String auditField;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "profile_id", nullable = false)
-    private Profile profile;
+    @JoinColumn(name = "hospital_id")
+    private Hospital hospital;
+
+    @Column(name = "datetime_start")
+    private LocalDateTime datetimeStart;
+
+    @Column(name = "datetime_end")
+    private LocalDateTime datetimeEnd;
+
+    @Column(name = "audit_field")
+    private String auditField;
 
     @ManyToMany
     @JoinTable(

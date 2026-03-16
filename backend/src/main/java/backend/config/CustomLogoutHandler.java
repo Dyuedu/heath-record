@@ -21,7 +21,8 @@ public class CustomLogoutHandler implements LogoutHandler {
     private final RedisTemplate<String, String> redisTemplate;
     private final JWTService jwtService;
 
-    public CustomLogoutHandler(@Qualifier("redisTemplate") RedisTemplate<String, String> redisTemplate, JWTService jwtService) {
+    public CustomLogoutHandler(@Qualifier("redisTemplate") RedisTemplate<String, String> redisTemplate,
+                               JWTService jwtService) {
         this.redisTemplate = redisTemplate;
         this.jwtService = jwtService;
     }
