@@ -10,6 +10,7 @@ import lombok.Data;
 @Builder
 public class RelativeHealthHistoryResponse {
     private UUID relativeId;
+    private UUID patientProfileId;
     private String relativeName; // Lấy từ Profile gắn với Relative
     private String relationship;
     private List<MedicalRecordResponse> history; // Danh sách các cuộc khám bệnh

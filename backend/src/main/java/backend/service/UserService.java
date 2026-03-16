@@ -50,14 +50,14 @@ public class UserService {
     private static final int MAX_PASSWORD_LENGTH = 64;
 
     public UserService(UserRepository userRepository,
-                       RelativeRepository relativeRepository,
-                       MedicalRecordRepository medicalRecordRepository,
-                       MedicalRecordMapper medicalRecordMapper,
-                       ProfileRepository profileRepository,
-                       PasswordEncoder passwordEncoder,
-                       EmailService emailService,
-                       RedisTemplate<String, String> redisTemplate,
-                       CloudinaryService cloudinaryService) {
+            RelativeRepository relativeRepository,
+            MedicalRecordRepository medicalRecordRepository,
+            MedicalRecordMapper medicalRecordMapper,
+            ProfileRepository profileRepository,
+            PasswordEncoder passwordEncoder,
+            EmailService emailService,
+            RedisTemplate<String, String> redisTemplate,
+            CloudinaryService cloudinaryService) {
         this.userRepository = userRepository;
         this.relativeRepository = relativeRepository;
         this.medicalRecordRepository = medicalRecordRepository;
@@ -88,8 +88,7 @@ public class UserService {
                 .stream()
                 .map(relative -> medicalRecordMapper.toRelativeHistory(
                         relative,
-                        medicalRecordRepository.findByRelativeId(relative.getId())
-                ))
+                        medicalRecordRepository.findByProfileId(relative.getProfile().getId())))
                 .toList();
 
         return PatientDetailResponse.builder()
@@ -255,8 +254,7 @@ public class UserService {
                 || newPassword.length() > MAX_PASSWORD_LENGTH) {
             throw new InvalidRequestException(
                     "PASSWORD_INVALID",
-                    "Mật khẩu mới phải có độ dài từ " + MIN_PASSWORD_LENGTH + " đến " + MAX_PASSWORD_LENGTH + " ký tự"
-            );
+                    "Mật khẩu mới phải có độ dài từ " + MIN_PASSWORD_LENGTH + " đến " + MAX_PASSWORD_LENGTH + " ký tự");
         }
     }
 

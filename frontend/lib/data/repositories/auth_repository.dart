@@ -8,4 +8,5 @@ abstract class AuthRepository {
   Future<bool> isLoggedIn();
   Future<dynamic> isAuthenticated() async {
   }
+  Future<String?> getUserRole();
 }

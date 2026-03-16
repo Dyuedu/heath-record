@@ -2,6 +2,7 @@ package backend.model.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +14,9 @@ public class MedicalRecordResponse {
     private String title;
     private String tag;
     private String note;
-    private Long doctorUserId;
+    private UUID doctorUserId;
+    private UUID relativeId;
+    private UUID patientProfileId;
     private String hospitalName; // Chỉ lấy tên bệnh viện thay vì cả object Hospital
     private LocalDateTime datetimeStart;
     private LocalDateTime datetimeEnd;

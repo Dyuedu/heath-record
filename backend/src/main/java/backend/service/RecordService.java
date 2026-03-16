@@ -4,8 +4,14 @@ import backend.exception.ResourceNotFoundException;
 import backend.model.MedicalRecord;
 import backend.model.Relative;
 import backend.model.User;
+import backend.model.DiagnosticRecord;
+import backend.model.Attachment;
+import backend.model.Hospital;
+import backend.model.Tag;
 import backend.model.dto.request.RecordCreateRequest;
 import backend.model.dto.response.MedicalRecordResponse;
+import backend.repository.HospitalRepository;
+import backend.repository.TagRepository;
 import backend.model.dto.response.RelativeHealthHistoryResponse;
 import backend.repository.MedicalRecordRepository;
 import backend.repository.RelativeRepository;
@@ -26,15 +32,21 @@ public class RecordService {
     private final RelativeRepository relativeRepository;
     private final UserRepository userRepository;
     private final MedicalRecordMapper medicalRecordMapper;
+    private final HospitalRepository hospitalRepository;
+    private final TagRepository tagRepository;
 
     public RecordService(MedicalRecordRepository medicalRecordRepository,
-                         RelativeRepository relativeRepository,
-                         UserRepository userRepository,
-                         MedicalRecordMapper medicalRecordMapper) {
+            RelativeRepository relativeRepository,
+            UserRepository userRepository,
+            MedicalRecordMapper medicalRecordMapper,
+            HospitalRepository hospitalRepository,
+            TagRepository tagRepository) {
         this.medicalRecordRepository = medicalRecordRepository;
         this.relativeRepository = relativeRepository;
         this.userRepository = userRepository;
         this.medicalRecordMapper = medicalRecordMapper;
+        this.hospitalRepository = hospitalRepository;
+        this.tagRepository = tagRepository;
     }
 
     public MedicalRecordResponse createRecord(UUID doctorId, RecordCreateRequest request, List<MultipartFile> files) {
@@ -52,8 +64,8 @@ public class RecordService {
                 .title(request.getTitle() != null ? request.getTitle().trim() : null)
                 .tag(resolvePrimaryTag(request))
                 .note(request.getNotes())
-                .doctorUserId(null)
-                .relative(relative)
+                .doctor(doctor)
+                .profile(relative.getProfile())
                 .datetimeStart(LocalDateTime.now())
                 .datetimeEnd(LocalDateTime.now())
                 .auditField(buildAuditField(doctor))
@@ -71,7 +83,7 @@ public class RecordService {
             throw new IllegalArgumentException("Relative không thuộc user này");
         }
 
-        List<MedicalRecord> records = medicalRecordRepository.findByRelativeId(relativeId);
+        List<MedicalRecord> records = medicalRecordRepository.findByProfileId(relative.getProfile().getId());
         return medicalRecordMapper.toRelativeHistory(relative, records);
     }
 
@@ -85,4 +97,5 @@ public class RecordService {
     private String buildAuditField(User doctor) {
         return doctor.getEmail() != null ? "created-by:" + doctor.getEmail() : "created-by:unknown";
     }
+
 }

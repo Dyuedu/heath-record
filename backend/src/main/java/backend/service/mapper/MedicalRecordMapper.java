@@ -28,11 +28,13 @@ public class MedicalRecordMapper {
                 .title(record.getTitle())
                 .tag(record.getTag())
                 .note(record.getNote())
-                .doctorUserId(record.getDoctorUserId())
+                .doctorUserId(record.getDoctor() != null ? record.getDoctor().getId() : null)
+                .relativeId(null) // Not easily available from MedicalRecord entity directly now
                 .hospitalName(record.getHospital() != null ? record.getHospital().getName() : null)
                 .datetimeStart(record.getDatetimeStart())
                 .datetimeEnd(record.getDatetimeEnd())
                 .tagNames(extractTagNames(record.getTags()))
+                .patientProfileId(record.getProfile() != null ? record.getProfile().getId() : null)
                 .diagnosticRecords(toDiagnosticRecordResponses(record.getDiagnosticRecords()))
                 .build();
     }
@@ -49,6 +51,7 @@ public class MedicalRecordMapper {
     public RelativeHealthHistoryResponse toRelativeHistory(Relative relative, List<MedicalRecord> records) {
         return RelativeHealthHistoryResponse.builder()
                 .relativeId(relative.getId())
+                .patientProfileId(relative.getProfile() != null ? relative.getProfile().getId() : null)
                 .relativeName(relative.getProfile() != null ? relative.getProfile().getFullname() : null)
                 .relationship(relative.getRelationship())
                 .history(toMedicalRecordResponses(records))

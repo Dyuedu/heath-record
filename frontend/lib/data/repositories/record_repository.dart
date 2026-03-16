@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/models/record/medical_record_model.dart';
 import 'package:frontend/data/models/record/relative.dart';
+import 'package:frontend/data/models/hospital_response.dart';
+import 'package:frontend/data/models/relative_search_response.dart';
 
 class RecordRepository {
   final DioClient _dioClient;
@@ -105,6 +107,67 @@ class RecordRepository {
     } catch (error) {
       print('Unexpected error when saving record: $error');
       return false;
+    }
+  }
+
+  Future<String?> uploadDiagnosticImage(File file) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path, filename: _extractFileName(file)),
+      });
+
+      final response = await _dioClient.dio.post(
+        '/api/v1/upload',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data')
+      );
+
+      if (response.statusCode == 200) {
+        return response.data["url"];
+      }
+      return null;
+    } catch (e) {
+      print('Upload image error: $e');
+      return null;
+    }
+  }
+
+  Future<bool> createFullMedicalRecord(Map<String, dynamic> payload) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/api/v1/doctor/records',
+        data: payload,
+      );
+      return response.statusCode == 201;
+    } catch (e) {
+      print('Create full record error: $e');
+      return false;
+    }
+  }
+
+  Future<List<HospitalResponse>> getHospitals() async {
+    try {
+      final response = await _dioClient.dio.get('/api/v1/hospitals');
+      if (response.statusCode == 200) {
+        return (response.data as List).map((e) => HospitalResponse.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Get hospitals error: $e');
+      return [];
+    }
+  }
+
+  Future<List<ProfileSearchResponse>> searchPatientProfiles(String query) async {
+    try {
+      final response = await _dioClient.dio.get('/api/v1/doctor/records/profiles/search', queryParameters: {'query': query});
+      if (response.statusCode == 200) {
+        return (response.data as List).map((e) => ProfileSearchResponse.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Search patients error: $e');
+      return [];
     }
   }
 

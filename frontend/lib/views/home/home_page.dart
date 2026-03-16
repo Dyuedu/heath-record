@@ -3,6 +3,7 @@ import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/views/search/search_patient_page.dart';
+import 'package:frontend/views/doctor/widgets/doctor_service_extensions.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:provider/provider.dart';
@@ -103,6 +104,10 @@ class _HomePageState extends State<HomePage> {
               const _SectionHeader(title: "Dịch vụ y tế"),
               const SizedBox(height: 15),
               _QuickServicesGrid(),
+              if (!_isRoleLoading && _isDoctor) ...[
+                const SizedBox(height: 15),
+                const DoctorServiceExtensions(),
+              ],
               const SizedBox(height: 30),
 
               // 4. Featured Doctors (Dành cho bệnh nhân) hoặc Patient OverView (Dành cho bác sĩ)

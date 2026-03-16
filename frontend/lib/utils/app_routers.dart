@@ -5,6 +5,8 @@ import 'package:frontend/views/authentication/signup_page.dart';
 import 'package:frontend/views/home/home_page.dart';
 import 'package:frontend/views/user/profile_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
+import 'package:frontend/views/doctor/doctor_dashboard_page.dart';
+import 'package:frontend/views/doctor/create_medical_record_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -12,6 +14,8 @@ class AppRouter {
   static const String login = '/login';
   static const String signup = '/signup';
   static const String profile = '/profile';
+  static const String doctorDashboard = '/doctor-dashboard';
+  static const String createMedicalRecord = '/doctor/create-record';
   static const String personalProfile = '/personal-profile';
   static const String appointments = '/appointments';
   static const String medicalRecords = '/medical-records';
@@ -52,6 +56,16 @@ class AppRouter {
         // return MaterialPageRoute(
         //   builder: (_) => const NotificationsPage(),
         // );
+      case doctorDashboard:
+        return MaterialPageRoute(
+          builder: (_) => const DoctorDashboardPage(),
+          settings: settings
+        );
+      case createMedicalRecord:
+        return MaterialPageRoute(
+          builder: (_) => const CreateMedicalRecordPage(),
+          settings: settings
+        );
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

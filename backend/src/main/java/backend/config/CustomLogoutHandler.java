@@ -4,6 +4,7 @@ import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,7 +21,7 @@ public class CustomLogoutHandler implements LogoutHandler {
     private final RedisTemplate<String, String> redisTemplate;
     private final JWTService jwtService;
 
-    public CustomLogoutHandler(RedisTemplate<String, String> redisTemplate, JWTService jwtService) {
+    public CustomLogoutHandler(@Qualifier("redisTemplate") RedisTemplate<String, String> redisTemplate, JWTService jwtService) {
         this.redisTemplate = redisTemplate;
         this.jwtService = jwtService;
     }

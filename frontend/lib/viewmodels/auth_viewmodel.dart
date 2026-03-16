@@ -11,9 +11,11 @@ class AuthViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
+  String? _userRole;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get userRole => _userRole;
 
   // Logic Đăng nhập
   Future<bool> login(String email, String password) async {
@@ -26,6 +28,8 @@ class AuthViewModel extends ChangeNotifier {
 
       if (!success) {
         _errorMessage = "Email hoặc mật khẩu không chính xác.";
+      } else {
+        _userRole = await _authRepository.getUserRole();
       }
 
       _setLoading(false);
@@ -41,6 +45,7 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading(true);
     try {
       await _authRepository.logout();
+      _userRole = null;
     } catch (e) {
       // Có thể log lỗi nếu cần, nhưng không cần thiết phải hiển thị lỗi logout cho người dùng
     } finally {
@@ -68,7 +73,11 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<bool> isLoggedIn() async {
     try {
-      return await _authRepository.isLoggedIn();
+      final isLogged = await _authRepository.isLoggedIn();
+      if (isLogged) {
+        _userRole = await _authRepository.getUserRole();
+      }
+      return isLogged;
     } catch (e) {
       return false;
     }
