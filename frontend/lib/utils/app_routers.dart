@@ -3,6 +3,7 @@ import 'package:frontend/views/appointment/appointment_page.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/views/authentication/signup_page.dart';
 import 'package:frontend/views/home/home_page.dart';
+import 'package:frontend/views/user/profile_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
 
 class AppRouter {
@@ -11,6 +12,7 @@ class AppRouter {
   static const String login = '/login';
   static const String signup = '/signup';
   static const String profile = '/profile';
+  static const String personalProfile = '/personal-profile';
   static const String appointments = '/appointments';
   static const String medicalRecords = '/medical-records';
   static const String notifications = '/notifications';
@@ -31,6 +33,10 @@ class AppRouter {
         );
       case profile:
         return MaterialPageRoute(builder: (_) => const UserProfilePage(),
+        settings: settings
+        );
+      case personalProfile:
+        return MaterialPageRoute(builder: (_) => const ProfilePage(),
         settings: settings
         );
       case appointments:

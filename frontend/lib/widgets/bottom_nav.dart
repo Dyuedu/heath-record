@@ -37,8 +37,8 @@ class CustomBottomNav extends StatelessWidget {
             icon: Icons.assignment_ind_outlined,
             activeIcon: Icons.assignment_ind_rounded,
             label: "Hồ sơ",
-            route: '/medical-records', 
-            isActive: currentRoute == '/medical-records',
+            route: '/personal-profile', 
+            isActive: currentRoute == '/personal-profile',
           ),
           _navItem(
             context,
