@@ -7,10 +7,13 @@ import 'package:frontend/data/repositories/impl/doctor_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/secure_storage_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/user_repository_imp.dart';
 import 'package:frontend/data/repositories/record_repository.dart';
+import 'package:frontend/data/repositories/impl/profile_repository_imp.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/data/repositories/user_repository.dart';
+import 'package:frontend/data/repositories/profile_repository.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
+import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
 import 'package:frontend/viewmodels/user_viewmodel.dart';
 import 'package:provider/provider.dart';
@@ -76,6 +79,19 @@ class AppProviders {
             UserViewModel(repository: context.read<UserRepository>()),
         update: (context, userRepository, previous) =>
             previous ?? UserViewModel(repository: userRepository),
+      ),
+      ProxyProvider2<UserRepository, RecordRepository, ProfileRepository>(
+        update: (context, userRepository, recordRepository, previous) =>
+            ProfileRepositoryImp(
+              userRepository: userRepository,
+              recordRepository: recordRepository,
+            ),
+      ),
+      ChangeNotifierProxyProvider<ProfileRepository, ProfileViewModel>(
+        create: (context) =>
+            ProfileViewModel(repository: context.read<ProfileRepository>()),
+        update: (context, profileRepository, previous) =>
+            previous ?? ProfileViewModel(repository: profileRepository),
       ),
     ];
   }
