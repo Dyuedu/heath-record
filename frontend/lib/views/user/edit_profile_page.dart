@@ -14,7 +14,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
   final _dobController = TextEditingController();
   final _genderController = TextEditingController();
   final _addressController = TextEditingController();
@@ -37,7 +36,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   void dispose() {
     _fullNameController.dispose();
     _phoneController.dispose();
-    _emailController.dispose();
     _dobController.dispose();
     _genderController.dispose();
     _addressController.dispose();
@@ -53,7 +51,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (!_initialized && profile != null) {
       _fullNameController.text = profile.fullName;
       _phoneController.text = profile.phoneNumber;
-      _emailController.text = profile.email;
       _dobController.text = profile.dateOfBirth;
       _genderController.text = profile.gender;
       _addressController.text = profile.address;
@@ -95,24 +92,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         }
                         if (text.length < 2) {
                           return 'Họ và tên phải có ít nhất 2 ký tự';
-                        }
-                        return null;
-                      },
-                    ),
-                    _buildInput(
-                      label: 'Email:',
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        final text = (value ?? '').trim();
-                        if (text.isEmpty) {
-                          return 'Email không được để trống';
-                        }
-                        final emailRegex = RegExp(
-                          r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                        );
-                        if (!emailRegex.hasMatch(text)) {
-                          return 'Email không đúng định dạng';
                         }
                         return null;
                       },
@@ -243,7 +222,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final vm = context.read<UserViewModel>();
     final success = await vm.updateMyProfile(
       fullName: _fullNameController.text.trim(),
-      email: _emailController.text.trim(),
       phoneNumber: _phoneController.text.trim(),
       gender: _genderController.text.trim(),
       dateOfBirth: _dobController.text.trim(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/admin/admin_user_payload.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
+import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:provider/provider.dart';
@@ -47,6 +48,13 @@ class _AdminPageState extends State<AdminPage> {
         title: const Text('Quản lý người dùng'),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1B1D1F),
+        actions: [
+          IconButton(
+            tooltip: 'Đăng xuất',
+            onPressed: _showLogoutDialog,
+            icon: const Icon(Icons.logout),
+          ),
+        ],
       ),
       backgroundColor: const Color(0xFFF5F7FA),
       body: Consumer<AdminViewModel>(
@@ -135,6 +143,40 @@ class _AdminPageState extends State<AdminPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _showLogoutDialog() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Đăng xuất'),
+          content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Đăng xuất'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true) {
+      await _logout();
+    }
+  }
+
+  Future<void> _logout() async {
+    await context.read<AuthViewModel>().logout();
+    if (!mounted) return;
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
   }
 }
 
@@ -335,6 +377,7 @@ class _AdminUserDialogState extends State<_AdminUserDialog> {
                       }
                     },
                   ),
+                  SizedBox(height: 16),
                   _buildTextField(
                     controller: _genderController,
                     label: 'Giới tính',

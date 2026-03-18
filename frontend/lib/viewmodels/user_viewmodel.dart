@@ -32,7 +32,6 @@ class UserViewModel extends ChangeNotifier {
 
   Future<bool> updateMyProfile({
     required String fullName,
-    required String email,
     required String phoneNumber,
     required String gender,
     required String dateOfBirth,
@@ -45,7 +44,6 @@ class UserViewModel extends ChangeNotifier {
 
     final data = await _repository.updateMyProfile(
       fullName: fullName,
-      email: email,
       phoneNumber: phoneNumber,
       gender: gender,
       dateOfBirth: dateOfBirth,

@@ -28,7 +28,6 @@ class UserRepositoryImp implements UserRepository {
   @override
   Future<UserProfileModel?> updateMyProfile({
     required String fullName,
-    required String email,
     required String phoneNumber,
     required String gender,
     required String dateOfBirth,
@@ -40,7 +39,6 @@ class UserRepositoryImp implements UserRepository {
         '/api/users/me',
         data: {
           'fullName': fullName,
-          'email': email,
           'phoneNumber': phoneNumber,
           'gender': gender,
           'dateOfBirth': dateOfBirth,

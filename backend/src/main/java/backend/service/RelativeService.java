@@ -43,6 +43,7 @@ public class RelativeService {
         profile.setGender(trimToNull(request.gender()));
         profile.setDateOfBirth(trimToNull(request.dateOfBirth()));
         profile.setPhoneNumber(trimToNull(request.phoneNumber()));
+        profile.setIdentityNumber(trimToNull(request.identityNumber()));
         profile = profileRepository.save(profile);
 
         Relative relative = Relative.builder()

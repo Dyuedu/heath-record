@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/app_routers.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 
@@ -135,7 +136,8 @@ class _LoginPageState extends State<LoginPage> {
             );
 
             if (success && mounted) {
-              Navigator.pushReplacementNamed(context, '/home');
+              final targetRoute = vm.isAdmin ? AppRouter.admin : AppRouter.home;
+              Navigator.pushReplacementNamed(context, targetRoute);
             }
           },
           child: const Text("Sign In", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),

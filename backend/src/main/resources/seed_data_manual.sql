@@ -2,9 +2,9 @@
 -- This script uses gen_random_uuid() and can be run manually to seed your database.
 
 -- 1. Insert Roles
-INSERT INTO roles (id, name) VALUES (1, 'ADMIN') ON CONFLICT (name) DO NOTHING;
-INSERT INTO roles (id, name) VALUES (2, 'DOCTOR') ON CONFLICT (name) DO NOTHING;
-INSERT INTO roles (id, name) VALUES (3, 'USER') ON CONFLICT (name) DO NOTHING;
+-- INSERT INTO roles (id, name) VALUES (1, 'ADMIN') ON CONFLICT (name) DO NOTHING;
+-- INSERT INTO roles (id, name) VALUES (2, 'DOCTOR') ON CONFLICT (name) DO NOTHING;
+-- INSERT INTO roles (id, name) VALUES (3, 'USER') ON CONFLICT (name) DO NOTHING;
 
 -- 2. Insert Hospitals
 INSERT INTO hospitals (id, name) VALUES (1, 'Bệnh viện Bạch Mai') ON CONFLICT DO NOTHING;

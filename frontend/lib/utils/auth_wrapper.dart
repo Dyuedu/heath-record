@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/views/authentication/login_page.dart';
+import 'package:frontend/views/admin/admin_page.dart';
 import 'package:frontend/views/home/home_page.dart';
 import 'package:provider/provider.dart';
 
@@ -34,6 +35,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
 
         if (snapshot.hasData && snapshot.data == true) {
+          final authViewModel = context.read<AuthViewModel>();
+          if (authViewModel.isAdmin) {
+            return const AdminPage();
+          }
           return const HomePage();
         } else {
           return const LoginPage();

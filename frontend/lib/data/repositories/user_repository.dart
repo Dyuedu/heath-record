@@ -7,7 +7,6 @@ abstract class UserRepository {
 
   Future<UserProfileModel?> updateMyProfile({
     required String fullName,
-    required String email,
     required String phoneNumber,
     required String gender,
     required String dateOfBirth,

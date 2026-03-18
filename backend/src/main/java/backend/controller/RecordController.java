@@ -52,7 +52,7 @@ public class RecordController {
 
     @GetMapping("/relatives/{relativeId}/records")
     public ResponseEntity<RelativeHealthHistoryResponse> getRecordsByRelative(
-            @PathVariable UUID relativeId,
+            @PathVariable("relativeId") UUID relativeId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         if (userPrincipal == null) {
@@ -67,7 +67,7 @@ public class RecordController {
 
     @GetMapping("/profiles/{profileId}/health-history")
     public ResponseEntity<RelativeHealthHistoryResponse> getRecordsByProfile(
-            @PathVariable UUID profileId,
+            @PathVariable("profileId") UUID profileId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         if (userPrincipal == null) {

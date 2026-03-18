@@ -1,6 +1,5 @@
 package backend.service;
 
-import backend.exception.EmailDuplicateException;
 import backend.exception.InvalidRequestException;
 import backend.exception.PhoneDuplicateException;
 import backend.exception.ResourceNotFoundException;
@@ -107,17 +106,6 @@ public class UserService {
     @Transactional
     public UserResponse updateCurrentUser(UUID userId, UpdateMyProfileRequest request) {
         User user = getUser(userId);
-
-        String newEmail = trimToNull(request.email());
-        if (StringUtils.hasText(newEmail) && !newEmail.equalsIgnoreCase(user.getEmail())) {
-            userRepository.findByEmail(newEmail)
-                    .ifPresent(existing -> {
-                        if (!existing.getId().equals(userId)) {
-                            throw new EmailDuplicateException(newEmail);
-                        }
-                    });
-            user.setEmail(newEmail);
-        }
 
         String newPhone = trimToNull(request.phoneNumber());
         if (StringUtils.hasText(newPhone) && !newPhone.equals(user.getPhoneNumber())) {

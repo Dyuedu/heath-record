@@ -13,8 +13,8 @@ class AddProfilePage extends StatefulWidget {
 class _AddProfilePageState extends State<AddProfilePage> {
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _nicknameCtrl = TextEditingController();
+  final TextEditingController _identityCtrl = TextEditingController();
   final TextEditingController _phoneCtrl = TextEditingController();
-  final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _dobCtrl = TextEditingController();
 
   String selectedGender = "Nam";
@@ -25,8 +25,8 @@ class _AddProfilePageState extends State<AddProfilePage> {
   void dispose() {
     _nameCtrl.dispose();
     _nicknameCtrl.dispose();
+    _identityCtrl.dispose();
     _phoneCtrl.dispose();
-    _emailCtrl.dispose();
     _dobCtrl.dispose();
     super.dispose();
   }
@@ -34,7 +34,7 @@ class _AddProfilePageState extends State<AddProfilePage> {
   bool get _isFormValid =>
       _nameCtrl.text.trim().isNotEmpty &&
       _nicknameCtrl.text.trim().isNotEmpty &&
-      _phoneCtrl.text.trim().isNotEmpty &&
+      _identityCtrl.text.trim().isNotEmpty &&
       _dobCtrl.text.trim().isNotEmpty &&
       selectedGender.isNotEmpty &&
       selectedRelation.isNotEmpty;
@@ -111,6 +111,11 @@ class _AddProfilePageState extends State<AddProfilePage> {
                     controller: _nicknameCtrl,
                   ),
                   _buildTextField(
+                    icon: Icons.credit_card,
+                    hint: "Số CCCD/CMND *",
+                    controller: _identityCtrl,
+                  ),
+                  _buildTextField(
                     icon: Icons.cake_outlined,
                     hint: "Ngày sinh *",
                     controller: _dobCtrl,
@@ -120,15 +125,9 @@ class _AddProfilePageState extends State<AddProfilePage> {
                   ),
                   _buildTextField(
                     icon: Icons.phone_iphone,
-                    hint: "Số điện thoại *",
+                    hint: "Số điện thoại",
                     controller: _phoneCtrl,
                     keyboardType: TextInputType.phone,
-                  ),
-                  _buildTextField(
-                    icon: Icons.email_outlined,
-                    hint: "Email",
-                    controller: _emailCtrl,
-                    keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 20),
                   const Text(
@@ -250,11 +249,14 @@ class _AddProfilePageState extends State<AddProfilePage> {
     final request = AddRelativeRequest(
       fullname: _nameCtrl.text.trim(),
       nickname: _nicknameCtrl.text.trim(),
+      identityNumber: _identityCtrl.text.trim(),
       gender: selectedGender,
       dateOfBirth: _selectedDob != null
           ? _formatRequestDate(_selectedDob!)
           : _dobCtrl.text.trim(),
-      phoneNumber: _phoneCtrl.text.trim(),
+      phoneNumber: _phoneCtrl.text.trim().isEmpty
+          ? null
+          : _phoneCtrl.text.trim(),
       relationship: selectedRelation,
     );
 
