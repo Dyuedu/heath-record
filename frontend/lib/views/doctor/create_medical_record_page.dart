@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/data/repositories/record_repository.dart';
 import 'package:frontend/data/models/hospital_response.dart';
 import 'package:frontend/data/models/relative_search_response.dart';
+import 'package:frontend/data/repositories/record_repository.dart';
+import 'package:frontend/utils/app_theme.dart';
+import 'package:frontend/views/doctor/widgets/diagnostic_card.dart';
+import 'package:frontend/views/doctor/widgets/record_section_header.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 
 class DiagnosticFormModel {
   TextEditingController categoryController = TextEditingController();
@@ -29,7 +33,6 @@ class CreateMedicalRecordPage extends StatefulWidget {
 
 class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
   final _formKey = GlobalKey<FormState>();
-  
   final _titleController = TextEditingController();
   final _noteController = TextEditingController();
 
@@ -94,6 +97,15 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
     setState(() {});
   }
 
+  void _removeDiagnosticImage(int diagIndex, int imageIndex) {
+    if (diagIndex < 0 || diagIndex >= _diagnostics.length) return;
+    final images = _diagnostics[diagIndex].images;
+    if (imageIndex < 0 || imageIndex >= images.length) return;
+    setState(() {
+      images.removeAt(imageIndex);
+    });
+  }
+
   Future<void> _pickImages(int index) async {
     final picker = ImagePicker();
     final pickedFiles = await picker.pickMultiImage();
@@ -120,8 +132,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
       return;
     }
 
-    if (_selectedRelative != null &&
-        !_equalsIgnoreCase(_selectedRelative!.fullName, query)) {
+    if (_selectedRelative != null && !_equalsIgnoreCase(_selectedRelative!.fullName, query)) {
       setState(() {
         _selectedRelative = null;
       });
@@ -147,8 +158,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
       setState(() {
         _selectedHospital = null;
       });
-    } else if (_selectedHospital != null &&
-        !_equalsIgnoreCase(_selectedHospital!.name, query)) {
+    } else if (_selectedHospital != null && !_equalsIgnoreCase(_selectedHospital!.name, query)) {
       setState(() {
         _selectedHospital = null;
       });
@@ -171,58 +181,73 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
     }
   }
 
-  bool _equalsIgnoreCase(String a, String b) =>
-      a.toLowerCase() == b.toLowerCase();
+  bool _equalsIgnoreCase(String a, String b) => a.toLowerCase() == b.toLowerCase();
 
   Future<void> _submitForm() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_selectedRelative == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a patient.')));
+      _showSnackBar(
+        color: Colors.redAccent,
+        icon: Icons.error_outline,
+        message: 'Vui lòng chọn hồ sơ bệnh nhân trước.',
+      );
       return;
     }
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       final repository = context.read<RecordRepository>();
-      
-      List<Map<String, dynamic>> diagPayloads = [];
+
+      final diagPayloads = <Map<String, dynamic>>[];
       for (var diag in _diagnostics) {
-        List<String> imageUrls = [];
+        final imageUrls = <String>[];
         for (var file in diag.images) {
-           final url = await repository.uploadDiagnosticImage(file);
-           if (url != null) imageUrls.add(url);
+          final url = await repository.uploadDiagnosticImage(file);
+          if (url != null) imageUrls.add(url);
         }
         diagPayloads.add({
-          "category": diag.categoryController.text,
-          "tag": diag.tagController.text,
-          "data": diag.dataController.text,
-          "imageUrls": imageUrls,
+          'category': diag.categoryController.text,
+          'tag': diag.tagController.text,
+          'data': diag.dataController.text,
+          'imageUrls': imageUrls,
         });
       }
-      
+
       final payload = {
-        "patientProfileId": _selectedRelative!.id,
-        "title": _titleController.text,
-        "note": _noteController.text,
-        "hospitalId": _selectedHospital?.id,
-        "diagnostics": diagPayloads
+        'patientProfileId': _selectedRelative!.id,
+        'title': _titleController.text,
+        'note': _noteController.text,
+        'hospitalId': _selectedHospital?.id,
+        'diagnostics': diagPayloads,
       };
 
       final success = await repository.createFullMedicalRecord(payload);
       if (success) {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Record created successfully!')));
-           Navigator.pop(context);
+          _showSnackBar(
+            color: Colors.green,
+            icon: Icons.check_circle_outline,
+            message: 'Tạo hồ sơ thành công!',
+          );
+          Navigator.pop(context);
         }
       } else {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to create record.')));
+          _showSnackBar(
+            color: Colors.redAccent,
+            icon: Icons.error_outline,
+            message: 'Tạo hồ sơ thất bại.',
+          );
         }
       }
     } catch (e) {
       if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('An error occurred: $e')));
+        _showSnackBar(
+          color: Colors.redAccent,
+          icon: Icons.error_outline,
+          message: 'Đã xảy ra lỗi: $e',
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -232,136 +257,133 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Create Medical Record', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF246BFF),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppTheme.primaryColor),
+        title: const Text(
+          'Tạo hồ sơ y tế',
+          style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFF246BFF)))
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   const Text('General Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF246BFF))),
-                   const SizedBox(height: 16),
-                   _buildTextField(_titleController, 'Record Title', Icons.title, required: true),
-                   const SizedBox(height: 12),
-                   _buildRelativeSearch(),
-                   const SizedBox(height: 12),
-                   _buildHospitalSearch(),
-                   const SizedBox(height: 12),
-                   _buildTextField(_noteController, 'General Notes', Icons.notes, maxLines: 3),
-                   const SizedBox(height: 24),
-                   const Divider(),
-                   Row(
-                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                     children: [
-                       const Text('Diagnostics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF246BFF))),
-                       IconButton(
-                         icon: const Icon(Icons.add_circle, color: Color(0xFF246BFF), size: 30),
-                         onPressed: _addDiagnostic,
-                       )
-                     ],
-                   ),
-                   const SizedBox(height: 10),
-                   if (_diagnostics.isEmpty)
-                     const Text('No diagnostics added yet.', style: TextStyle(color: Colors.grey)),
-                   ..._diagnostics.asMap().entries.map((entry) {
-                     int idx = entry.key;
-                     DiagnosticFormModel diag = entry.value;
-                     return Card(
-                       margin: const EdgeInsets.only(bottom: 16),
-                       elevation: 3,
-                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                       child: Padding(
-                         padding: const EdgeInsets.all(16),
-                         child: Column(
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: [
-                             Row(
-                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                               children: [
-                                 Text('Diagnostic #${idx + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                 IconButton(
-                                   icon: const Icon(Icons.delete, color: Colors.red),
-                                   onPressed: () => _removeDiagnostic(idx),
-                                 )
-                               ],
-                             ),
-                             _buildTextField(diag.categoryController, 'Category', Icons.category, required: true),
-                             const SizedBox(height: 8),
-                             _buildTextField(diag.tagController, 'Tag', Icons.label),
-                             const SizedBox(height: 8),
-                             _buildTextField(diag.dataController, 'Diagnosis Data / Results', Icons.analytics, maxLines: 2),
-                             const SizedBox(height: 16),
-                             Row(
-                               children: [
-                                 ElevatedButton.icon(
-                                   onPressed: () => _pickImages(idx), 
-                                   icon: const Icon(Icons.image), 
-                                   label: const Text('Add Images'),
-                                   style: ElevatedButton.styleFrom(
-                                     backgroundColor: const Color(0xFFDDE3FF),
-                                     foregroundColor: const Color(0xFF246BFF),
-                                     elevation: 0
-                                   ),
-                                 ),
-                               ],
-                             ),
-                             if (diag.images.isNotEmpty) ...[
-                               const SizedBox(height: 10),
-                               Wrap(
-                                 spacing: 8,
-                                 runSpacing: 8,
-                                 children: diag.images.map((file) => ClipRRect(
-                                   borderRadius: BorderRadius.circular(8),
-                                   child: Image.file(file, width: 80, height: 80, fit: BoxFit.cover),
-                                 )).toList(),
-                               )
-                             ]
-                           ],
-                         ),
-                       ),
-                     );
-                   }),
-                   const SizedBox(height: 30),
-                   SizedBox(
-                     width: double.infinity,
-                     height: 50,
-                     child: ElevatedButton(
-                       style: ElevatedButton.styleFrom(
-                         backgroundColor: const Color(0xFF246BFF),
-                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                       ),
-                       onPressed: _submitForm,
-                       child: const Text('Submit Medical Record', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                     ),
-                   ),
-                   const SizedBox(height: 40),
-                ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final scrollView = SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            child: AbsorbPointer(
+              absorbing: _isLoading,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      width: double.infinity,
+                      child: RecordSectionHeader(
+                        title: 'Thông tin chung',
+                        subtitle: 'Hoàn thiện các thông tin cơ bản trước khi thêm chẩn đoán.',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(_titleController, 'Tiêu đề hồ sơ', Icons.title, required: true),
+                    const SizedBox(height: 12),
+                    _buildRelativeSearch(),
+                    const SizedBox(height: 12),
+                    _buildHospitalSearch(),
+                    const SizedBox(height: 12),
+                    _buildTextField(_noteController, 'Ghi chú chung', Icons.notes, maxLines: 3),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Expanded(
+                          child: RecordSectionHeader(title: 'Chẩn đoán', subtitle: 'Thêm các ghi nhận chi tiết'),
+                        ),
+                        TextButton.icon(
+                          onPressed: _addDiagnostic,
+                          icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
+                          label: const Text('Thêm', style: TextStyle(color: AppTheme.primaryColor)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (_diagnostics.isEmpty)
+                      const Text('Chưa có chẩn đoán nào.', style: TextStyle(color: AppTheme.captionTextColor))
+                    else
+                      ..._diagnostics.asMap().entries.map((entry) {
+                        final idx = entry.key;
+                        final diag = entry.value;
+                        return DiagnosticCard(
+                          index: idx,
+                          categoryController: diag.categoryController,
+                          tagController: diag.tagController,
+                          dataController: diag.dataController,
+                          images: diag.images,
+                          onRemove: () => _removeDiagnostic(idx),
+                          onPickImages: () => _pickImages(idx),
+                          onRemoveImage: (imageIdx) => _removeDiagnosticImage(idx, imageIdx),
+                        );
+                      }),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _submitForm,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2.6, color: Colors.white),
+                              )
+                            : const Text('Lưu hồ sơ y tế'),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
-          ),
+          );
+
+          if (constraints.hasBoundedHeight) {
+            return scrollView;
+          }
+
+          final fallbackHeight = MediaQuery.of(context).size.height;
+          return SizedBox(
+            height: fallbackHeight,
+            child: scrollView,
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool required = false, int maxLines = 1}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    bool required = false,
+    int maxLines = 1,
+  }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: '$label${required ? ' *' : ''}',
-        prefixIcon: Icon(icon, color: const Color(0xFF246BFF)),
+        prefixIcon: Icon(icon, color: AppTheme.primaryColor),
         filled: true,
-        fillColor: const Color(0xFFDDE3FF).withValues(alpha: 0.3),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        fillColor: AppTheme.primaryLight.withOpacity(0.35),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
-      validator: required ? ((v) => (v == null || v.isEmpty) ? 'This field is required' : null) : null,
+      validator: required ? ((v) => (v == null || v.isEmpty) ? 'Không được để trống' : null) : null,
     );
   }
 
@@ -375,8 +397,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
         }
         final lowerQuery = query.toLowerCase();
         return _relativeOptions.where(
-          (option) => option.fullName.toLowerCase().contains(lowerQuery) ||
-              option.phoneNumber.toLowerCase().contains(lowerQuery),
+          (option) => option.fullName.toLowerCase().contains(lowerQuery) || option.phoneNumber.toLowerCase().contains(lowerQuery),
         );
       },
       onSelected: (ProfileSearchResponse selection) {
@@ -399,16 +420,14 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                 itemBuilder: (BuildContext context, int index) {
                   final option = options.elementAt(index);
                   return GestureDetector(
-                    onTap: () {
-                      onSelected(option);
-                    },
+                    onTap: () => onSelected(option),
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundImage: option.avatarUrl.isNotEmpty ? NetworkImage(option.avatarUrl) : null,
                         child: option.avatarUrl.isEmpty ? const Icon(Icons.person) : null,
                       ),
                       title: Text(option.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('DOB: ${option.dateOfBirth} - ${option.relationship}'),
+                      subtitle: Text('Ngày sinh: ${option.dateOfBirth} - ${option.relationship}'),
                     ),
                   );
                 },
@@ -427,25 +446,25 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
           controller: textEditingController,
           focusNode: focusNode,
           decoration: InputDecoration(
-            labelText: 'Patient / Relative (Search by Name/Phone) *',
-            prefixIcon: const Icon(Icons.person, color: Color(0xFF246BFF)),
+            labelText: 'Bệnh nhân / Người thân (tìm theo tên/số ĐT) *',
+            prefixIcon: const Icon(Icons.person, color: AppTheme.primaryColor),
             suffixIcon: _selectedRelative != null || textEditingController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    textEditingController.clear();
-                    setState(() {
-                      _selectedRelative = null;
-                      _relativeOptions = <ProfileSearchResponse>[];
-                    });
-                  },
-                )
-              : null,
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      textEditingController.clear();
+                      setState(() {
+                        _selectedRelative = null;
+                        _relativeOptions = <ProfileSearchResponse>[];
+                      });
+                    },
+                  )
+                : null,
             filled: true,
-            fillColor: const Color(0xFFDDE3FF).withValues(alpha: 0.3),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+            fillColor: AppTheme.primaryLight.withOpacity(0.35),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
           ),
-          validator: (v) => _selectedRelative == null ? 'Please select a patient' : null,
+          validator: (v) => _selectedRelative == null ? 'Vui lòng chọn bệnh nhân' : null,
         );
       },
     );
@@ -458,9 +477,9 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
         if (textEditingValue.text.isEmpty) {
           return _hospitals;
         }
-        return _hospitals.where((HospitalResponse option) {
-          return option.name.toLowerCase().contains(textEditingValue.text.toLowerCase());
-        });
+        return _hospitals.where(
+          (HospitalResponse option) => option.name.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+        );
       },
       onSelected: (HospitalResponse selection) {
         setState(() {
@@ -483,9 +502,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                   final option = options.elementAt(index);
                   return ListTile(
                     title: Text(option.name),
-                    onTap: () {
-                      onSelected(option);
-                    },
+                    onTap: () => onSelected(option),
                   );
                 },
               ),
@@ -503,23 +520,52 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
           controller: textEditingController,
           focusNode: focusNode,
           decoration: InputDecoration(
-            labelText: 'Hospital (Search by Name)',
-            prefixIcon: const Icon(Icons.local_hospital, color: Color(0xFF246BFF)),
+            labelText: 'Bệnh viện (tìm theo tên)',
+            prefixIcon: const Icon(Icons.local_hospital, color: AppTheme.primaryColor),
             suffixIcon: _selectedHospital != null || textEditingController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    textEditingController.clear();
-                    setState(() => _selectedHospital = null);
-                  },
-                )
-              : null,
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      textEditingController.clear();
+                      setState(() => _selectedHospital = null);
+                    },
+                  )
+                : null,
             filled: true,
-            fillColor: const Color(0xFFDDE3FF).withValues(alpha: 0.3),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+            fillColor: AppTheme.primaryLight.withOpacity(0.35),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
           ),
         );
       },
+    );
+  }
+
+  void _showSnackBar({required Color color, required IconData icon, required String message}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        content: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

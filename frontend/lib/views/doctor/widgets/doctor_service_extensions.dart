@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/app_theme.dart';
 import 'package:frontend/views/doctor/create_medical_record_page.dart';
 
 /// Doctor-only service items that get injected into the HomePage services grid.
@@ -13,7 +14,7 @@ class DoctorServiceExtensions extends StatelessWidget {
       children: [
         _doctorServiceItem(
           icon: Icons.add_circle_outline_rounded,
-          label: 'Tạo Bệnh Án',
+          label: 'Hồ sơ mới',
           bgColor: const Color(0xFFFFE8E8),
           onTap: () {
             Navigator.push(
@@ -22,13 +23,16 @@ class DoctorServiceExtensions extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(width: 20),
+        const SizedBox(width: 35),
         _doctorServiceItem(
           icon: Icons.assignment_ind_rounded,
-          label: 'QL Bệnh Nhân',
+          label: 'Bệnh nhân',
           bgColor: const Color(0xFFFFF8E1),
           onTap: () {
-            // TODO: Navigate to Patient Management page
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const _PatientsComingSoonPage()),
+            );
           },
         ),
       ],
@@ -41,28 +45,71 @@ class DoctorServiceExtensions extends StatelessWidget {
     required Color bgColor,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            width: 60,
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-            child: Icon(icon, color: const Color(0xFF1F2A44), size: 28),
+            child: Icon(icon, color: AppTheme.bodyTextColor, size: 24),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 15),
           Text(
             label,
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 12,
-              color: Color(0xFF1F2A44),
+              color: AppTheme.bodyTextColor,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PatientsComingSoonPage extends StatelessWidget {
+  const _PatientsComingSoonPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppTheme.primaryColor),
+        title: const Text('Bệnh nhân', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.people_outline, size: 64, color: AppTheme.captionTextColor),
+            SizedBox(height: 12),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                'Tính năng quản lý bệnh nhân sẽ sớm ra mắt. Vui lòng chờ nhé!',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppTheme.captionTextColor),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

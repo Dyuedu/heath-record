@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/utils/app_providers.dart';
 import 'package:frontend/utils/app_routers.dart';
+import 'package:frontend/utils/app_theme.dart';
 import 'package:frontend/utils/auth_wrapper.dart';
 import 'package:provider/provider.dart';
 
@@ -19,6 +20,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.theme,
       onGenerateRoute: AppRouter.generateRoute,
       home: const AuthWrapper(),
     );

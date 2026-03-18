@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
         }
       }
     } catch (error) {
-      debugPrint('Unable to decode role: $error');
+      debugPrint('Không thể giải mã vai trò: $error');
     } finally {
       if (mounted) {
         setState(() => _isRoleLoading = false);
@@ -381,7 +381,7 @@ class _FeaturedDoctorsSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text(
-                  "Dr. Olivia Turner",
+                  "BS. Olivia Turner",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,

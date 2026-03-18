@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import lombok.NonNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,6 +27,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JWTService jwtService;
     private final CustomUserDetailService userDetailsService;
+    @Autowired
     private final RedisTemplate<String, String> redisTemplate;
 
     public JwtFilter(JWTService jwtService, CustomUserDetailService userDetailsService,

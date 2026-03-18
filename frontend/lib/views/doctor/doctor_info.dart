@@ -1,47 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/data/models/doctor/doctor_model.dart';
+import 'package:frontend/utils/app_theme.dart';
+import 'package:frontend/utils/doctor_ui_helpers.dart';
+import 'package:frontend/views/doctor/doctor_profile_page.dart';
 import '../../widgets/bottom_nav.dart';
 
-class DoctorInfoPage extends StatelessWidget {
-  final dynamic doctor; // Dữ liệu truyền từ DoctorsListPage
-
+class DoctorInfoPage extends StatefulWidget {
+  final DoctorModel doctor;
   const DoctorInfoPage({super.key, required this.doctor});
+
+  @override
+  State<DoctorInfoPage> createState() => _DoctorInfoPageState();
+}
+
+class _DoctorInfoPageState extends State<DoctorInfoPage> {
+  bool _isFavorite = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF246BFF)),
+          icon: const Icon(Icons.arrow_back_ios_new, color: AppTheme.primaryColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Doctor Info',
-          style: TextStyle(color: Color(0xFF246BFF), fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search, color: Color(0xFF246BFF))),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.tune, color: Color(0xFF246BFF))),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.search, color: AppTheme.primaryColor)),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.tune, color: AppTheme.primaryColor)),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 80),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Header Card (Dựa trên thiết kế Doctors-1.png)
-            _buildDoctorHeaderCard(),
+            _buildHeaderCard(context),
             const SizedBox(height: 24),
-
-            // 2. Sections (Profile, Career Path, Highlights)
-            _buildDetailSection("Profile", "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."),
-            _buildDetailSection("Career Path", "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."),
-            _buildDetailSection("Highlights", "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."),
-            
-            const SizedBox(height: 80), // Khoảng trống cho BottomNav
+            _buildDetailSection('Profile', widget.doctor.profile),
+            _buildDetailSection('Career Path', widget.doctor.careerPath),
+            _buildDetailSection('Highlights', widget.doctor.highlights),
           ],
         ),
       ),
@@ -49,83 +54,106 @@ class DoctorInfoPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDoctorHeaderCard() {
+  Widget _buildHeaderCard(BuildContext context) {
+    final doctor = widget.doctor;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFDDE3FF),
-        borderRadius: BorderRadius.circular(24),
+        gradient: DoctorUIHelpers.headerGradient,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: DoctorUIHelpers.softShadow(),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
-              CircleAvatar(
-                radius: 60,
-                backgroundImage: NetworkImage(doctor.imageUrl),
-              ),
-              const SizedBox(width: 12),
-              // Experience & Focus Tags
+              DoctorUIHelpers.gradientAvatar(doctor.imageUrl, size: 110),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _blueInfoTag(Icons.workspace_premium, "15 years experience"),
-                    const SizedBox(height: 8),
-                    _blueFocusBox("Focus: The impact of hormonal imbalances on skin conditions, specializing in acne, hirsutism, and other skin disorders."),
+                    Text(
+                      doctor.name,
+                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    Text(doctor.specialty, style: const TextStyle(color: Colors.white70)),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        DoctorUIHelpers.infoChip(Icons.workspace_premium, '${doctor.experienceYears} yrs experience'),
+                        DoctorUIHelpers.infoChip(Icons.person, 'Reviews ${doctor.reviewCount}+'),
+                      ],
+                    )
                   ],
                 ),
-              ),
+              )
             ],
           ),
-          const SizedBox(height: 16),
-          // Name Badge
+          const SizedBox(height: 18),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(18),
             ),
             child: Column(
               children: [
-                Text(doctor.name, style: const TextStyle(color: Color(0xFF246BFF), fontWeight: FontWeight.bold, fontSize: 16)),
-                Text(doctor.specialty, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                Text(
+                  doctor.name,
+                  style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w700, fontSize: 18),
+                ),
+                Text(
+                  doctor.specialty,
+                  style: const TextStyle(color: AppTheme.captionTextColor, fontSize: 13),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          // Stats Row
+          const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _whiteStatItem(Icons.star, "5"),
-              _whiteStatItem(Icons.chat_bubble_outline, "40"),
-              _whiteStatItem(Icons.access_time, "Mon-Sat / 9:00AM - 5:00PM"),
+              Expanded(child: _whiteStatItem(Icons.star, '${doctor.rating.toStringAsFixed(1)}', 'Rating')),
+              const SizedBox(width: 10),
+              Expanded(child: _whiteStatItem(Icons.chat_bubble_outline, '${doctor.reviewCount}', 'Reviews')),
+              const SizedBox(width: 10),
+              Expanded(child: _whiteStatItem(Icons.access_time, doctor.availability, 'Schedule')),
             ],
           ),
           const SizedBox(height: 16),
-          // Schedule Button & Icons
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => DoctorProfilePage(doctor: doctor),
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.calendar_month, color: Colors.white, size: 18),
-                  label: const Text("Schedule", style: TextStyle(color: Colors.white)),
+                  label: const Text('Schedule'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF246BFF),
-                    shape: StadiumBorder(),
-                    elevation: 0,
+                    backgroundColor: Colors.black.withValues(alpha: 0.1),
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              _smallIconAction(Icons.info_outline),
-              _smallIconAction(Icons.help_outline),
-              _smallIconAction(Icons.star_border),
-              _smallIconAction(Icons.favorite_border),
+              DoctorUIHelpers.actionCircle(Icons.info_outline, onTap: () => _showContactSheet('Clinic Hours', doctor.availability)),
+              DoctorUIHelpers.actionCircle(Icons.help_outline, onTap: () => _showContactSheet('Contact', doctor.contactPhone)),
+              DoctorUIHelpers.actionCircle(
+                _isFavorite ? Icons.favorite : Icons.favorite_border,
+                iconColor: _isFavorite ? Colors.redAccent : AppTheme.primaryColor,
+                onTap: () => setState(() => _isFavorite = !_isFavorite),
+              ),
             ],
           )
         ],
@@ -133,41 +161,69 @@ class DoctorInfoPage extends StatelessWidget {
     );
   }
 
-  Widget _blueInfoTag(IconData icon, String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(color: const Color(0xFF246BFF), borderRadius: BorderRadius.circular(12)),
-        child: Row(children: [Icon(icon, color: Colors.white, size: 14), const SizedBox(width: 4), Text(text, style: const TextStyle(color: Colors.white, fontSize: 10))]),
-      );
-
-  Widget _blueFocusBox(String text) => Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: const Color(0xFF246BFF), borderRadius: BorderRadius.circular(15)),
-        child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10)),
-      );
-
-  Widget _whiteStatItem(IconData icon, String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-        child: Row(children: [Icon(icon, color: Colors.blue, size: 14), const SizedBox(width: 4), Text(text, style: const TextStyle(color: Colors.blue, fontSize: 10))]),
-      );
-
-  Widget _smallIconAction(IconData icon) => Container(
-        margin: const EdgeInsets.only(left: 4),
-        padding: const EdgeInsets.all(6),
-        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-        child: Icon(icon, color: const Color(0xFF246BFF), size: 18),
-      );
-
-  Widget _buildDetailSection(String title, String content) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+  Widget _whiteStatItem(IconData icon, String value, String label) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: DoctorUIHelpers.softShadow(blur: 12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Color(0xFF246BFF), fontWeight: FontWeight.bold, fontSize: 18)),
-          const SizedBox(height: 8),
-          Text(content, style: const TextStyle(color: Colors.black87, fontSize: 14, height: 1.4)),
+          Icon(icon, color: AppTheme.primaryColor, size: 20),
+          const SizedBox(height: 6),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.bodyTextColor)),
+          Text(label, style: const TextStyle(color: AppTheme.captionTextColor, fontSize: 12)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDetailSection(String title, String content) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: DoctorUIHelpers.softShadow(blur: 18),
+      ),
+      child: ExpansionTile(
+        initiallyExpanded: true,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.bodyTextColor),
+        ),
+        children: [
+          Text(
+            content,
+            style: const TextStyle(color: AppTheme.captionTextColor, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showContactSheet(String label, String value) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(value, style: const TextStyle(color: AppTheme.bodyTextColor)),
+          ],
+        ),
       ),
     );
   }

@@ -42,14 +42,6 @@ class CustomBottomNav extends StatelessWidget {
           ),
           _navItem(
             context,
-            icon: Icons.notifications_none_rounded,
-            activeIcon: Icons.notifications_rounded,
-            label: "Thông báo",
-            route: '/notifications',
-            isActive: currentRoute == '/notifications',
-          ),
-          _navItem(
-            context,
             icon: Icons.person_outline_rounded,
             activeIcon: Icons.person_rounded,
             label: "Tài khoản",
