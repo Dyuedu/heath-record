@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/auth/login_request.dart';
 import 'package:frontend/data/models/auth/register_request.dart';
+import 'package:frontend/data/models/auth/register_result_model.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
 import 'package:frontend/data/repositories/user_repository.dart';
@@ -96,32 +97,55 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<bool> register(
     String fullname,
+    String? identityNumber,
     String email,
     String phone,
-    String password,
-  ) async {
+    String password, {
+    bool confirmLinkRequest = false,
+  }) async {
+    final result = await registerWithResult(
+      fullname,
+      identityNumber,
+      email,
+      phone,
+      password,
+      confirmLinkRequest: confirmLinkRequest,
+    );
+    return result != null;
+  }
+
+  Future<RegisterResultModel?> registerWithResult(
+    String fullname,
+    String? identityNumber,
+    String email,
+    String phone,
+    String password, {
+    bool confirmLinkRequest = false,
+  }) async {
     _setLoading(true);
     _errorMessage = null;
 
     try {
       final request = RegisterRequest(
         fullname: fullname,
+        identityNumber: identityNumber,
+        confirmLinkRequest: confirmLinkRequest,
         email: email,
         phone: phone,
         password: password,
       );
-      final success = await _authRepository.register(request);
+      final result = await _authRepository.register(request);
 
-      if (!success) {
+      if (result == null) {
         _errorMessage = "Đăng ký thất bại. Vui lòng thử lại.";
       }
 
       _setLoading(false);
-      return success;
+      return result;
     } catch (e) {
       _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
       _setLoading(false);
-      return false;
+      return null;
     }
   }
 

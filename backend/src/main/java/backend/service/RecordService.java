@@ -81,12 +81,8 @@ public class RecordService {
     }
 
     public RelativeHealthHistoryResponse getRecordsByProfile(UUID userId, UUID profileId) {
-        Relative relative = relativeRepository.findByProfileId(profileId)
+        Relative relative = relativeRepository.findFirstByUserIdAndProfileId(userId, profileId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người thân"));
-
-        if (!relative.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Relative không thuộc user này");
-        }
 
         List<MedicalRecord> records = medicalRecordRepository.findByProfileId(profileId);
         return medicalRecordMapper.toRelativeHistory(relative, records);

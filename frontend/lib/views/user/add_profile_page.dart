@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/record/add_relative_request.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -260,16 +261,22 @@ class _AddProfilePageState extends State<AddProfilePage> {
       relationship: selectedRelation,
     );
 
-    final success = await viewModel.addRelative(request);
+    final result = await viewModel.addRelative(request);
     if (!mounted) return;
 
-    if (success) {
+    if (result != null && result.status == 'CREATED') {
       Navigator.pop(context, true);
+    } else if (result != null && result.status == 'LINK_REQUEST_CREATED') {
+      AppNotifier.warning(
+        context,
+        result.message.isNotEmpty
+            ? result.message
+            : 'Hồ sơ đã tồn tại. Yêu cầu liên kết đang chờ phê duyệt.',
+      );
+      Navigator.pop(context, false);
     } else {
       final message = viewModel.addErrorMessage ?? 'Không thể thêm hồ sơ mới.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      AppNotifier.error(context, message);
     }
   }
 

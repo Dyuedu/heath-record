@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:frontend/data/models/record/add_relative_result_model.dart';
 import 'package:frontend/data/models/record/add_relative_request.dart';
 import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
@@ -95,23 +96,27 @@ class ProfileViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> addRelative(AddRelativeRequest request) async {
+  Future<AddRelativeResultModel?> addRelative(
+    AddRelativeRequest request,
+  ) async {
     _addErrorMessage = null;
     _setAddLoading(true);
 
     try {
-      final relative = await _repository.addRelative(request);
-      if (relative == null) {
+      final result = await _repository.addRelative(request);
+      if (result == null) {
         _addErrorMessage = 'Không thể thêm hồ sơ mới.';
-        return false;
+        return null;
       }
 
-      _familyProfiles = [..._familyProfiles, relative];
+      if (result.isCreated && result.relative != null) {
+        _familyProfiles = [..._familyProfiles, result.relative!];
+      }
       notifyListeners();
-      return true;
+      return result;
     } catch (_) {
       _addErrorMessage = 'Không thể thêm hồ sơ mới.';
-      return false;
+      return null;
     } finally {
       _setAddLoading(false);
     }

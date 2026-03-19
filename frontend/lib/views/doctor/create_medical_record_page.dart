@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/data/models/hospital_response.dart';
 import 'package:frontend/data/models/relative_search_response.dart';
 import 'package:frontend/data/repositories/record_repository.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/utils/app_theme.dart';
 import 'package:frontend/views/doctor/widgets/diagnostic_card.dart';
 import 'package:frontend/views/doctor/widgets/record_section_header.dart';
@@ -28,7 +29,8 @@ class CreateMedicalRecordPage extends StatefulWidget {
   const CreateMedicalRecordPage({super.key});
 
   @override
-  State<CreateMedicalRecordPage> createState() => _CreateMedicalRecordPageState();
+  State<CreateMedicalRecordPage> createState() =>
+      _CreateMedicalRecordPageState();
 }
 
 class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
@@ -132,7 +134,8 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
       return;
     }
 
-    if (_selectedRelative != null && !_equalsIgnoreCase(_selectedRelative!.fullName, query)) {
+    if (_selectedRelative != null &&
+        !_equalsIgnoreCase(_selectedRelative!.fullName, query)) {
       setState(() {
         _selectedRelative = null;
       });
@@ -158,7 +161,8 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
       setState(() {
         _selectedHospital = null;
       });
-    } else if (_selectedHospital != null && !_equalsIgnoreCase(_selectedHospital!.name, query)) {
+    } else if (_selectedHospital != null &&
+        !_equalsIgnoreCase(_selectedHospital!.name, query)) {
       setState(() {
         _selectedHospital = null;
       });
@@ -181,7 +185,8 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
     }
   }
 
-  bool _equalsIgnoreCase(String a, String b) => a.toLowerCase() == b.toLowerCase();
+  bool _equalsIgnoreCase(String a, String b) =>
+      a.toLowerCase() == b.toLowerCase();
 
   Future<void> _submitForm() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -264,7 +269,10 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
         iconTheme: const IconThemeData(color: AppTheme.primaryColor),
         title: const Text(
           'Tạo hồ sơ y tế',
-          style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: AppTheme.primaryColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),
@@ -283,34 +291,57 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                       width: double.infinity,
                       child: RecordSectionHeader(
                         title: 'Thông tin chung',
-                        subtitle: 'Hoàn thiện các thông tin cơ bản trước khi thêm chẩn đoán.',
+                        subtitle:
+                            'Hoàn thiện các thông tin cơ bản trước khi thêm chẩn đoán.',
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildTextField(_titleController, 'Tiêu đề hồ sơ', Icons.title, required: true),
+                    _buildTextField(
+                      _titleController,
+                      'Tiêu đề hồ sơ',
+                      Icons.title,
+                      required: true,
+                    ),
                     const SizedBox(height: 12),
                     _buildRelativeSearch(),
                     const SizedBox(height: 12),
                     _buildHospitalSearch(),
                     const SizedBox(height: 12),
-                    _buildTextField(_noteController, 'Ghi chú chung', Icons.notes, maxLines: 3),
+                    _buildTextField(
+                      _noteController,
+                      'Ghi chú chung',
+                      Icons.notes,
+                      maxLines: 3,
+                    ),
                     const SizedBox(height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Expanded(
-                          child: RecordSectionHeader(title: 'Chẩn đoán', subtitle: 'Thêm các ghi nhận chi tiết'),
+                          child: RecordSectionHeader(
+                            title: 'Chẩn đoán',
+                            subtitle: 'Thêm các ghi nhận chi tiết',
+                          ),
                         ),
                         TextButton.icon(
                           onPressed: _addDiagnostic,
-                          icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
-                          label: const Text('Thêm', style: TextStyle(color: AppTheme.primaryColor)),
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            color: AppTheme.primaryColor,
+                          ),
+                          label: const Text(
+                            'Thêm',
+                            style: TextStyle(color: AppTheme.primaryColor),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     if (_diagnostics.isEmpty)
-                      const Text('Chưa có chẩn đoán nào.', style: TextStyle(color: AppTheme.captionTextColor))
+                      const Text(
+                        'Chưa có chẩn đoán nào.',
+                        style: TextStyle(color: AppTheme.captionTextColor),
+                      )
                     else
                       ..._diagnostics.asMap().entries.map((entry) {
                         final idx = entry.key;
@@ -323,7 +354,8 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                           images: diag.images,
                           onRemove: () => _removeDiagnostic(idx),
                           onPickImages: () => _pickImages(idx),
-                          onRemoveImage: (imageIdx) => _removeDiagnosticImage(idx, imageIdx),
+                          onRemoveImage: (imageIdx) =>
+                              _removeDiagnosticImage(idx, imageIdx),
                         );
                       }),
                     const SizedBox(height: 20),
@@ -334,13 +366,18 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                         onPressed: _isLoading ? null : _submitForm,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
                         ),
                         child: _isLoading
                             ? const SizedBox(
                                 width: 22,
                                 height: 22,
-                                child: CircularProgressIndicator(strokeWidth: 2.6, color: Colors.white),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.6,
+                                  color: Colors.white,
+                                ),
                               )
                             : const Text('Lưu hồ sơ y tế'),
                       ),
@@ -357,10 +394,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
           }
 
           final fallbackHeight = MediaQuery.of(context).size.height;
-          return SizedBox(
-            height: fallbackHeight,
-            child: scrollView,
-          );
+          return SizedBox(height: fallbackHeight, child: scrollView);
         },
       ),
     );
@@ -381,9 +415,14 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
         prefixIcon: Icon(icon, color: AppTheme.primaryColor),
         filled: true,
         fillColor: AppTheme.primaryLight.withOpacity(0.35),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
       ),
-      validator: required ? ((v) => (v == null || v.isEmpty) ? 'Không được để trống' : null) : null,
+      validator: required
+          ? ((v) => (v == null || v.isEmpty) ? 'Không được để trống' : null)
+          : null,
     );
   }
 
@@ -397,7 +436,9 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
         }
         final lowerQuery = query.toLowerCase();
         return _relativeOptions.where(
-          (option) => option.fullName.toLowerCase().contains(lowerQuery) || option.phoneNumber.toLowerCase().contains(lowerQuery),
+          (option) =>
+              option.fullName.toLowerCase().contains(lowerQuery) ||
+              option.phoneNumber.toLowerCase().contains(lowerQuery),
         );
       },
       onSelected: (ProfileSearchResponse selection) {
@@ -423,11 +464,20 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                     onTap: () => onSelected(option),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundImage: option.avatarUrl.isNotEmpty ? NetworkImage(option.avatarUrl) : null,
-                        child: option.avatarUrl.isEmpty ? const Icon(Icons.person) : null,
+                        backgroundImage: option.avatarUrl.isNotEmpty
+                            ? NetworkImage(option.avatarUrl)
+                            : null,
+                        child: option.avatarUrl.isEmpty
+                            ? const Icon(Icons.person)
+                            : null,
                       ),
-                      title: Text(option.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('Ngày sinh: ${option.dateOfBirth} - ${option.relationship}'),
+                      title: Text(
+                        option.fullName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Ngày sinh: ${option.dateOfBirth} - ${option.relationship}',
+                      ),
                     ),
                   );
                 },
@@ -436,37 +486,51 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
           ),
         );
       },
-      fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-        if (_relativeFieldController != textEditingController) {
-          _relativeFieldController?.removeListener(_handleRelativeQueryChanged);
-          _relativeFieldController = textEditingController;
-          _relativeFieldController!.addListener(_handleRelativeQueryChanged);
-        }
-        return TextFormField(
-          controller: textEditingController,
-          focusNode: focusNode,
-          decoration: InputDecoration(
-            labelText: 'Bệnh nhân / Người thân (tìm theo tên/số ĐT) *',
-            prefixIcon: const Icon(Icons.person, color: AppTheme.primaryColor),
-            suffixIcon: _selectedRelative != null || textEditingController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      textEditingController.clear();
-                      setState(() {
-                        _selectedRelative = null;
-                        _relativeOptions = <ProfileSearchResponse>[];
-                      });
-                    },
-                  )
-                : null,
-            filled: true,
-            fillColor: AppTheme.primaryLight.withOpacity(0.35),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-          ),
-          validator: (v) => _selectedRelative == null ? 'Vui lòng chọn bệnh nhân' : null,
-        );
-      },
+      fieldViewBuilder:
+          (context, textEditingController, focusNode, onFieldSubmitted) {
+            if (_relativeFieldController != textEditingController) {
+              _relativeFieldController?.removeListener(
+                _handleRelativeQueryChanged,
+              );
+              _relativeFieldController = textEditingController;
+              _relativeFieldController!.addListener(
+                _handleRelativeQueryChanged,
+              );
+            }
+            return TextFormField(
+              controller: textEditingController,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                labelText: 'Bệnh nhân / Người thân (tìm theo tên/số ĐT) *',
+                prefixIcon: const Icon(
+                  Icons.person,
+                  color: AppTheme.primaryColor,
+                ),
+                suffixIcon:
+                    _selectedRelative != null ||
+                        textEditingController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          textEditingController.clear();
+                          setState(() {
+                            _selectedRelative = null;
+                            _relativeOptions = <ProfileSearchResponse>[];
+                          });
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppTheme.primaryLight.withOpacity(0.35),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              validator: (v) =>
+                  _selectedRelative == null ? 'Vui lòng chọn bệnh nhân' : null,
+            );
+          },
     );
   }
 
@@ -478,7 +542,9 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
           return _hospitals;
         }
         return _hospitals.where(
-          (HospitalResponse option) => option.name.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+          (HospitalResponse option) => option.name.toLowerCase().contains(
+            textEditingValue.text.toLowerCase(),
+          ),
         );
       },
       onSelected: (HospitalResponse selection) {
@@ -510,62 +576,62 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
           ),
         );
       },
-      fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-        if (_hospitalFieldController != textEditingController) {
-          _hospitalFieldController?.removeListener(_handleHospitalQueryChanged);
-          _hospitalFieldController = textEditingController;
-          _hospitalFieldController!.addListener(_handleHospitalQueryChanged);
-        }
-        return TextFormField(
-          controller: textEditingController,
-          focusNode: focusNode,
-          decoration: InputDecoration(
-            labelText: 'Bệnh viện (tìm theo tên)',
-            prefixIcon: const Icon(Icons.local_hospital, color: AppTheme.primaryColor),
-            suffixIcon: _selectedHospital != null || textEditingController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      textEditingController.clear();
-                      setState(() => _selectedHospital = null);
-                    },
-                  )
-                : null,
-            filled: true,
-            fillColor: AppTheme.primaryLight.withOpacity(0.35),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-          ),
-        );
-      },
+      fieldViewBuilder:
+          (context, textEditingController, focusNode, onFieldSubmitted) {
+            if (_hospitalFieldController != textEditingController) {
+              _hospitalFieldController?.removeListener(
+                _handleHospitalQueryChanged,
+              );
+              _hospitalFieldController = textEditingController;
+              _hospitalFieldController!.addListener(
+                _handleHospitalQueryChanged,
+              );
+            }
+            return TextFormField(
+              controller: textEditingController,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                labelText: 'Bệnh viện (tìm theo tên)',
+                prefixIcon: const Icon(
+                  Icons.local_hospital,
+                  color: AppTheme.primaryColor,
+                ),
+                suffixIcon:
+                    _selectedHospital != null ||
+                        textEditingController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          textEditingController.clear();
+                          setState(() => _selectedHospital = null);
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppTheme.primaryLight.withOpacity(0.35),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            );
+          },
     );
   }
 
-  void _showSnackBar({required Color color, required IconData icon, required String message}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        content: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  void _showSnackBar({
+    required Color color,
+    required IconData icon,
+    required String message,
+  }) {
+    final isError =
+        icon == Icons.error_outline ||
+        color == Colors.redAccent ||
+        color == Colors.red;
+    if (isError) {
+      AppNotifier.error(context, message);
+      return;
+    }
+    AppNotifier.success(context, message);
   }
 }

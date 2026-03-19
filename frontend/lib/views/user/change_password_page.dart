@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/viewmodels/user_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -199,11 +200,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       });
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(ok ? 'OTP đã gửi qua email' : 'Không thể gửi OTP'),
-      ),
-    );
+    if (ok) {
+      AppNotifier.success(context, 'OTP đã gửi qua email');
+    } else {
+      AppNotifier.error(context, 'Không thể gửi OTP');
+    }
   }
 
   Future<void> _verifyOtp() async {
@@ -221,11 +222,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       });
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(ok ? 'OTP hợp lệ' : 'OTP không hợp lệ hoặc đã hết hạn'),
-      ),
-    );
+    if (ok) {
+      AppNotifier.success(context, 'OTP hợp lệ');
+    } else {
+      AppNotifier.error(context, 'OTP không hợp lệ hoặc đã hết hạn');
+    }
   }
 
   Future<void> _changePassword() async {
@@ -241,11 +242,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(ok ? 'Đổi mật khẩu thành công' : 'Đổi mật khẩu thất bại'),
-      ),
-    );
+    if (ok) {
+      AppNotifier.success(context, 'Đổi mật khẩu thành công');
+    } else {
+      AppNotifier.error(context, 'Đổi mật khẩu thất bại');
+    }
 
     if (ok) {
       setState(() {

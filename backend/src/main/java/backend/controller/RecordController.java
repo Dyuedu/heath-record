@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import backend.model.dto.request.AddRelativeRequest;
+import backend.model.dto.response.AddRelativeResultResponse;
 import backend.model.dto.response.MedicalRecordResponse;
 import backend.model.dto.response.RelativeHealthHistoryResponse;
 import backend.model.dto.response.RelativeResponse;
@@ -81,14 +82,14 @@ public class RecordController {
     }
 
     @PostMapping("/relatives")
-    public ResponseEntity<RelativeResponse> addRelative(
+    public ResponseEntity<AddRelativeResultResponse> addRelative(
             @Valid @RequestBody AddRelativeRequest request,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        RelativeResponse response = relativeService.addRelative(userPrincipal.getId(), request);
+        AddRelativeResultResponse response = relativeService.addRelative(userPrincipal.getId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

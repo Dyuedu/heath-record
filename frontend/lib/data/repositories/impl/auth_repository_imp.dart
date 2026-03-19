@@ -1,6 +1,7 @@
 import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/models/auth/login_request.dart';
 import 'package:frontend/data/models/auth/register_request.dart';
+import 'package:frontend/data/models/auth/register_result_model.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -40,20 +41,25 @@ class AuthRepositoryImp implements AuthRepository {
   }
 
   @override
-  Future<bool> register(RegisterRequest request) {
-    return _dioClient.dio
-        .post('/api/auth/register', data: request.toJson())
-        .then((response) {
-          if (response.statusCode == 200) {
-            return true;
-          } else {
-            return false;
-          }
-        })
-        .catchError((error) {
-          print('Register error: $error');
-          return false;
-        });
+  Future<RegisterResultModel?> register(RegisterRequest request) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/api/auth/register',
+        data: request.toJson(),
+      );
+
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        return RegisterResultModel.fromMap(
+          response.data as Map<String, dynamic>,
+        );
+      }
+      if (response.statusCode == 200) {
+        return RegisterResultModel.fallbackSuccess();
+      }
+    } catch (error) {
+      print('Register error: $error');
+    }
+    return null;
   }
 
   @override

@@ -69,7 +69,7 @@ public class DoctorRecordService {
         backend.model.Profile profile = profileRepository.findById(request.getPatientProfileId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ bệnh nhân"));
 
-        backend.model.Relative relative = relativeRepository.findByProfileId(profile.getId()).orElse(null);
+        backend.model.Relative relative = relativeRepository.findFirstByProfileId(profile.getId()).orElse(null);
 
         Hospital hospital = null;
         if (request.getHospitalId() != null) {

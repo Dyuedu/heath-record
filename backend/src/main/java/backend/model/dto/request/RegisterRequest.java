@@ -5,6 +5,8 @@ import jakarta.validation.constraints.*;
 public record RegisterRequest(
         @NotBlank(message = "fullname is required")
         String fullname,
+        String identityNumber,
+        Boolean confirmLinkRequest,
         @NotBlank(message = "Email is required")
         @Email(message = "Email format is invalid")
         String email,

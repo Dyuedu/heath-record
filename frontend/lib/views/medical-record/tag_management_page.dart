@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/app_notifier.dart';
 
 class TagManagementPage extends StatefulWidget {
   const TagManagementPage({super.key});
@@ -211,12 +212,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
             currentSearchQuery = "";
             searchSuggestions = [];
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("New custom tag added!"),
-              duration: Duration(seconds: 1),
-            ),
-          );
+          AppNotifier.success(context, "New custom tag added!");
         },
       ),
     );

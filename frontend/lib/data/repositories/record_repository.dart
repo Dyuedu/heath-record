@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/models/record/add_relative_request.dart';
+import 'package:frontend/data/models/record/add_relative_result_model.dart';
 import 'package:frontend/data/models/record/medical_record_model.dart';
 import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/record/relative_history_model.dart';
@@ -71,9 +72,7 @@ class RecordRepository {
         'Get health history API error: ${error.response?.statusCode} - ${error.message}',
       );
     } catch (error) {
-      developer.log(
-        'Unexpected error when fetching health history: $error',
-      );
+      developer.log('Unexpected error when fetching health history: $error');
     }
     return null;
   }
@@ -137,7 +136,9 @@ class RecordRepository {
     }
   }
 
-  Future<Relative?> addRelative(AddRelativeRequest request) async {
+  Future<AddRelativeResultModel?> addRelative(
+    AddRelativeRequest request,
+  ) async {
     try {
       final response = await _dioClient.dio.post(
         '/api/relatives',
@@ -145,7 +146,21 @@ class RecordRepository {
       );
 
       if (response.statusCode == 201 && response.data != null) {
-        return Relative.fromMap(response.data);
+        if (response.data is Map<String, dynamic>) {
+          final map = response.data as Map<String, dynamic>;
+          if (map.containsKey('status')) {
+            return AddRelativeResultModel.fromMap(map);
+          }
+          return AddRelativeResultModel.fallbackCreated(Relative.fromMap(map));
+        }
+
+        if (response.data is Map) {
+          final map = Map<String, dynamic>.from(response.data as Map);
+          if (map.containsKey('status')) {
+            return AddRelativeResultModel.fromMap(map);
+          }
+          return AddRelativeResultModel.fallbackCreated(Relative.fromMap(map));
+        }
       }
     } on DioException catch (error) {
       developer.log(
@@ -163,20 +178,26 @@ class RecordRepository {
       final response = await _dioClient.dio.get('/api/v1/hospitals');
       if (response.statusCode == 200 && response.data is List) {
         return (response.data as List)
-            .map((e) => HospitalResponse.fromJson(
-                  Map<String, dynamic>.from(e as Map),
-                ))
+            .map(
+              (e) => HospitalResponse.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
             .toList();
       }
     } on DioException catch (error) {
-      developer.log('Get hospitals API error: ${error.response?.statusCode} - ${error.message}');
+      developer.log(
+        'Get hospitals API error: ${error.response?.statusCode} - ${error.message}',
+      );
     } catch (error) {
       developer.log('Unexpected error when fetching hospitals: $error');
     }
     return [];
   }
 
-  Future<List<ProfileSearchResponse>> searchPatientProfiles(String query) async {
+  Future<List<ProfileSearchResponse>> searchPatientProfiles(
+    String query,
+  ) async {
     final cleanQuery = query.trim();
     if (cleanQuery.isEmpty) {
       return [];
@@ -188,13 +209,17 @@ class RecordRepository {
       );
       if (response.statusCode == 200 && response.data is List) {
         return (response.data as List)
-            .map((e) => ProfileSearchResponse.fromJson(
-                  Map<String, dynamic>.from(e as Map),
-                ))
+            .map(
+              (e) => ProfileSearchResponse.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
             .toList();
       }
     } on DioException catch (error) {
-      developer.log('Search patient profiles error: ${error.response?.statusCode} - ${error.message}');
+      developer.log(
+        'Search patient profiles error: ${error.response?.statusCode} - ${error.message}',
+      );
     } catch (error) {
       developer.log('Unexpected error when searching profiles: $error');
     }
@@ -223,7 +248,9 @@ class RecordRepository {
         return url is String ? url : null;
       }
     } on DioException catch (error) {
-      developer.log('Upload diagnostic image error: ${error.response?.statusCode} - ${error.message}');
+      developer.log(
+        'Upload diagnostic image error: ${error.response?.statusCode} - ${error.message}',
+      );
     } catch (error) {
       developer.log('Unexpected error when uploading diagnostic image: $error');
     }
@@ -238,7 +265,9 @@ class RecordRepository {
       );
       return response.statusCode == 201 || response.statusCode == 200;
     } on DioException catch (error) {
-      developer.log('Create medical record error: ${error.response?.statusCode} - ${error.message}');
+      developer.log(
+        'Create medical record error: ${error.response?.statusCode} - ${error.message}',
+      );
       return false;
     } catch (error) {
       developer.log('Unexpected error when creating medical record: $error');

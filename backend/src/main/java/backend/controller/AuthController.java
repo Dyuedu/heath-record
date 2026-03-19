@@ -2,6 +2,7 @@ package backend.controller;
 
 import backend.model.dto.request.LoginRequest;
 import backend.model.dto.request.RegisterRequest;
+import backend.model.dto.response.RegisterResultResponse;
 import backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +24,9 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest){
-       authService.register(registerRequest);
-       return ResponseEntity.ok().build();
+     public ResponseEntity<RegisterResultResponse> register(@Valid @RequestBody RegisterRequest registerRequest){
+         RegisterResultResponse result = authService.register(registerRequest);
+         return ResponseEntity.ok(result);
     }
 
     @PostMapping("/login")

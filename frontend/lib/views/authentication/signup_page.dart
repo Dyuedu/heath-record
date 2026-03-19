@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart'; // Đảm bảo đúng đường dẫn
 
@@ -13,6 +14,8 @@ class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _identityNumberController =
+      TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -25,6 +28,7 @@ class _SignupPageState extends State<SignupPage> {
   @override
   void dispose() {
     _nameController.dispose();
+    _identityNumberController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
@@ -50,6 +54,20 @@ class _SignupPageState extends State<SignupPage> {
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) return 'Vui lòng nhập mật khẩu';
     if (value.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự';
+    return null;
+  }
+
+  String? _validateIdentityNumber(String? value) {
+    final raw = value?.trim() ?? '';
+    if (raw.isEmpty) {
+      return null;
+    }
+
+    final compact = raw.replaceAll(RegExp(r'\s+'), '');
+    final identityRegExp = RegExp(r'^\d{9,12}$');
+    if (!identityRegExp.hasMatch(compact)) {
+      return 'CCCD/CMND phải gồm 9-12 chữ số';
+    }
     return null;
   }
 
@@ -127,6 +145,18 @@ class _SignupPageState extends State<SignupPage> {
                     onChanged: (_) => authVM.clearError(),
                     keyboardType: TextInputType.emailAddress,
                     validator: _validateEmail,
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Identity Number (optional)
+                  _buildInputLabel("Identity Number (optional)"),
+                  _buildTextFormField(
+                    controller: _identityNumberController,
+                    hint: "Enter your CCCD/CMND",
+                    icon: Icons.credit_card_outlined,
+                    onChanged: (_) => authVM.clearError(),
+                    keyboardType: TextInputType.number,
+                    validator: _validateIdentityNumber,
                   ),
                   const SizedBox(height: 15),
 
@@ -290,21 +320,70 @@ class _SignupPageState extends State<SignupPage> {
           : () async {
               if (_formKey.currentState!.validate()) {
                 // Gọi hàm register và nhận về kết quả bool
-                final success = await vm.register(
+                final result = await vm.registerWithResult(
                   _nameController.text.trim(),
+                  _identityNumberController.text.trim().isEmpty
+                      ? null
+                      : _identityNumberController.text.trim(),
                   _emailController.text.trim(),
                   _phoneController.text.trim(),
                   _passwordController.text,
                 );
 
-                if (success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Đăng ký thành công! Đang chuyển hướng..."),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  // Quay lại trang Login sau khi thành công
+                if (!context.mounted) {
+                  return;
+                }
+
+                if (result != null) {
+                  if (result.isConfirmRequired) {
+                    final shouldCreateLinkRequest =
+                        await _showLinkConfirmDialog();
+                    if (!context.mounted || !shouldCreateLinkRequest) {
+                      return;
+                    }
+
+                    final confirmedResult = await vm.registerWithResult(
+                      _nameController.text.trim(),
+                      _identityNumberController.text.trim().isEmpty
+                          ? null
+                          : _identityNumberController.text.trim(),
+                      _emailController.text.trim(),
+                      _phoneController.text.trim(),
+                      _passwordController.text,
+                      confirmLinkRequest: true,
+                    );
+
+                    if (!context.mounted || confirmedResult == null) {
+                      return;
+                    }
+
+                    final isLinkRequest =
+                        confirmedResult.status == 'LINK_REQUEST_CREATED';
+                    final message = confirmedResult.message.isNotEmpty
+                        ? confirmedResult.message
+                        : (isLinkRequest
+                              ? 'Yêu cầu liên kết hồ sơ đã được gửi.'
+                              : 'Đăng ký thành công! Đang chuyển hướng...');
+                    if (isLinkRequest) {
+                      AppNotifier.warning(context, message);
+                    } else {
+                      AppNotifier.success(context, message);
+                    }
+                    Navigator.pop(context);
+                    return;
+                  }
+
+                  final isLinkRequest = result.status == 'LINK_REQUEST_CREATED';
+                  final message = result.message.isNotEmpty
+                      ? result.message
+                      : (isLinkRequest
+                            ? 'Yêu cầu liên kết hồ sơ đã được gửi.'
+                            : 'Đăng ký thành công! Đang chuyển hướng...');
+                  if (isLinkRequest) {
+                    AppNotifier.warning(context, message);
+                  } else {
+                    AppNotifier.success(context, message);
+                  }
                   Navigator.pop(context);
                 }
               }
@@ -319,6 +398,32 @@ class _SignupPageState extends State<SignupPage> {
       ),
     ),
   );
+
+  Future<bool> _showLinkConfirmDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Thông tin đã tồn tại'),
+          content: const Text(
+            'Thông tin người dùng này đã tồn tại, bạn có muốn gửi yêu cầu liên kết thông tin?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Không'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Có'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
+  }
 
   Widget _buildSignInOption(BuildContext context) => Row(
     mainAxisAlignment: MainAxisAlignment.center,

@@ -8,6 +8,7 @@ import 'package:frontend/data/repositories/impl/auth_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/doctor_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/secure_storage_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/user_repository_imp.dart';
+import 'package:frontend/data/repositories/link_request_repository.dart';
 import 'package:frontend/data/repositories/record_repository.dart';
 import 'package:frontend/data/repositories/impl/profile_repository_imp.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
@@ -16,6 +17,7 @@ import 'package:frontend/data/repositories/profile_repository.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
+import 'package:frontend/viewmodels/link_request_viewmodel.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
 import 'package:frontend/viewmodels/relative_detail_viewmodel.dart';
@@ -68,11 +70,22 @@ class AppProviders {
         update: (context, dioClient, previous) =>
             RecordRepository(dioClient: dioClient),
       ),
+      ProxyProvider<DioClient, LinkRequestRepository>(
+        update: (context, dioClient, previous) =>
+            LinkRequestRepository(dioClient: dioClient),
+      ),
       ChangeNotifierProxyProvider<RecordRepository, RecordViewModel>(
         create: (context) =>
             RecordViewModel(repository: context.read<RecordRepository>()),
         update: (context, recordRepository, previous) =>
             previous ?? RecordViewModel(repository: recordRepository),
+      ),
+      ChangeNotifierProxyProvider<LinkRequestRepository, LinkRequestViewModel>(
+        create: (context) => LinkRequestViewModel(
+          repository: context.read<LinkRequestRepository>(),
+        ),
+        update: (context, repository, previous) =>
+            previous ?? LinkRequestViewModel(repository: repository),
       ),
       ChangeNotifierProvider<RelativeDetailViewModel>(
         create: (context) => RelativeDetailViewModel(

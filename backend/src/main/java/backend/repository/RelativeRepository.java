@@ -13,7 +13,10 @@ import java.util.UUID;
 public interface RelativeRepository extends JpaRepository<Relative, UUID> {
     Optional<Relative> findById(UUID id);
     List<Relative> findByUserId(UUID userId);
-    Optional<Relative> findByProfileId(UUID profileId);
+    List<Relative> findAllByProfileId(UUID profileId);
+    Optional<Relative> findFirstByProfileId(UUID profileId);
+    Optional<Relative> findFirstByUserIdAndProfileId(UUID userId, UUID profileId);
+    boolean existsByUserIdAndProfileId(UUID userId, UUID profileId);
 
     @Query("SELECT r FROM Relative r LEFT JOIN r.profile p LEFT JOIN r.user u " +
            "WHERE (LOWER(p.fullname) LIKE LOWER(CONCAT('%', :query, '%')) " +

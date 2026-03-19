@@ -4,6 +4,7 @@ import 'package:frontend/views/admin/admin_page.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/views/authentication/signup_page.dart';
 import 'package:frontend/views/home/home_page.dart';
+import 'package:frontend/views/user/link_requests_inbox_page.dart';
 import 'package:frontend/views/user/profile_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
 
@@ -18,6 +19,7 @@ class AppRouter {
   static const String medicalRecords = '/medical-records';
   static const String notifications = '/notifications';
   static const String admin = '/admin';
+  static const String linkRequestsInbox = '/link-requests-inbox';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -46,10 +48,6 @@ class AppRouter {
           builder: (_) => const ProfilePage(),
           settings: settings,
         );
-      case personalProfile:
-        return MaterialPageRoute(builder: (_) => const ProfilePage(),
-        settings: settings
-        );
       case appointments:
         return MaterialPageRoute(
           builder: (_) => const AppointmentPage(),
@@ -58,6 +56,11 @@ class AppRouter {
       case admin:
         return MaterialPageRoute(
           builder: (_) => const AdminPage(),
+          settings: settings,
+        );
+      case linkRequestsInbox:
+        return MaterialPageRoute(
+          builder: (_) => const LinkRequestsInboxPage(),
           settings: settings,
         );
       case medicalRecords:

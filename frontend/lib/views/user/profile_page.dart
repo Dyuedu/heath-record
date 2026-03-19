@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
+import 'package:frontend/utils/app_notifier.dart';
+import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
-import 'package:frontend/views/medical-record/medical_record_page.dart';
 import 'package:frontend/views/user/add_profile_page.dart';
 import 'package:frontend/views/user/relative_detail_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
@@ -69,6 +70,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   context,
                   MaterialPageRoute(builder: (_) => const UserProfilePage()),
                 ),
+              ),
+              _buildMenuItem(
+                Icons.mark_email_unread_outlined,
+                'Yêu cầu liên kết hồ sơ',
+                onTap: () =>
+                    Navigator.pushNamed(context, AppRouter.linkRequestsInbox),
               ),
               // _buildMenuItem(
               //   Icons.favorite_border,
@@ -237,11 +244,7 @@ class _ProfilePageState extends State<ProfilePage> {
       onTap: () {
         final profileId = relative.profileId;
         if (profileId == null || profileId.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Hồ sơ này chưa có thông tin chi tiết.'),
-            ),
-          );
+          AppNotifier.info(context, 'Hồ sơ này chưa có thông tin chi tiết.');
           return;
         }
         Navigator.push(
@@ -427,19 +430,16 @@ class _ProfilePageState extends State<ProfilePage> {
           ? 'Ảnh đại diện đã được cập nhật.'
           : vm.avatarErrorMessage ?? 'Không thể cập nhật ảnh đại diện.';
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
-      );
+      if (success) {
+        AppNotifier.success(context, message);
+      } else {
+        AppNotifier.error(context, message);
+      }
     } on PlatformException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.message ?? 'Không thể truy cập thư viện ảnh.'),
-          backgroundColor: Colors.red,
-        ),
+      AppNotifier.error(
+        context,
+        error.message ?? 'Không thể truy cập thư viện ảnh.',
       );
     }
   }

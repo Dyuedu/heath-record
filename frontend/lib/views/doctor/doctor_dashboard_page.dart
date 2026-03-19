@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/utils/app_theme.dart';
 import 'package:frontend/utils/doctor_ui_helpers.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
@@ -53,7 +54,11 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, String doctorName, String avatarUrl) {
+  Widget _buildHeader(
+    BuildContext context,
+    String doctorName,
+    String avatarUrl,
+  ) {
     final greeting = _greetingMessage();
     return Container(
       width: double.infinity,
@@ -73,7 +78,10 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
                   children: [
                     Text(
                       greeting,
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -106,13 +114,20 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
                   children: const [
                     Text('Today', style: TextStyle(color: Colors.white70)),
                     SizedBox(height: 6),
-                    Text('3 Appointments', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                    Text(
+                      '3 Appointments',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
               DoctorUIHelpers.gradientAvatar(avatarUrl, size: 90),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -144,7 +159,11 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
                   const SizedBox(height: 12),
                   Text(
                     stat['value'] as String,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.bodyTextColor),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.bodyTextColor,
+                    ),
                   ),
                   Text(
                     stat['label'] as String,
@@ -173,17 +192,20 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
       {
         'title': 'View Patients',
         'icon': Icons.people_alt_rounded,
-        'onTap': (BuildContext context) => _showComingSoon(context, 'Patient manager coming soon.'),
+        'onTap': (BuildContext context) =>
+            _showComingSoon(context, 'Patient manager coming soon.'),
       },
       {
         'title': 'Schedule',
         'icon': Icons.calendar_month,
-        'onTap': (BuildContext context) => _showComingSoon(context, 'Connected calendar coming soon.'),
+        'onTap': (BuildContext context) =>
+            _showComingSoon(context, 'Connected calendar coming soon.'),
       },
       {
         'title': 'My Profile',
         'icon': Icons.person_outline,
-        'onTap': (BuildContext context) => _showComingSoon(context, 'Profile editing coming soon.'),
+        'onTap': (BuildContext context) =>
+            _showComingSoon(context, 'Profile editing coming soon.'),
       },
     ];
 
@@ -201,7 +223,8 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
         final action = actions[index];
         return InkWell(
           borderRadius: BorderRadius.circular(28),
-          onTap: () => (action['onTap'] as void Function(BuildContext))(context),
+          onTap: () =>
+              (action['onTap'] as void Function(BuildContext))(context),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -218,15 +241,28 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
                     color: AppTheme.primaryLight,
                     borderRadius: BorderRadius.circular(18),
                   ),
-                  child: Icon(action['icon'] as IconData, color: AppTheme.primaryColor),
+                  child: Icon(
+                    action['icon'] as IconData,
+                    color: AppTheme.primaryColor,
+                  ),
                 ),
                 const Spacer(),
                 Text(
                   action['title'] as String,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppTheme.bodyTextColor),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: AppTheme.bodyTextColor,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                const Text('Tap to continue', style: TextStyle(color: AppTheme.captionTextColor, fontSize: 12)),
+                const Text(
+                  'Tap to continue',
+                  style: TextStyle(
+                    color: AppTheme.captionTextColor,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ),
@@ -237,9 +273,21 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
 
   Widget _buildRecentActivity() {
     final activities = [
-      {'title': 'Dermatitis follow up', 'patient': 'Sophia Reed', 'time': '09:20 AM'},
-      {'title': 'New biopsy uploaded', 'patient': 'Alan Shaw', 'time': '11:05 AM'},
-      {'title': 'Hormone results ready', 'patient': 'Evelyn Park', 'time': '02:40 PM'},
+      {
+        'title': 'Dermatitis follow up',
+        'patient': 'Sophia Reed',
+        'time': '09:20 AM',
+      },
+      {
+        'title': 'New biopsy uploaded',
+        'patient': 'Alan Shaw',
+        'time': '11:05 AM',
+      },
+      {
+        'title': 'Hormone results ready',
+        'patient': 'Evelyn Park',
+        'time': '02:40 PM',
+      },
     ];
     return Container(
       padding: const EdgeInsets.all(20),
@@ -256,7 +304,11 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
               const Expanded(
                 child: Text(
                   'Recent Activity',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.bodyTextColor),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.bodyTextColor,
+                  ),
                 ),
               ),
               TextButton(onPressed: () {}, child: const Text('View all')),
@@ -275,7 +327,10 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
                       color: AppTheme.primaryLight,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.description_outlined, color: AppTheme.primaryColor),
+                    child: const Icon(
+                      Icons.description_outlined,
+                      color: AppTheme.primaryColor,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -284,16 +339,24 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
                       children: [
                         Text(
                           activity['title'] as String,
-                          style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.bodyTextColor),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.bodyTextColor,
+                          ),
                         ),
                         Text(
                           activity['patient'] as String,
-                          style: const TextStyle(color: AppTheme.captionTextColor),
+                          style: const TextStyle(
+                            color: AppTheme.captionTextColor,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  Text(activity['time'] as String, style: const TextStyle(color: AppTheme.captionTextColor)),
+                  Text(
+                    activity['time'] as String,
+                    style: const TextStyle(color: AppTheme.captionTextColor),
+                  ),
                 ],
               ),
             ),
@@ -326,11 +389,6 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
   }
 
   void _showComingSoon(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppTheme.primaryColor,
-      ),
-    );
+    AppNotifier.info(context, message);
   }
 }

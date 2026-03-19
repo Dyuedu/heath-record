@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/viewmodels/user_viewmodel.dart';
 import 'package:frontend/views/user/change_password_page.dart';
 import 'package:provider/provider.dart';
@@ -230,13 +231,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success ? 'Cập nhật hồ sơ thành công' : 'Cập nhật hồ sơ thất bại',
-        ),
-      ),
-    );
+    if (success) {
+      AppNotifier.success(context, 'Cập nhật hồ sơ thành công');
+    } else {
+      AppNotifier.error(context, 'Cập nhật hồ sơ thất bại');
+    }
 
     if (success) {
       context.read<UserViewModel>().loadMyProfile();

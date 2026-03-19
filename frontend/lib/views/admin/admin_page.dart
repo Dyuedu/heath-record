@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/admin/admin_user_payload.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
@@ -31,9 +32,7 @@ class _AdminPageState extends State<AdminPage> {
     }
     if (!mounted) return;
     if (!authViewModel.isAdmin) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bạn không có quyền truy cập trang này.')),
-      );
+      AppNotifier.warning(context, 'Bạn không có quyền truy cập trang này.');
       Navigator.of(context).pop();
       return;
     }
@@ -140,9 +139,11 @@ class _AdminPageState extends State<AdminPage> {
         ? (adminViewModel.successMessage ?? 'Thao tác thành công.')
         : (adminViewModel.errorMessage ?? 'Thao tác thất bại.');
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    if (result) {
+      AppNotifier.success(context, message);
+    } else {
+      AppNotifier.error(context, message);
+    }
   }
 
   Future<void> _showLogoutDialog() async {

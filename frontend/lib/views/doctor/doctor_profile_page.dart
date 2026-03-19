@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/doctor/doctor_model.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/utils/app_theme.dart';
 import 'package:frontend/utils/doctor_ui_helpers.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
@@ -28,7 +29,10 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppTheme.primaryColor),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppTheme.primaryColor,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -93,20 +97,29 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                     ),
                     Text(
                       doctor.specialty,
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        DoctorUIHelpers.infoChip(Icons.workspace_premium, '${doctor.experienceYears} yrs exp.'),
-                        DoctorUIHelpers.infoChip(Icons.star_rate_rounded, '${doctor.rating.toStringAsFixed(1)} rating'),
+                        DoctorUIHelpers.infoChip(
+                          Icons.workspace_premium,
+                          '${doctor.experienceYears} yrs exp.',
+                        ),
+                        DoctorUIHelpers.infoChip(
+                          Icons.star_rate_rounded,
+                          '${doctor.rating.toStringAsFixed(1)} rating',
+                        ),
                       ],
                     ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -129,16 +142,22 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.access_time, color: AppTheme.primaryColor, size: 18),
+                    const Icon(
+                      Icons.access_time,
+                      color: AppTheme.primaryColor,
+                      size: 18,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         doctor.availability,
-                        style: const TextStyle(color: AppTheme.captionTextColor),
+                        style: const TextStyle(
+                          color: AppTheme.captionTextColor,
+                        ),
                       ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -219,10 +238,18 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Reviews', style: TextStyle(color: AppTheme.captionTextColor.withValues(alpha: 0.8))),
+                    Text(
+                      'Reviews',
+                      style: TextStyle(
+                        color: AppTheme.captionTextColor.withValues(alpha: 0.8),
+                      ),
+                    ),
                     Text(
                       '${doctor.reviewCount}+',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -231,14 +258,22 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Contact', style: TextStyle(color: AppTheme.captionTextColor.withValues(alpha: 0.8))),
+                    Text(
+                      'Contact',
+                      style: TextStyle(
+                        color: AppTheme.captionTextColor.withValues(alpha: 0.8),
+                      ),
+                    ),
                     Text(
                       doctor.contactPhone,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     Text(
                       doctor.contactEmail,
-                      style: const TextStyle(color: AppTheme.captionTextColor, fontSize: 12),
+                      style: const TextStyle(
+                        color: AppTheme.captionTextColor,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -248,11 +283,20 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              DoctorUIHelpers.actionCircle(Icons.email_outlined, onTap: () => _showContactSheet('Email', doctor.contactEmail)),
-              DoctorUIHelpers.actionCircle(Icons.call_outlined, onTap: () => _showContactSheet('Phone', doctor.contactPhone)),
-              DoctorUIHelpers.actionCircle(Icons.info_outline, onTap: () => _showDetailsSheet()),
+              DoctorUIHelpers.actionCircle(
+                Icons.email_outlined,
+                onTap: () => _showContactSheet('Email', doctor.contactEmail),
+              ),
+              DoctorUIHelpers.actionCircle(
+                Icons.call_outlined,
+                onTap: () => _showContactSheet('Phone', doctor.contactPhone),
+              ),
+              DoctorUIHelpers.actionCircle(
+                Icons.info_outline,
+                onTap: () => _showDetailsSheet(),
+              ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -296,25 +340,39 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(doctor.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
-                        Text(doctor.specialty, style: const TextStyle(color: AppTheme.captionTextColor)),
-                        Text('$_selectedTime • ${doctor.availability}', style: const TextStyle(color: AppTheme.bodyTextColor)),
+                        Text(
+                          doctor.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                          ),
+                        ),
+                        Text(
+                          doctor.specialty,
+                          style: const TextStyle(
+                            color: AppTheme.captionTextColor,
+                          ),
+                        ),
+                        Text(
+                          '$_selectedTime • ${doctor.availability}',
+                          style: const TextStyle(color: AppTheme.bodyTextColor),
+                        ),
                       ],
                     ),
-                  )
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
-              const Text('We will send a confirmation notification once the clinic confirms this slot.'),
+              const Text(
+                'We will send a confirmation notification once the clinic confirms this slot.',
+              ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Appointment request sent!'),
-                      backgroundColor: AppTheme.primaryColor,
-                    ),
+                  AppNotifier.success(
+                    this.context,
+                    'Appointment request sent!',
                   );
                 },
                 child: const Text('Confirm Booking'),
@@ -338,7 +396,10 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Text(value, style: const TextStyle(color: AppTheme.bodyTextColor)),
           ],
@@ -360,11 +421,17 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Highlights', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            const Text(
+              'Highlights',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 12),
             Text(
               doctor.highlights,
-              style: const TextStyle(color: AppTheme.bodyTextColor, height: 1.4),
+              style: const TextStyle(
+                color: AppTheme.bodyTextColor,
+                height: 1.4,
+              ),
             ),
           ],
         ),
