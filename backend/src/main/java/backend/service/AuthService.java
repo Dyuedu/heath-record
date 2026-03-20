@@ -20,9 +20,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class AuthService {
@@ -85,7 +87,7 @@ public class AuthService {
                 .build();
         }
 
-        Role role = resolveUserRole();
+        Role role = resolveSignupRole(registerRequest.role());
 
         User user = new User();
         user.setEmail(registerRequest.email());
@@ -155,20 +157,44 @@ public class AuthService {
         return normalizedPhone != null && userRepository.findByPhoneNumber(normalizedPhone).isPresent();
     }
 
-    private Role resolveUserRole() {
-        Role role = roleRepository.findByName("user");
+    private Role resolveSignupRole(String roleInput) {
+        String normalized = trimToNull(roleInput);
+        String selectedRole = StringUtils.hasText(normalized)
+                ? normalized.toLowerCase(Locale.ROOT)
+                : "user";
+
+        if (!selectedRole.equals("user") && !selectedRole.equals("doctor")) {
+            throw new backend.exception.InvalidRequestException(
+                    "INVALID_ROLE",
+                    "Vai tro khong hop le. Chi chap nhan user hoac doctor"
+            );
+        }
+
+        Role role = findRoleCandidate(selectedRole);
+        if (role == null) {
+            throw new IllegalStateException("Khong tim thay role " + selectedRole);
+        }
+        return role;
+    }
+
+    private Role findRoleCandidate(String rawRole) {
+        String candidate = rawRole.trim();
+        Role role = roleRepository.findByName(candidate);
         if (role != null) {
             return role;
         }
-        role = roleRepository.findByName("USER");
+
+        role = roleRepository.findByName(candidate.toUpperCase(Locale.ROOT));
         if (role != null) {
             return role;
         }
-        role = roleRepository.findByName("ROLE_USER");
+
+        role = roleRepository.findByName("ROLE_" + candidate.toUpperCase(Locale.ROOT));
         if (role != null) {
             return role;
         }
-        throw new IllegalStateException("Không tìm thấy role user");
+
+        return roleRepository.findByName("role_" + candidate);
     }
 
     private String normalizeIdentity(String value) {

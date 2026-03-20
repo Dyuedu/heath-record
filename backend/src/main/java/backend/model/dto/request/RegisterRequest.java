@@ -7,6 +7,7 @@ public record RegisterRequest(
         String fullname,
         String identityNumber,
         Boolean confirmLinkRequest,
+        String role,
         @NotBlank(message = "Email is required")
         @Email(message = "Email format is invalid")
         String email,

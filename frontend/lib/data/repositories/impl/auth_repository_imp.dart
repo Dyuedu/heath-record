@@ -43,9 +43,13 @@ class AuthRepositoryImp implements AuthRepository {
   @override
   Future<RegisterResultModel?> register(RegisterRequest request) async {
     try {
+      final payload = request.toMap();
+      payload['role'] =
+          (payload['role']?.toString().trim().toLowerCase() ?? 'user');
+
       final response = await _dioClient.dio.post(
         '/api/auth/register',
-        data: request.toJson(),
+        data: payload,
       );
 
       if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
