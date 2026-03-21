@@ -98,20 +98,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   ),
                 ],
               ),
-              if (_otpSent) ...[
-                const SizedBox(height: 8),
-                const Text(
-                  'OTP đã được gửi đến email của bạn.',
-                  style: TextStyle(color: Colors.black54),
-                ),
-              ],
-              if (_otpVerified) ...[
-                const SizedBox(height: 8),
-                const Text(
-                  'OTP hợp lệ. Bạn có thể nhập mật khẩu mới.',
-                  style: TextStyle(color: Colors.green),
-                ),
-              ],
               const SizedBox(height: 20),
               _buildLabel('Mật khẩu mới:'),
               TextFormField(
@@ -167,20 +153,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 ),
                 child: const Text('Cập nhật mật khẩu'),
               ),
-              if (vm.errorMessage != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  vm.errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ],
-              if (vm.successMessage != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  vm.successMessage!,
-                  style: const TextStyle(color: Colors.green),
-                ),
-              ],
             ],
           ),
         ),

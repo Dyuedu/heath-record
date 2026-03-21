@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/utils/app_routers.dart';
@@ -15,6 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _rememberMe = false; // Thêm state cho checkbox
+  String? _lastNotifiedError;
 
   @override
   void dispose() {
@@ -27,12 +29,26 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
 
+    final errorMessage = authVM.errorMessage;
+    if (errorMessage != null && errorMessage != _lastNotifiedError) {
+      _lastNotifiedError = errorMessage;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        AppNotifier.error(context, errorMessage);
+      });
+    } else if (errorMessage == null) {
+      _lastNotifiedError = null;
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 60.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 60.0,
+            ),
             child: Column(
               children: [
                 _buildLogo(),
@@ -40,7 +56,11 @@ class _LoginPageState extends State<LoginPage> {
                 const Text(
                   "Hệ thống quản lý hồ sơ y tế thông minh cho gia đình Việt",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.black54, fontSize: 14, height: 1.4),
+                  style: TextStyle(
+                    color: Colors.black54,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 40),
 
@@ -61,16 +81,6 @@ class _LoginPageState extends State<LoginPage> {
                   isPassword: true,
                   vm: authVM,
                 ),
-
-                // Hiển thị lỗi từ logic cũ của bạn
-                if (authVM.errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(authVM.errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12)),
-                    ),
-                  ),
 
                 const SizedBox(height: 12),
                 _buildRememberAndForgot(),
@@ -93,7 +103,9 @@ class _LoginPageState extends State<LoginPage> {
           if (authVM.isLoading)
             Container(
               color: Colors.black26,
-              child: const Center(child: CircularProgressIndicator(color: Color(0xFF007BFF))),
+              child: const Center(
+                child: CircularProgressIndicator(color: Color(0xFF007BFF)),
+              ),
             ),
         ],
       ),
@@ -103,28 +115,33 @@ class _LoginPageState extends State<LoginPage> {
   // --- UI Components Refactored ---
 
   Widget _buildLogo() => Container(
-        width: 80, height: 80,
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E), // Màu nền logo tối
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Image.asset(
-            'assets/images/logo.png', // Thay đường dẫn của bạn tại đây
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stack) => const Icon(Icons.analytics_outlined, color: Colors.white, size: 40),
-          ),
-        ),
-      );
+    width: 80,
+    height: 80,
+    decoration: BoxDecoration(
+      color: const Color(0xFF1E1E1E), // Màu nền logo tối
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Image.asset(
+        'assets/images/logo.png', // Thay đường dẫn của bạn tại đây
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) =>
+            const Icon(Icons.analytics_outlined, color: Colors.white, size: 40),
+      ),
+    ),
+  );
 
   Widget _buildInputLabel(String label) => Align(
-        alignment: Alignment.centerLeft,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 8, left: 2),
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        ),
-      );
+    alignment: Alignment.centerLeft,
+    child: Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 2),
+      child: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      ),
+    ),
+  );
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -132,130 +149,191 @@ class _LoginPageState extends State<LoginPage> {
     required IconData icon,
     bool isPassword = false,
     required AuthViewModel vm,
-  }) =>
-      TextField(
-        controller: controller,
-        obscureText: isPassword && !_isPasswordVisible,
-        onChanged: (_) => vm.clearError(),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.black26),
-          prefixIcon: Icon(icon, color: Colors.black45, size: 20),
-          suffixIcon: isPassword 
-            ? IconButton(
-                icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off_outlined, color: Colors.black45),
-                onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-              ) 
-            : null,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFFE8E8E8)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFF007BFF), width: 1.5),
-          ),
-        ),
-      );
+  }) => TextField(
+    controller: controller,
+    obscureText: isPassword && !_isPasswordVisible,
+    onChanged: (_) => vm.clearError(),
+    decoration: InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.black26),
+      prefixIcon: Icon(icon, color: Colors.black45, size: 20),
+      suffixIcon: isPassword
+          ? IconButton(
+              icon: Icon(
+                _isPasswordVisible
+                    ? Icons.visibility
+                    : Icons.visibility_off_outlined,
+                color: Colors.black45,
+              ),
+              onPressed: () =>
+                  setState(() => _isPasswordVisible = !_isPasswordVisible),
+            )
+          : null,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFFE8E8E8)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFF007BFF), width: 1.5),
+      ),
+    ),
+  );
 
   Widget _buildRememberAndForgot() => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Row(
         children: [
-          Row(
-            children: [
-              SizedBox(
-                width: 24, height: 24,
-                child: Checkbox(
-                  value: _rememberMe,
-                  onChanged: (val) => setState(() => _rememberMe = val!),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                  activeColor: const Color(0xFF007BFF),
-                ),
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: _rememberMe,
+              onChanged: (val) => setState(() => _rememberMe = val!),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
               ),
-              const Text(" Ghi nhớ tôi", style: TextStyle(fontSize: 13, color: Colors.black87)),
-            ],
+              activeColor: const Color(0xFF007BFF),
+            ),
           ),
-          TextButton(
-            onPressed: () {}, // Logic quên mật khẩu
-            child: const Text("Quên mật khẩu?", style: TextStyle(color: Color(0xFF007BFF), fontWeight: FontWeight.bold, fontSize: 13)),
+          const Text(
+            " Ghi nhớ tôi",
+            style: TextStyle(fontSize: 13, color: Colors.black87),
           ),
         ],
-      );
+      ),
+      TextButton(
+        onPressed: () {}, // Logic quên mật khẩu
+        child: const Text(
+          "Quên mật khẩu?",
+          style: TextStyle(
+            color: Color(0xFF007BFF),
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    ],
+  );
 
   Widget _buildSignInButton(BuildContext context, AuthViewModel vm) => SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF007BFF),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            elevation: 0,
+    width: double.infinity,
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF007BFF),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
+      ),
+      onPressed: vm.isLoading
+          ? null
+          : () async {
+              // Giữ nguyên logic login cũ của bạn
+              final success = await vm.login(
+                _emailController.text.trim(),
+                _passwordController.text,
+              );
+              if (success && mounted) {
+                final targetRoute = vm.isAdmin
+                    ? AppRouter.admin
+                    : AppRouter.home;
+                Navigator.pushReplacementNamed(context, targetRoute);
+              }
+            },
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "Đăng nhập",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          onPressed: vm.isLoading ? null : () async {
-            // Giữ nguyên logic login cũ của bạn
-            final success = await vm.login(_emailController.text.trim(), _passwordController.text);
-            if (success && mounted) {
-              final targetRoute = vm.isAdmin ? AppRouter.admin : AppRouter.home;
-              Navigator.pushReplacementNamed(context, targetRoute);
-            }
-          },
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          SizedBox(width: 8),
+          Icon(Icons.arrow_forward, size: 20),
+        ],
+      ),
+    ),
+  );
+
+  Widget _buildDivider() => Row(
+    children: [
+      const Expanded(child: Divider(color: Color(0xFFEEEEEE), thickness: 1)),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Text(
+          "HOẶC",
+          style: TextStyle(
+            color: Colors.grey.shade400,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+      const Expanded(child: Divider(color: Color(0xFFEEEEEE), thickness: 1)),
+    ],
+  );
+
+  Widget _buildSignUpOption(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      const Text(
+        "Bạn chưa có tài khoản? ",
+        style: TextStyle(color: Colors.black54),
+      ),
+      GestureDetector(
+        onTap: () => Navigator.pushNamed(context, '/signup'),
+        child: const Text(
+          "Đăng ký ngay",
+          style: TextStyle(
+            color: Color(0xFF007BFF),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    ],
+  );
+
+  Widget _buildFooter() => Column(
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: RichText(
+          textAlign: TextAlign.center,
+          text: const TextSpan(
+            style: TextStyle(color: Colors.black54, fontSize: 11, height: 1.5),
             children: [
-              Text("Đăng nhập", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              SizedBox(width: 8),
-              Icon(Icons.arrow_forward, size: 20),
+              TextSpan(text: "Bằng việc đăng nhập, bạn đồng ý với "),
+              TextSpan(
+                text: "Điều khoản dịch vụ",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline,
+                  color: Colors.black87,
+                ),
+              ),
+              TextSpan(text: " và "),
+              TextSpan(
+                text: "Chính sách bảo mật",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline,
+                  color: Colors.black87,
+                ),
+              ),
+              TextSpan(text: " của chúng tôi."),
             ],
           ),
         ),
-      );
-
-  Widget _buildDivider() => Row(
-        children: [
-          const Expanded(child: Divider(color: Color(0xFFEEEEEE), thickness: 1)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text("HOẶC", style: TextStyle(color: Colors.grey.shade400, fontSize: 12, fontWeight: FontWeight.w500)),
-          ),
-          const Expanded(child: Divider(color: Color(0xFFEEEEEE), thickness: 1)),
-        ],
-      );
-
-  Widget _buildSignUpOption(BuildContext context) => Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text("Bạn chưa có tài khoản? ", style: TextStyle(color: Colors.black54)),
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/signup'),
-            child: const Text("Đăng ký ngay", style: TextStyle(color: Color(0xFF007BFF), fontWeight: FontWeight.bold)),
-          ),
-        ],
-      );
-
-  Widget _buildFooter() => Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: RichText(
-              textAlign: TextAlign.center,
-              text: const TextSpan(
-                style: TextStyle(color: Colors.black54, fontSize: 11, height: 1.5),
-                children: [
-                  TextSpan(text: "Bằng việc đăng nhập, bạn đồng ý với "),
-                  TextSpan(text: "Điều khoản dịch vụ", style: TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.underline, color: Colors.black87)),
-                  TextSpan(text: " và "),
-                  TextSpan(text: "Chính sách bảo mật", style: TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.underline, color: Colors.black87)),
-                  TextSpan(text: " của chúng tôi."),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text("Phiên bản 2.4.0 • Health Record JSC", style: TextStyle(color: Colors.black26, fontSize: 10)),
-        ],
-      );
+      ),
+      const SizedBox(height: 12),
+      const Text(
+        "Phiên bản 2.4.0 • Health Record JSC",
+        style: TextStyle(color: Colors.black26, fontSize: 10),
+      ),
+    ],
+  );
 }

@@ -7,8 +7,16 @@ import 'package:frontend/data/repositories/user_repository.dart';
 
 class UserRepositoryImp implements UserRepository {
   final DioClient _dioClient;
+  String? _lastErrorMessage;
+  Map<String, String> _lastValidationErrors = const {};
 
   UserRepositoryImp(this._dioClient);
+
+  @override
+  String? get lastErrorMessage => _lastErrorMessage;
+
+  @override
+  Map<String, String> get lastValidationErrors => _lastValidationErrors;
 
   @override
   Future<UserProfileModel?> getMyProfile() async {
@@ -32,8 +40,8 @@ class UserRepositoryImp implements UserRepository {
     required String gender,
     required String dateOfBirth,
     required String address,
-    String avatarUrl = '',
   }) async {
+    _clearLastError();
     try {
       final response = await _dioClient.dio.put(
         '/api/users/me',
@@ -43,7 +51,6 @@ class UserRepositoryImp implements UserRepository {
           'gender': gender,
           'dateOfBirth': dateOfBirth,
           'address': address,
-          'avatarUrl': avatarUrl,
         },
       );
 
@@ -53,7 +60,11 @@ class UserRepositoryImp implements UserRepository {
         );
       }
       return null;
+    } on DioException catch (error) {
+      _captureErrorFromDio(error);
+      return null;
     } catch (_) {
+      _lastErrorMessage = 'Không thể cập nhật hồ sơ.';
       return null;
     }
   }
@@ -131,5 +142,34 @@ class UserRepositoryImp implements UserRepository {
   String _extractFileName(File file) {
     final segments = file.path.split(RegExp(r'[\\/]'));
     return segments.isNotEmpty ? segments.last : 'avatar.jpg';
+  }
+
+  void _clearLastError() {
+    _lastErrorMessage = null;
+    _lastValidationErrors = const {};
+  }
+
+  void _captureErrorFromDio(DioException error) {
+    final data = error.response?.data;
+    if (data is Map) {
+      final map = Map<String, dynamic>.from(data);
+      final message = map['message']?.toString();
+      _lastErrorMessage = (message != null && message.trim().isNotEmpty)
+          ? message
+          : 'Không thể cập nhật hồ sơ.';
+
+      final validation = map['validationErrors'];
+      if (validation is Map) {
+        _lastValidationErrors = validation.map(
+          (key, value) => MapEntry(
+            key.toString(),
+            value?.toString() ?? 'Dữ liệu không hợp lệ',
+          ),
+        );
+      }
+      return;
+    }
+
+    _lastErrorMessage = 'Không thể cập nhật hồ sơ.';
   }
 }

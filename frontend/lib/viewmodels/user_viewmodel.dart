@@ -15,6 +15,7 @@ class UserViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? _successMessage;
   String? _avatarErrorMessage;
+  Map<String, String> _fieldErrors = const {};
   UserProfileModel? _profile;
 
   bool get isLoading => _isLoading;
@@ -22,6 +23,7 @@ class UserViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
   String? get avatarErrorMessage => _avatarErrorMessage;
+  Map<String, String> get fieldErrors => _fieldErrors;
   UserProfileModel? get profile => _profile;
 
   Future<void> loadMyProfile() async {
@@ -42,11 +44,11 @@ class UserViewModel extends ChangeNotifier {
     required String gender,
     required String dateOfBirth,
     required String address,
-    String avatarUrl = '',
   }) async {
     _setLoading(true);
     _errorMessage = null;
     _successMessage = null;
+    _fieldErrors = const {};
 
     final data = await _repository.updateMyProfile(
       fullName: fullName,
@@ -54,11 +56,18 @@ class UserViewModel extends ChangeNotifier {
       gender: gender,
       dateOfBirth: dateOfBirth,
       address: address,
-      avatarUrl: avatarUrl,
     );
 
     if (data == null) {
-      _errorMessage = 'Profile update failed';
+      _fieldErrors = _repository.lastValidationErrors;
+      final firstFieldError = _fieldErrors.values.isNotEmpty
+          ? _fieldErrors.values.first
+          : null;
+      _errorMessage =
+          _repository.lastErrorMessage ??
+          (firstFieldError != null && firstFieldError.trim().isNotEmpty
+              ? firstFieldError
+              : 'Cập nhật hồ sơ thất bại');
       _setLoading(false);
       return false;
     }
@@ -146,6 +155,7 @@ class UserViewModel extends ChangeNotifier {
   void clearMessages() {
     _errorMessage = null;
     _successMessage = null;
+    _fieldErrors = const {};
     notifyListeners();
   }
 

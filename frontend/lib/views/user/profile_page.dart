@@ -16,6 +16,9 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  String? _lastOverviewError;
+  String? _lastFamilyError;
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +35,28 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final vm = context.watch<ProfileViewModel>();
 
+    final overviewError = vm.errorMessage;
+    if (overviewError != null && overviewError != _lastOverviewError) {
+      _lastOverviewError = overviewError;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        AppNotifier.error(context, overviewError);
+      });
+    } else if (overviewError == null) {
+      _lastOverviewError = null;
+    }
+
+    final familyError = vm.familyErrorMessage;
+    if (familyError != null && familyError != _lastFamilyError) {
+      _lastFamilyError = familyError;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        AppNotifier.error(context, familyError);
+      });
+    } else if (familyError == null) {
+      _lastFamilyError = null;
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       bottomNavigationBar: const CustomBottomNav(),
@@ -42,14 +67,6 @@ class _ProfilePageState extends State<ProfilePage> {
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
-              if (vm.errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: _buildErrorBanner(vm.errorMessage!),
-                ),
               if (vm.isLoading) const LinearProgressIndicator(minHeight: 2),
               const SizedBox(height: 8),
               _buildSectionTitle('Thông tin chung'),
@@ -122,7 +139,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     if (profileCards.isEmpty) {
-      return _buildEmptyFamilyState(vm.familyErrorMessage);
+      return _buildEmptyFamilyState();
     }
 
     return Container(
@@ -142,14 +159,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           const SizedBox(height: 12),
           _buildAddProfileButton(),
-          if (vm.familyErrorMessage != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                vm.familyErrorMessage!,
-                style: const TextStyle(color: Colors.red, fontSize: 12),
-              ),
-            ),
         ],
       ),
     );
@@ -243,7 +252,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildEmptyFamilyState(String? errorMessage) {
+  Widget _buildEmptyFamilyState() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
@@ -252,9 +261,9 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           const Icon(Icons.folder, size: 80, color: Color(0xFFFFD54F)),
           const SizedBox(height: 12),
-          Text(
-            errorMessage ?? 'Chưa có hồ sơ người thân nào.',
-            style: const TextStyle(color: Color(0xFF5F6368), fontSize: 13),
+          const Text(
+            'Chưa có hồ sơ người thân nào.',
+            style: TextStyle(color: Color(0xFF5F6368), fontSize: 13),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -280,28 +289,6 @@ class _ProfilePageState extends State<ProfilePage> {
           'THÊM HỒ SƠ',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-      ),
-    );
-  }
-
-  Widget _buildErrorBanner(String message) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline, color: Colors.redAccent),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/data/models/record/diagnostic_model.dart';
 import 'package:frontend/data/models/record/encounter_model.dart';
 import 'package:frontend/data/models/record/relative_history_model.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/viewmodels/relative_detail_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -20,6 +21,8 @@ class RelativeDetailPage extends StatefulWidget {
 }
 
 class _RelativeDetailPageState extends State<RelativeDetailPage> {
+  String? _lastNotifiedError;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +43,16 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
     final String? errorMessage = isActiveProfile ? vm.errorMessage : null;
     final bool showGlobalLoading =
         vm.isLoading && (history == null || !isActiveProfile);
+
+    if (errorMessage != null && errorMessage != _lastNotifiedError) {
+      _lastNotifiedError = errorMessage;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        AppNotifier.error(context, errorMessage);
+      });
+    } else if (errorMessage == null) {
+      _lastNotifiedError = null;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -97,7 +110,7 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(24),
-        children: [_buildErrorState(errorMessage)],
+        children: [_buildLoadFailedState()],
       );
     }
 
@@ -417,7 +430,7 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
     );
   }
 
-  Widget _buildErrorState(String message) {
+  Widget _buildLoadFailedState() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -436,9 +449,9 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
         children: [
           const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
           const SizedBox(height: 12),
-          Text(
-            message,
-            style: const TextStyle(color: Colors.redAccent, fontSize: 14),
+          const Text(
+            'Không thể tải dữ liệu hồ sơ. Vui lòng thử lại.',
+            style: TextStyle(color: Colors.redAccent, fontSize: 14),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),

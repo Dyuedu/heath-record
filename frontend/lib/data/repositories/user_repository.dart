@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 
 abstract class UserRepository {
+  String? get lastErrorMessage;
+  Map<String, String> get lastValidationErrors;
+
   Future<UserProfileModel?> getMyProfile();
 
   Future<UserProfileModel?> updateMyProfile({
@@ -11,7 +14,6 @@ abstract class UserRepository {
     required String gender,
     required String dateOfBirth,
     required String address,
-    String avatarUrl,
   });
 
   Future<bool> requestPasswordOtp();

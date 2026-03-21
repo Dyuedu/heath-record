@@ -212,7 +212,7 @@ class _TagManagementPageState extends State<TagManagementPage> {
             currentSearchQuery = "";
             searchSuggestions = [];
           });
-          AppNotifier.success(context, "New custom tag added!");
+          AppNotifier.success(context, "Đã thêm thẻ tùy chỉnh mới!");
         },
       ),
     );

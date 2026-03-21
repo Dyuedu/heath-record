@@ -20,6 +20,7 @@ class _CreateRecordPageState extends State<CreateRecordPage> {
 
   // Mặc định chọn loại hồ sơ là 'Test'
   String _selectedType = 'Test';
+  String? _lastNotifiedError;
 
   @override
   void dispose() {
@@ -36,6 +37,18 @@ class _CreateRecordPageState extends State<CreateRecordPage> {
       )..selectedPatientProfileId = widget.patientProfileId,
       child: Consumer<RecordViewModel>(
         builder: (context, vm, child) {
+          final errorMessage = vm.errorMessage;
+          if (errorMessage != null && errorMessage != _lastNotifiedError) {
+            _lastNotifiedError = errorMessage;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              AppNotifier.error(context, errorMessage);
+              context.read<RecordViewModel>().clearError();
+            });
+          } else if (errorMessage == null) {
+            _lastNotifiedError = null;
+          }
+
           return Scaffold(
             backgroundColor: Colors.white,
             appBar: AppBar(
@@ -72,17 +85,6 @@ class _CreateRecordPageState extends State<CreateRecordPage> {
                         _titleController,
                         "Nhập tiêu đề (vd: Khám tai mũi họng...)",
                       ),
-                      if (vm.errorMessage != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            vm.errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
                       const SizedBox(height: 24),
 
                       // 3. Quản lý Tags

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 
@@ -23,6 +24,7 @@ class _SignupPageState extends State<SignupPage> {
 
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  String? _lastNotifiedError;
 
   // State cho Role Selection (Mặc định là 'user')
   String _selectedRole = 'user';
@@ -81,6 +83,17 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
+
+    final errorMessage = authVM.errorMessage;
+    if (errorMessage != null && errorMessage != _lastNotifiedError) {
+      _lastNotifiedError = errorMessage;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        AppNotifier.error(context, errorMessage);
+      });
+    } else if (errorMessage == null) {
+      _lastNotifiedError = null;
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -210,15 +223,6 @@ class _SignupPageState extends State<SignupPage> {
                     onChanged: (_) => authVM.clearError(),
                     validator: _validateConfirmPassword,
                   ),
-
-                  if (authVM.errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 15),
-                      child: Text(
-                        authVM.errorMessage!,
-                        style: const TextStyle(color: Colors.red, fontSize: 13),
-                      ),
-                    ),
 
                   const SizedBox(height: 24),
                   _buildFooterNotice(),

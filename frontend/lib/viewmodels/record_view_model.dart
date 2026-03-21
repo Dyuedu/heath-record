@@ -162,7 +162,11 @@ class RecordViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> saveDoctorRecord(String title, String notes, String category) async {
+  Future<bool> saveDoctorRecord(
+    String title,
+    String notes,
+    String category,
+  ) async {
     final trimmedTitle = title.trim();
     if (trimmedTitle.isEmpty) {
       errorMessage = "Title is required";
@@ -193,12 +197,15 @@ class RecordViewModel extends ChangeNotifier {
         }
       }
 
-      final diagnosticPayload = <String, dynamic>{
-        'category': category.trim().isEmpty ? 'Diagnosis' : category.trim(),
-        'tag': selectedTags.isEmpty ? null : selectedTags.join(','),
-        'data': '',
-        'imageUrls': imageUrls,
-      }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+      final diagnosticPayload =
+          <String, dynamic>{
+            'category': category.trim().isEmpty ? 'Diagnosis' : category.trim(),
+            'tag': selectedTags.isEmpty ? null : selectedTags.join(','),
+            'data': '',
+            'imageUrls': imageUrls,
+          }..removeWhere(
+            (key, value) => value == null || (value is String && value.isEmpty),
+          );
 
       final payload = <String, dynamic>{
         'patientProfileId': profileId,
@@ -229,5 +236,13 @@ class RecordViewModel extends ChangeNotifier {
     selectedFiles.clear();
     selectedTags.clear();
     isImportant = false;
+  }
+
+  void clearError() {
+    if (errorMessage == null) {
+      return;
+    }
+    errorMessage = null;
+    notifyListeners();
   }
 }

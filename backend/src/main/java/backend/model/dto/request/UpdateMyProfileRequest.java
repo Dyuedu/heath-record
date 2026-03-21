@@ -5,7 +5,6 @@ public record UpdateMyProfileRequest(
         String phoneNumber,
         String gender,
         String dateOfBirth,
-        String address,
-        String avatarUrl
+        String address
 ) {
 }

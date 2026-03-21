@@ -17,6 +17,9 @@ import backend.repository.RelativeRepository;
 import backend.repository.UserRepository;
 import backend.service.mapper.MedicalRecordMapper;
 import java.security.SecureRandom;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +50,7 @@ public class UserService {
     private static final SecureRandom OTP_RANDOM = new SecureRandom();
     private static final int MIN_PASSWORD_LENGTH = 6;
     private static final int MAX_PASSWORD_LENGTH = 64;
+    private static final DateTimeFormatter DATE_SLASH_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public UserService(UserRepository userRepository,
                        RelativeRepository relativeRepository,
@@ -126,10 +130,9 @@ public class UserService {
         }
 
         profile.setFullname(trimToNull(request.fullName()));
-        profile.setGender(trimToNull(request.gender()));
-        profile.setDateOfBirth(trimToNull(request.dateOfBirth()));
+        profile.setGender(normalizeGender(request.gender()));
+        profile.setDateOfBirth(normalizeDate(request.dateOfBirth()));
         profile.setAddress(trimToNull(request.address()));
-        profile.setAvatarUrl(trimToNull(request.avatarUrl()));
 
         userRepository.save(user);
         return mapToUserResponse(user);
@@ -266,5 +269,43 @@ public class UserService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeGender(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            return null;
+        }
+
+        String key = normalized.toLowerCase();
+        if ("nam".equals(key)) {
+            return "Nam";
+        }
+        if ("nữ".equals(key) || "nu".equals(key)) {
+            return "Nữ";
+        }
+
+        throw new InvalidRequestException("GENDER_INVALID", "Giới tính chỉ chấp nhận Nam hoặc Nữ");
+    }
+
+    private String normalizeDate(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            return null;
+        }
+
+        try {
+            LocalDate isoDate = LocalDate.parse(normalized);
+            return isoDate.toString();
+        } catch (DateTimeParseException ignored) {
+            // Try dd/MM/yyyy next.
+        }
+
+        try {
+            LocalDate slashDate = LocalDate.parse(normalized, DATE_SLASH_FORMATTER);
+            return slashDate.toString();
+        } catch (DateTimeParseException ignored) {
+            throw new InvalidRequestException("DATE_OF_BIRTH_INVALID", "Ngày sinh không hợp lệ");
+        }
     }
 }

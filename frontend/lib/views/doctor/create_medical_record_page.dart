@@ -191,7 +191,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
   Future<void> _submitForm() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_selectedRelative == null) {
-      _showSnackBar(
+      _showNotification(
         color: Colors.redAccent,
         icon: Icons.error_outline,
         message: 'Vui lòng chọn hồ sơ bệnh nhân trước.',
@@ -230,7 +230,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
       final success = await repository.createFullMedicalRecord(payload);
       if (success) {
         if (mounted) {
-          _showSnackBar(
+          _showNotification(
             color: Colors.green,
             icon: Icons.check_circle_outline,
             message: 'Tạo hồ sơ thành công!',
@@ -239,7 +239,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
         }
       } else {
         if (mounted) {
-          _showSnackBar(
+          _showNotification(
             color: Colors.redAccent,
             icon: Icons.error_outline,
             message: 'Tạo hồ sơ thất bại.',
@@ -248,10 +248,10 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar(
+        _showNotification(
           color: Colors.redAccent,
           icon: Icons.error_outline,
-          message: 'Đã xảy ra lỗi: $e',
+          message: 'Đã xảy ra lỗi khi tạo hồ sơ. Vui lòng thử lại.',
         );
       }
     } finally {
@@ -619,7 +619,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
     );
   }
 
-  void _showSnackBar({
+  void _showNotification({
     required Color color,
     required IconData icon,
     required String message,

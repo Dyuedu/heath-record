@@ -397,20 +397,6 @@ class _AdminUserDialogState extends State<_AdminUserDialog> {
                     label: 'Địa chỉ',
                     maxLines: 2,
                   ),
-                  if (viewModel.errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          viewModel.errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -454,7 +440,14 @@ class _AdminUserDialogState extends State<_AdminUserDialog> {
                         success = await viewModel.createUser(payload);
                       }
 
-                      if (!mounted || !success) return;
+                      if (!mounted) return;
+                      if (!success) {
+                        AppNotifier.error(
+                          context,
+                          viewModel.errorMessage ?? 'Thao tác thất bại.',
+                        );
+                        return;
+                      }
                       Navigator.of(context).pop(true);
                     },
               style: ElevatedButton.styleFrom(
