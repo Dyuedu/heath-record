@@ -15,22 +15,18 @@ class ProfileViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _isFamilyLoading = false;
-  bool _isAvatarUploading = false;
   bool _isAddLoading = false;
   String? _errorMessage;
   String? _familyErrorMessage;
-  String? _avatarErrorMessage;
   String? _addErrorMessage;
   UserProfileModel? _profile;
   List<Relative> _familyProfiles = const [];
 
   bool get isLoading => _isLoading;
   bool get isFamilyLoading => _isFamilyLoading;
-  bool get isAvatarUploading => _isAvatarUploading;
   bool get isAddLoading => _isAddLoading;
   String? get errorMessage => _errorMessage;
   String? get familyErrorMessage => _familyErrorMessage;
-  String? get avatarErrorMessage => _avatarErrorMessage;
   String? get addErrorMessage => _addErrorMessage;
   UserProfileModel? get profile => _profile;
   List<Relative> get familyProfiles => List.unmodifiable(_familyProfiles);
@@ -75,35 +71,18 @@ class ProfileViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateAvatar(File avatarFile) async {
-    _avatarErrorMessage = null;
-    _setAvatarUploading(true);
-
-    try {
-      final updatedProfile = await _repository.uploadAvatar(avatarFile);
-      if (updatedProfile == null) {
-        _avatarErrorMessage = 'Không thể cập nhật ảnh đại diện.';
-        return false;
-      }
-
-      _profile = updatedProfile;
-      return true;
-    } catch (_) {
-      _avatarErrorMessage = 'Không thể cập nhật ảnh đại diện.';
-      return false;
-    } finally {
-      _setAvatarUploading(false);
-    }
-  }
-
   Future<AddRelativeResultModel?> addRelative(
-    AddRelativeRequest request,
-  ) async {
+    AddRelativeRequest request, {
+    File? avatarFile,
+  }) async {
     _addErrorMessage = null;
     _setAddLoading(true);
 
     try {
-      final result = await _repository.addRelative(request);
+      final result = await _repository.addRelative(
+        request,
+        avatarFile: avatarFile,
+      );
       if (result == null) {
         _addErrorMessage = 'Không thể thêm hồ sơ mới.';
         return null;
@@ -129,11 +108,6 @@ class ProfileViewModel extends ChangeNotifier {
 
   void _setFamilyLoading(bool value) {
     _isFamilyLoading = value;
-    notifyListeners();
-  }
-
-  void _setAvatarUploading(bool value) {
-    _isAvatarUploading = value;
     notifyListeners();
   }
 

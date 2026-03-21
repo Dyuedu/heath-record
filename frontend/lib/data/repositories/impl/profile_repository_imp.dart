@@ -29,12 +29,10 @@ class ProfileRepositoryImp implements ProfileRepository {
   }
 
   @override
-  Future<UserProfileModel?> uploadAvatar(File avatarFile) {
-    return _userRepository.uploadAvatar(avatarFile: avatarFile);
-  }
-
-  @override
-  Future<AddRelativeResultModel?> addRelative(AddRelativeRequest request) {
-    return _recordRepository.addRelative(request);
+  Future<AddRelativeResultModel?> addRelative(
+    AddRelativeRequest request, {
+    File? avatarFile,
+  }) {
+    return _recordRepository.addRelative(request, avatarFile: avatarFile);
   }
 }

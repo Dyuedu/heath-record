@@ -12,4 +12,6 @@ public class RelativeResponse {
     UUID profileId;
     String name;
     String relationship;
+    String dateOfBirth;
+    String avatarUrl;
 }

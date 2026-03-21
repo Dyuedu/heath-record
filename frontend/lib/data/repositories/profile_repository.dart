@@ -10,7 +10,8 @@ abstract class ProfileRepository {
 
   Future<List<Relative>> fetchFamilyProfiles();
 
-  Future<UserProfileModel?> uploadAvatar(File avatarFile);
-
-  Future<AddRelativeResultModel?> addRelative(AddRelativeRequest request);
+  Future<AddRelativeResultModel?> addRelative(
+    AddRelativeRequest request, {
+    File? avatarFile,
+  });
 }

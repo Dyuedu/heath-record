@@ -5,6 +5,8 @@ class RelativeHistoryModel {
   final String profileId;
   final String relativeName;
   final String relationship;
+  final String dateOfBirth;
+  final String avatarUrl;
   final List<EncounterModel> encounters;
 
   RelativeHistoryModel({
@@ -12,6 +14,8 @@ class RelativeHistoryModel {
     required this.profileId,
     required this.relativeName,
     required this.relationship,
+    required this.dateOfBirth,
+    required this.avatarUrl,
     required this.encounters,
   });
 
@@ -22,10 +26,16 @@ class RelativeHistoryModel {
       profileId: map['profileId']?.toString() ?? '',
       relativeName: map['relativeName']?.toString() ?? '',
       relationship: map['relationship']?.toString() ?? '',
+      dateOfBirth: map['dateOfBirth']?.toString() ?? '',
+      avatarUrl: map['avatarUrl']?.toString() ?? '',
       encounters: history is List
           ? history
-              .map((e) => EncounterModel.fromMap(Map<String, dynamic>.from(e as Map)))
-              .toList()
+                .map(
+                  (e) => EncounterModel.fromMap(
+                    Map<String, dynamic>.from(e as Map),
+                  ),
+                )
+                .toList()
           : const [],
     );
   }

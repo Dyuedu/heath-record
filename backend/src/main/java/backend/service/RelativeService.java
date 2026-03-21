@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class RelativeService {
@@ -27,15 +28,18 @@ public class RelativeService {
     private final ProfileRepository profileRepository;
     private final UserRepository userRepository;
     private final LinkRequestService linkRequestService;
+    private final CloudinaryService cloudinaryService;
 
     public RelativeService(RelativeRepository relativeRepository,
                            ProfileRepository profileRepository,
                            UserRepository userRepository,
-                           LinkRequestService linkRequestService) {
+                           LinkRequestService linkRequestService,
+                           CloudinaryService cloudinaryService) {
         this.relativeRepository = relativeRepository;
         this.profileRepository = profileRepository;
         this.userRepository = userRepository;
         this.linkRequestService = linkRequestService;
+        this.cloudinaryService = cloudinaryService;
     }
 
     public List<Relative> findByUserId(UUID userId) {
@@ -43,7 +47,7 @@ public class RelativeService {
     }
 
     @Transactional
-    public AddRelativeResultResponse addRelative(UUID userId, AddRelativeRequest request) {
+    public AddRelativeResultResponse addRelative(UUID userId, AddRelativeRequest request, MultipartFile avatarFile) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
 
@@ -79,6 +83,9 @@ public class RelativeService {
         profile.setDateOfBirth(trimToNull(request.dateOfBirth()));
         profile.setPhoneNumber(normalizePhone(request.phoneNumber()));
         profile.setIdentityNumber(normalizeIdentity(request.identityNumber()));
+        if (avatarFile != null && !avatarFile.isEmpty()) {
+            profile.setAvatarUrl(cloudinaryService.uploadImage(avatarFile));
+        }
         profile = profileRepository.save(profile);
 
         Relative relative = Relative.builder()
@@ -93,6 +100,8 @@ public class RelativeService {
             .profileId(savedRelative.getProfile() != null ? savedRelative.getProfile().getId() : null)
                 .name(savedRelative.getProfile().getFullname())
                 .relationship(savedRelative.getRelationship())
+                .dateOfBirth(savedRelative.getProfile() != null ? savedRelative.getProfile().getDateOfBirth() : null)
+                .avatarUrl(savedRelative.getProfile() != null ? savedRelative.getProfile().getAvatarUrl() : null)
                 .build();
 
         return AddRelativeResultResponse.builder()

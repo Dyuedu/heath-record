@@ -137,12 +137,33 @@ class RecordRepository {
   }
 
   Future<AddRelativeResultModel?> addRelative(
-    AddRelativeRequest request,
-  ) async {
+    AddRelativeRequest request, {
+    File? avatarFile,
+  }) async {
     try {
+      final formData = FormData();
+      request.toMap().forEach((key, value) {
+        if (value != null) {
+          formData.fields.add(MapEntry(key, value.toString()));
+        }
+      });
+
+      if (avatarFile != null && avatarFile.existsSync()) {
+        formData.files.add(
+          MapEntry(
+            'avatar',
+            await MultipartFile.fromFile(
+              avatarFile.path,
+              filename: _extractFileName(avatarFile),
+            ),
+          ),
+        );
+      }
+
       final response = await _dioClient.dio.post(
         '/api/relatives',
-        data: request.toMap(),
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
       );
 
       if (response.statusCode == 201 && response.data != null) {

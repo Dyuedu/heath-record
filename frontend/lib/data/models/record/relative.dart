@@ -1,16 +1,20 @@
-import 'dart:convert' as Convert;
+import 'dart:convert' as convert;
 
 class Relative {
   String id;
   String name;
   String relationship;
   String? profileId;
+  String? avatarUrl;
+  String? dateOfBirth;
 
   Relative({
     required this.id,
     required this.name,
     required this.relationship,
     this.profileId,
+    this.avatarUrl,
+    this.dateOfBirth,
   });
 
   Map<String, dynamic> toMap() {
@@ -19,10 +23,12 @@ class Relative {
       'name': name,
       'relationship': relationship,
       if (profileId != null) 'profileId': profileId,
+      if (avatarUrl != null) 'avatarUrl': avatarUrl,
+      if (dateOfBirth != null) 'dateOfBirth': dateOfBirth,
     };
   }
 
-  String toJson() => Convert.jsonEncode(toMap());
+  String toJson() => convert.jsonEncode(toMap());
 
   factory Relative.fromMap(Map<String, dynamic> map) {
     return Relative(
@@ -30,6 +36,8 @@ class Relative {
       name: map['name'] ?? '',
       relationship: map['relationship']?.toString() ?? '',
       profileId: map['profileId']?.toString(),
+      avatarUrl: map['avatarUrl']?.toString(),
+      dateOfBirth: map['dateOfBirth']?.toString(),
     );
   }
 }

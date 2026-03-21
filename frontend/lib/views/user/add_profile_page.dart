@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:frontend/data/models/record/add_relative_request.dart';
 import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 class AddProfilePage extends StatefulWidget {
@@ -12,11 +16,13 @@ class AddProfilePage extends StatefulWidget {
 }
 
 class _AddProfilePageState extends State<AddProfilePage> {
+  final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _nicknameCtrl = TextEditingController();
   final TextEditingController _identityCtrl = TextEditingController();
   final TextEditingController _phoneCtrl = TextEditingController();
   final TextEditingController _dobCtrl = TextEditingController();
+  File? _avatarFile;
 
   String selectedGender = "Nam";
   String selectedRelation = "Khác";
@@ -78,22 +84,30 @@ class _AddProfilePageState extends State<AddProfilePage> {
                         CircleAvatar(
                           radius: 50,
                           backgroundColor: Colors.grey[200],
-                          child: const Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Colors.white,
-                          ),
+                          backgroundImage: _avatarFile != null
+                              ? FileImage(_avatarFile!)
+                              : null,
+                          child: _avatarFile == null
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Colors.white,
+                                )
+                              : null,
                         ),
                         Positioned(
                           bottom: 0,
                           right: 0,
-                          child: CircleAvatar(
-                            radius: 15,
-                            backgroundColor: Colors.white,
-                            child: Icon(
-                              Icons.camera_alt,
-                              size: 16,
-                              color: Colors.grey[600],
+                          child: GestureDetector(
+                            onTap: _pickAvatar,
+                            child: CircleAvatar(
+                              radius: 15,
+                              backgroundColor: Colors.white,
+                              child: Icon(
+                                Icons.camera_alt,
+                                size: 16,
+                                color: Colors.grey[600],
+                              ),
                             ),
                           ),
                         ),
@@ -261,7 +275,10 @@ class _AddProfilePageState extends State<AddProfilePage> {
       relationship: selectedRelation,
     );
 
-    final result = await viewModel.addRelative(request);
+    final result = await viewModel.addRelative(
+      request,
+      avatarFile: _avatarFile,
+    );
     if (!mounted) return;
 
     if (result != null && result.status == 'CREATED') {
@@ -329,7 +346,7 @@ class _AddProfilePageState extends State<AddProfilePage> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: isActive
-              ? const Color(0xFF26BC9B).withOpacity(0.1)
+              ? const Color(0xFF26BC9B).withValues(alpha: 0.1)
               : Colors.grey[50],
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
@@ -386,5 +403,25 @@ class _AddProfilePageState extends State<AddProfilePage> {
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
     return "${date.year}-$month-$day";
+  }
+
+  Future<void> _pickAvatar() async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (pickedFile == null) return;
+
+      setState(() {
+        _avatarFile = File(pickedFile.path);
+      });
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      AppNotifier.error(
+        context,
+        error.message ?? 'Không thể truy cập thư viện ảnh.',
+      );
+    }
   }
 }

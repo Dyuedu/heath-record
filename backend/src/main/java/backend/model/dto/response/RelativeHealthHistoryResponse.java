@@ -13,5 +13,7 @@ public class RelativeHealthHistoryResponse {
     private UUID profileId;
     private String relativeName; // Lấy từ Profile gắn với Relative
     private String relationship;
+    private String dateOfBirth;
+    private String avatarUrl;
     private List<MedicalRecordResponse> history; // Danh sách các cuộc khám bệnh
 }

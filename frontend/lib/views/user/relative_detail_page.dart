@@ -36,8 +36,7 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
   Widget build(BuildContext context) {
     final vm = context.watch<RelativeDetailViewModel>();
     final bool isActiveProfile = vm.activeProfileId == widget.profileId;
-    final RelativeHistoryModel? history =
-        isActiveProfile ? vm.history : null;
+    final RelativeHistoryModel? history = isActiveProfile ? vm.history : null;
     final String? errorMessage = isActiveProfile ? vm.errorMessage : null;
     final bool showGlobalLoading =
         vm.isLoading && (history == null || !isActiveProfile);
@@ -98,9 +97,7 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(24),
-        children: [
-          _buildErrorState(errorMessage),
-        ],
+        children: [_buildErrorState(errorMessage)],
       );
     }
 
@@ -108,9 +105,7 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(24),
-        children: [
-          _buildEmptyState(),
-        ],
+        children: [_buildEmptyState()],
       );
     }
 
@@ -130,6 +125,9 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
   }
 
   Widget _buildRelativeHeader(RelativeHistoryModel history, bool loading) {
+    final dobText = _formatValue(history.dateOfBirth);
+    final avatarUrl = history.avatarUrl.trim();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -137,7 +135,7 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -148,15 +146,7 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
         children: [
           Row(
             children: [
-              Container(
-                height: 48,
-                width: 48,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF246BFF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.person, color: Colors.white),
-              ),
+              _buildAvatarThumb(avatarUrl),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -174,6 +164,24 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
                     Text(
                       history.relationship,
                       style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.cake_outlined,
+                          size: 15,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Ngày sinh: $dobText',
+                          style: const TextStyle(
+                            color: Color(0xFF5F6368),
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -258,8 +266,9 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children:
-                      encounter.tagNames.map((tag) => _tagChip(tag)).toList(),
+                  children: encounter.tagNames
+                      .map((tag) => _tagChip(tag))
+                      .toList(),
                 ),
               ),
             ),
@@ -283,87 +292,88 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
         color: const Color(0xFFF7F9FF),
         borderRadius: BorderRadius.circular(12),
       ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF246BFF).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                diagnostic.category,
-                style: const TextStyle(
-                  color: Color(0xFF246BFF),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF246BFF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  diagnostic.category,
+                  style: const TextStyle(
+                    color: Color(0xFF246BFF),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            if (diagnostic.tag != null && diagnostic.tag!.isNotEmpty)
-              Text(
-                '#${diagnostic.tag}',
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            const Spacer(),
-            if (diagnostic.datetimeEnd != null)
-              Text(
-                '${diagnostic.datetimeEnd!.day}/${diagnostic.datetimeEnd!.month}/${diagnostic.datetimeEnd!.year}',
-                style: const TextStyle(color: Colors.grey, fontSize: 11),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if ((diagnostic.data ?? '').isNotEmpty)
-          Text(
-            diagnostic.data!,
-            style: const TextStyle(fontSize: 13, height: 1.4),
+              const SizedBox(width: 8),
+              if (diagnostic.tag != null && diagnostic.tag!.isNotEmpty)
+                Text(
+                  '#${diagnostic.tag}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              const Spacer(),
+              if (diagnostic.datetimeEnd != null)
+                Text(
+                  '${diagnostic.datetimeEnd!.day}/${diagnostic.datetimeEnd!.month}/${diagnostic.datetimeEnd!.year}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+            ],
           ),
-        if (diagnostic.doctor != null && diagnostic.doctor!.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              'Bác sĩ: ${diagnostic.doctor}',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF4E5D78),
+          const SizedBox(height: 8),
+          if ((diagnostic.data ?? '').isNotEmpty)
+            Text(
+              diagnostic.data!,
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            ),
+          if (diagnostic.doctor != null && diagnostic.doctor!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'Bác sĩ: ${diagnostic.doctor}',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF4E5D78)),
               ),
             ),
-          ),
-        if (diagnostic.hospitalName != null && diagnostic.hospitalName!.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'Cơ sở y tế: ${diagnostic.hospitalName}',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF4E5D78)),
+          if (diagnostic.hospitalName != null &&
+              diagnostic.hospitalName!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Cơ sở y tế: ${diagnostic.hospitalName}',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF4E5D78)),
+              ),
             ),
-          ),
-        if (diagnostic.tagNames.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: diagnostic.tagNames.map(_tagChip).toList(),
+          if (diagnostic.tagNames.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: diagnostic.tagNames.map(_tagChip).toList(),
+              ),
             ),
-          ),
-        if (diagnostic.attachmentUrls.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: diagnostic.attachmentUrls
-                  .map((url) => _attachmentChip(url))
-                  .toList(),
+          if (diagnostic.attachmentUrls.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: diagnostic.attachmentUrls
+                    .map((url) => _attachmentChip(url))
+                    .toList(),
+              ),
             ),
-          ),
-      ],
-    ),
+        ],
+      ),
     );
   }
 
@@ -516,11 +526,39 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
   }
 
   String _buildEncounterSubtitle(EncounterModel encounter) {
-    final String hospital =
-        (encounter.hospitalName ?? '').isEmpty ? 'Cơ sở chưa rõ' : encounter.hospitalName!;
+    final String hospital = (encounter.hospitalName ?? '').isEmpty
+        ? 'Cơ sở chưa rõ'
+        : encounter.hospitalName!;
     final dateText = encounter.datetimeStart != null
         ? '${encounter.datetimeStart!.day}/${encounter.datetimeStart!.month}/${encounter.datetimeStart!.year}'
         : 'Ngày chưa rõ';
     return '$hospital • $dateText';
+  }
+
+  Widget _buildAvatarThumb(String avatarUrl) {
+    return avatarUrl.isEmpty
+        ? const CircleAvatar(
+            radius: 26,
+            backgroundColor: Color(0xFFDDE3FF),
+            child: CircleAvatar(
+              radius: 24,
+              backgroundColor: Color(0xFFE0E0FF),
+              child: Icon(Icons.person, color: Color(0xFF246BFF), size: 22),
+            ),
+          )
+        : CircleAvatar(
+            radius: 26,
+            backgroundColor: Color(0xFFDDE3FF),
+            child: CircleAvatar(
+              radius: 24,
+              backgroundImage: NetworkImage(avatarUrl),
+              onBackgroundImageError: (exception, stackTrace) {},
+            ),
+          );
+  }
+
+  String _formatValue(String? value) {
+    final trimmed = (value ?? '').trim();
+    return trimmed.isEmpty ? 'Chưa cập nhật' : trimmed;
   }
 }

@@ -1,9 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:frontend/data/models/record/relative.dart';
-import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
@@ -11,7 +6,6 @@ import 'package:frontend/views/user/add_profile_page.dart';
 import 'package:frontend/views/user/relative_detail_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -22,8 +16,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final ImagePicker _imagePicker = ImagePicker();
-
   @override
   void initState() {
     super.initState();
@@ -39,7 +31,6 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ProfileViewModel>();
-    final profile = vm.profile;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -51,7 +42,6 @@ class _ProfilePageState extends State<ProfilePage> {
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
-              _buildHeader(profile, vm),
               if (vm.errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -95,88 +85,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildHeader(UserProfileModel? profile, ProfileViewModel vm) {
-    final avatarUrl = (profile?.avatarUrl ?? '').trim();
-    final displayName = _formatValue(profile?.fullName);
-    // final phone = _formatValue(profile?.phoneNumber);
-    // final email = _formatValue(profile?.email);
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          height: 200,
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF26BC9B), Color(0xFF246BFF)],
-            ),
-          ),
-        ),
-        Positioned(
-          top: 55,
-          child: Column(
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  _buildAvatar(avatarUrl, vm.isAvatarUploading),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: vm.isAvatarUploading
-                          ? null
-                          : () => _onPickAvatar(vm),
-                      child: Opacity(
-                        opacity: vm.isAvatarUploading ? 0.4 : 1,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(color: Colors.black12, blurRadius: 2),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            size: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                displayName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Color(0xFF333333),
-                ),
-              ),
-              const SizedBox(height: 4),
-              // Text(
-              //   phone,
-              //   style: const TextStyle(color: Colors.white70, fontSize: 13),
-              // ),
-              // Text(
-              //   email,
-              //   style: const TextStyle(color: Colors.white70, fontSize: 13),
-              // ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSectionTitle(String title) {
     return Container(
       width: double.infinity,
@@ -202,6 +110,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildFamilySection(ProfileViewModel vm) {
+    final profileCards = vm.familyProfiles;
+
     if (vm.isFamilyLoading && vm.familyProfiles.isEmpty) {
       return Container(
         width: double.infinity,
@@ -211,7 +121,7 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     }
 
-    if (vm.familyProfiles.isEmpty) {
+    if (profileCards.isEmpty) {
       return _buildEmptyFamilyState(vm.familyErrorMessage);
     }
 
@@ -221,7 +131,15 @@ class _ProfilePageState extends State<ProfilePage> {
       color: Colors.white,
       child: Column(
         children: [
-          for (final relative in vm.familyProfiles) _buildFamilyCard(relative),
+          for (final card in profileCards)
+            _buildFamilyCard(
+              card.name,
+              card.relationship,
+              card.avatarUrl ?? '',
+              card.dateOfBirth,
+              profileId: card.profileId,
+              canOpenDetail: true,
+            ),
           const SizedBox(height: 12),
           _buildAddProfileButton(),
           if (vm.familyErrorMessage != null)
@@ -237,12 +155,22 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildFamilyCard(Relative relative) {
-    final relationship = _formatValue(relative.relationship);
+  Widget _buildFamilyCard(
+    String name,
+    String relationship,
+    String avatarUrl,
+    String? dateOfBirth, {
+    required String? profileId,
+    required bool canOpenDetail,
+  }) {
+    final dobText = _formatValue(dateOfBirth);
 
     return GestureDetector(
       onTap: () {
-        final profileId = relative.profileId;
+        if (!canOpenDetail) {
+          return;
+        }
+
         if (profileId == null || profileId.isEmpty) {
           AppNotifier.info(context, 'Hồ sơ này chưa có thông tin chi tiết.');
           return;
@@ -250,10 +178,8 @@ class _ProfilePageState extends State<ProfilePage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => RelativeDetailPage(
-              relativeName: relative.name,
-              profileId: profileId,
-            ),
+            builder: (_) =>
+                RelativeDetailPage(relativeName: name, profileId: profileId),
           ),
         );
       },
@@ -267,22 +193,14 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                color: Color(0xFF246BFF),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, color: Colors.white),
-            ),
+            _buildAvatarThumb(avatarUrl),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    relative.name,
+                    name,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -291,13 +209,34 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    relationship,
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    _formatValue(relationship),
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.cake_outlined,
+                        size: 15,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$dobText',
+                        style: const TextStyle(
+                          color: Color(0xFF5F6368),
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            Icon(
+              canOpenDetail ? Icons.chevron_right : Icons.person_outline,
+              color: Colors.grey,
+            ),
           ],
         ),
       ),
@@ -349,7 +288,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.08),
+        color: Colors.red.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -367,81 +306,26 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildAvatar(String avatarUrl, bool isUploading) {
-    final Widget avatar = avatarUrl.isEmpty
+  Widget _buildAvatarThumb(String avatarUrl) {
+    return avatarUrl.isEmpty
         ? const CircleAvatar(
-            radius: 40,
-            backgroundColor: Colors.white,
+            radius: 26,
+            backgroundColor: Color(0xFFDDE3FF),
             child: CircleAvatar(
-              radius: 38,
+              radius: 24,
               backgroundColor: Color(0xFFE0E0FF),
-              child: Icon(Icons.person, color: Color(0xFF246BFF), size: 36),
+              child: Icon(Icons.person, color: Color(0xFF246BFF), size: 22),
             ),
           )
         : CircleAvatar(
-            radius: 40,
-            backgroundColor: Colors.white,
+            radius: 26,
+            backgroundColor: Color(0xFFDDE3FF),
             child: CircleAvatar(
-              radius: 38,
+              radius: 24,
               backgroundImage: NetworkImage(avatarUrl),
-              onBackgroundImageError: (_, __) {},
+              onBackgroundImageError: (exception, stackTrace) {},
             ),
           );
-
-    if (!isUploading) return avatar;
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        avatar,
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.45),
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(
-          width: 30,
-          height: 30,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _onPickAvatar(ProfileViewModel vm) async {
-    try {
-      final pickedFile = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-      if (pickedFile == null) return;
-
-      final avatarFile = File(pickedFile.path);
-      final success = await vm.updateAvatar(avatarFile);
-      if (!mounted) return;
-
-      final message = success
-          ? 'Ảnh đại diện đã được cập nhật.'
-          : vm.avatarErrorMessage ?? 'Không thể cập nhật ảnh đại diện.';
-
-      if (success) {
-        AppNotifier.success(context, message);
-      } else {
-        AppNotifier.error(context, message);
-      }
-    } on PlatformException catch (error) {
-      if (!mounted) return;
-      AppNotifier.error(
-        context,
-        error.message ?? 'Không thể truy cập thư viện ảnh.',
-      );
-    }
   }
 
   Future<void> _openAddProfile() async {

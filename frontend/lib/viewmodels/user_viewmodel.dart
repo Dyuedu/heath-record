@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/user_repository.dart';
@@ -9,13 +11,17 @@ class UserViewModel extends ChangeNotifier {
     : _repository = repository;
 
   bool _isLoading = false;
+  bool _isAvatarUploading = false;
   String? _errorMessage;
   String? _successMessage;
+  String? _avatarErrorMessage;
   UserProfileModel? _profile;
 
   bool get isLoading => _isLoading;
+  bool get isAvatarUploading => _isAvatarUploading;
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
+  String? get avatarErrorMessage => _avatarErrorMessage;
   UserProfileModel? get profile => _profile;
 
   Future<void> loadMyProfile() async {
@@ -121,6 +127,22 @@ class UserViewModel extends ChangeNotifier {
     return true;
   }
 
+  Future<bool> updateAvatar(File avatarFile) async {
+    _avatarErrorMessage = null;
+    _setAvatarUploading(true);
+
+    final data = await _repository.uploadAvatar(avatarFile: avatarFile);
+    if (data == null) {
+      _avatarErrorMessage = 'Không thể cập nhật ảnh đại diện.';
+      _setAvatarUploading(false);
+      return false;
+    }
+
+    _profile = data;
+    _setAvatarUploading(false);
+    return true;
+  }
+
   void clearMessages() {
     _errorMessage = null;
     _successMessage = null;
@@ -129,6 +151,11 @@ class UserViewModel extends ChangeNotifier {
 
   void _setLoading(bool value) {
     _isLoading = value;
+    notifyListeners();
+  }
+
+  void _setAvatarUploading(bool value) {
+    _isAvatarUploading = value;
     notifyListeners();
   }
 }

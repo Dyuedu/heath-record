@@ -81,15 +81,16 @@ public class RecordController {
         return ResponseEntity.ok(records);
     }
 
-    @PostMapping("/relatives")
+    @PostMapping(value = "/relatives", consumes = {"multipart/form-data"})
     public ResponseEntity<AddRelativeResultResponse> addRelative(
-            @Valid @RequestBody AddRelativeRequest request,
+            @Valid @ModelAttribute AddRelativeRequest request,
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        AddRelativeResultResponse response = relativeService.addRelative(userPrincipal.getId(), request);
+        AddRelativeResultResponse response = relativeService.addRelative(userPrincipal.getId(), request, avatar);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -105,6 +106,8 @@ public class RecordController {
                     .profileId(rel.getProfile() != null ? rel.getProfile().getId() : null)
                         .name(rel.getProfile().getFullname())
                         .relationship(rel.getRelationship())
+                    .dateOfBirth(rel.getProfile() != null ? rel.getProfile().getDateOfBirth() : null)
+                    .avatarUrl(rel.getProfile() != null ? rel.getProfile().getAvatarUrl() : null)
                         .build())
                 .toList();
 

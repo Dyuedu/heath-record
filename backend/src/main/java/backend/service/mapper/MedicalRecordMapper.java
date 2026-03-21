@@ -52,6 +52,8 @@ public class MedicalRecordMapper {
             .profileId(relative.getProfile() != null ? relative.getProfile().getId() : null)
                 .relativeName(relative.getProfile() != null ? relative.getProfile().getFullname() : null)
                 .relationship(relative.getRelationship())
+                .dateOfBirth(relative.getProfile() != null ? relative.getProfile().getDateOfBirth() : null)
+                .avatarUrl(relative.getProfile() != null ? relative.getProfile().getAvatarUrl() : null)
                 .history(toMedicalRecordResponses(records))
                 .build();
     }
