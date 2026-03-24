@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/views/appointment/appointment_page.dart';
-import 'package:frontend/views/admin/admin_page.dart';
+import 'package:frontend/views/admin/admin_dashboard_page.dart';
+import 'package:frontend/views/admin/admin_user_management_page.dart';
+import 'package:frontend/views/admin/admin_pending_list_page.dart';
+import 'package:frontend/views/admin/admin_create_account_page.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/views/authentication/signup_page.dart';
 import 'package:frontend/views/home/home_page.dart';
@@ -19,6 +22,11 @@ class AppRouter {
   static const String medicalRecords = '/medical-records';
   static const String notifications = '/notifications';
   static const String admin = '/admin';
+  static const String adminDashboard = '/admin-dashboard';
+  static const String adminUserManagement = '/admin-user-management';
+  static const String adminAccountApproval = '/admin-account-approval';
+  static const String adminPendingList = '/admin-pending-list';
+  static const String adminCreateAccount = '/admin-create-account';
   static const String linkRequestsInbox = '/link-requests-inbox';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -54,8 +62,24 @@ class AppRouter {
           settings: settings,
         );
       case admin:
+      case adminDashboard:
         return MaterialPageRoute(
-          builder: (_) => const AdminPage(),
+          builder: (_) => const AdminDashboardPage(),
+          settings: settings,
+        );
+      case adminUserManagement:
+        return MaterialPageRoute(
+          builder: (_) => const AdminUserManagementPage(),
+          settings: settings,
+        );
+      case adminPendingList:
+        return MaterialPageRoute(
+          builder: (_) => const AdminPendingListPage(),
+          settings: settings,
+        );
+      case adminCreateAccount:
+        return MaterialPageRoute(
+          builder: (_) => const AdminCreateAccountPage(),
           settings: settings,
         );
       case linkRequestsInbox:
