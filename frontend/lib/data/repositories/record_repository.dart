@@ -10,6 +10,7 @@ import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/record/relative_history_model.dart';
 import 'package:frontend/data/models/hospital_response.dart';
 import 'package:frontend/data/models/relative_search_response.dart';
+import 'package:frontend/data/models/record/encounter_model.dart';
 
 class RecordRepository {
   final DioClient _dioClient;
@@ -52,6 +53,22 @@ class RecordRepository {
       developer.log('Error fetching records: $e');
       return [];
     }
+  }
+
+  Future<EncounterModel?> getRecordById(String recordId) async {
+    try {
+      final response = await _dioClient.dio.get('/api/records/$recordId');
+      if (response.statusCode == 200 && response.data != null) {
+        return EncounterModel.fromMap(Map<String, dynamic>.from(response.data as Map));
+      }
+    } on DioException catch (error) {
+      developer.log(
+        'Get record API error: ${error.response?.statusCode} - ${error.message}',
+      );
+    } catch (error) {
+      developer.log('Unexpected error when fetching record: $error');
+    }
+    return null;
   }
 
   Future<RelativeHistoryModel?> getHealthHistoryByProfileId(

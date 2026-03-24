@@ -67,6 +67,32 @@ class AuthRepositoryImp implements AuthRepository {
   }
 
   @override
+  Future<bool> verifyOtp(String email, String otp) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/api/auth/verify-otp',
+        data: {'email': email, 'otp': otp},
+      );
+      return response.statusCode == 200;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> resendOtp(String email) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/api/auth/resend-otp',
+        data: {'email': email},
+      );
+      return response.statusCode == 200;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  @override
   Future<bool> isAuthenticated() {
     return _secureStorageRepository.getToken().then((token) {
       if (token == null) return false;

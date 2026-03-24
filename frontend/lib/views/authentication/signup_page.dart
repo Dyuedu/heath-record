@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/utils/app_notifier.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import 'otp_verification_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -531,10 +532,25 @@ class _SignupPageState extends State<SignupPage> {
                       _passwordController.text,
                       confirmLinkRequest: true,
                     );
-                    Navigator.pop(context);
+                    if (!context.mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OtpVerificationPage(
+                          email: _emailController.text.trim(),
+                        ),
+                      ),
+                    );
                     return;
                   }
-                  Navigator.pop(context);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OtpVerificationPage(
+                        email: _emailController.text.trim(),
+                      ),
+                    ),
+                  );
                 }
               }
             },

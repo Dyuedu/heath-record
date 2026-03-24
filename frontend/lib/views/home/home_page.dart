@@ -4,6 +4,8 @@ import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/views/doctor/create_medical_record_page.dart';
 import 'package:frontend/views/home/doctor_user_search_page.dart';
+import 'package:frontend/viewmodels/notification_viewmodel.dart';
+import 'package:frontend/views/home/notification_page.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:provider/provider.dart';
@@ -76,6 +78,12 @@ class _HomePageState extends State<HomePage> {
           setState(() {
             _userRole = decoded['role']?.toString();
           });
+          
+          // Connect to real-time notification socket for all roles
+          final userId = decoded['id']?.toString() ?? decoded['sub']?.toString();
+          if (userId != null) {
+            context.read<NotificationViewModel>().connect(userId);
+          }
         }
       }
     } catch (error) {
@@ -121,6 +129,7 @@ class _HomePageState extends State<HomePage> {
               _UserHeaderSection(
                 profile: profile,
                 isLoading: profileVM.isLoading,
+                isDoctor: _isDoctor,
               ),
               const SizedBox(height: 30),
 
@@ -199,8 +208,9 @@ class _HomePageState extends State<HomePage> {
 class _UserHeaderSection extends StatelessWidget {
   final UserProfileModel? profile;
   final bool isLoading;
+  final bool isDoctor;
 
-  const _UserHeaderSection({required this.profile, required this.isLoading});
+  const _UserHeaderSection({required this.profile, required this.isLoading, this.isDoctor = false});
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +239,7 @@ class _UserHeaderSection extends StatelessWidget {
           ],
         ),
         const Spacer(),
-        _notificationBadge(Icons.notifications_none_rounded),
+        _notificationBadge(context, Icons.notifications_none_rounded),
       ],
     );
   }
@@ -259,15 +269,52 @@ class _UserHeaderSection extends StatelessWidget {
     );
   }
 
-  Widget _notificationBadge(IconData icon) => Container(
-    padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      shape: BoxShape.circle,
-      border: Border.all(color: Colors.black12),
-    ),
-    child: Icon(icon, color: const Color(0xFF1F2A44), size: 24),
-  );
+  Widget _notificationBadge(BuildContext context, IconData icon) {
+    final unreadCount = context.watch<NotificationViewModel>().unreadCount;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NotificationPage()),
+        );
+      },
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.black12),
+            ),
+            child: Icon(icon, color: const Color(0xFF1F2A44), size: 24),
+          ),
+          if (unreadCount > 0)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                padding: const EdgeInsets.all(5),
+                decoration: const BoxDecoration(
+                  color: Colors.redAccent,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  unreadCount > 9 ? '9+' : unreadCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   String _formatValue(String? value, {required String fallback}) {
     final trimmed = (value ?? '').trim();

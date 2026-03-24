@@ -12,6 +12,7 @@ import 'package:frontend/data/repositories/impl/profile_repository_imp.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/data/repositories/user_repository.dart';
 import 'package:frontend/data/repositories/profile_repository.dart';
+import 'package:frontend/data/repositories/notification_repository.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
@@ -20,6 +21,7 @@ import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
 import 'package:frontend/viewmodels/relative_detail_viewmodel.dart';
 import 'package:frontend/viewmodels/user_viewmodel.dart';
+import 'package:frontend/viewmodels/notification_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -115,11 +117,21 @@ class AppProviders {
       ProxyProvider<DioClient, AdminRepository>(
         update: (context, dioClient, previous) => AdminRepositoryImp(dioClient),
       ),
+      ProxyProvider<DioClient, NotificationRepository>(
+        update: (context, dioClient, previous) => NotificationRepository(dioClient: dioClient),
+      ),
       ChangeNotifierProxyProvider<AdminRepository, AdminViewModel>(
         create: (context) =>
             AdminViewModel(repository: context.read<AdminRepository>()),
         update: (context, repository, previous) =>
             previous ?? AdminViewModel(repository: repository),
+      ),
+      ChangeNotifierProxyProvider<NotificationRepository, NotificationViewModel>(
+        create: (context) => NotificationViewModel(
+          repository: context.read<NotificationRepository>(),
+        ),
+        update: (context, repository, previous) =>
+            previous ?? NotificationViewModel(repository: repository),
       ),
     ];
   }
