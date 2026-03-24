@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -59,7 +60,7 @@ public class UserService {
                        ProfileRepository profileRepository,
                        PasswordEncoder passwordEncoder,
                        EmailService emailService,
-                       RedisTemplate<String, String> redisTemplate,
+                       @Qualifier("redisTemplate") RedisTemplate<String, String> redisTemplate,
                        CloudinaryService cloudinaryService) {
         this.userRepository = userRepository;
         this.relativeRepository = relativeRepository;

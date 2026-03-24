@@ -9,4 +9,6 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
     List<MedicalRecord> findByRelativeId(UUID relativeId);
 
     List<MedicalRecord> findByProfileId(UUID profileId);
+
+    long countByDatetimeStartAfter(java.time.LocalDateTime date);
 }

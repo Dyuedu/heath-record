@@ -17,6 +17,9 @@ public class User {
     private String phoneNumber;
     private String password;
     private String email;
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
+    private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

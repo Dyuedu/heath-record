@@ -9,12 +9,17 @@ import backend.model.Role;
 import backend.model.User;
 import backend.model.dto.request.AdminUserRequest;
 import backend.model.dto.response.UserResponse;
+import backend.model.UserStatus;
+import backend.repository.MedicalRecordRepository;
 import backend.repository.ProfileRepository;
 import backend.repository.RoleRepository;
 import backend.repository.UserRepository;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+import java.time.LocalDateTime;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,21 +31,51 @@ public class AdminUserService {
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final RoleRepository roleRepository;
+    private final MedicalRecordRepository medicalRecordRepository;
     private final PasswordEncoder passwordEncoder;
 
     public AdminUserService(UserRepository userRepository,
                             ProfileRepository profileRepository,
                             RoleRepository roleRepository,
+                            MedicalRecordRepository medicalRecordRepository,
                             PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.roleRepository = roleRepository;
+        this.medicalRecordRepository = medicalRecordRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll()
+                .stream()
+                .map(this::mapToUserResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getDashboardStats() {
+        long totalUsers = userRepository.count();
+        long pendingApprovals = userRepository.countByStatus(UserStatus.PENDING);
+        
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0);
+        long newRecordsThisMonth = medicalRecordRepository.countByDatetimeStartAfter(startOfMonth);
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalUsers", totalUsers);
+        stats.put("pendingApprovals", pendingApprovals);
+        stats.put("newRecordsThisMonth", newRecordsThisMonth);
+        return stats;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserResponse> searchUsers(String search, String role, String status) {
+        String searchParam = StringUtils.hasText(search) ? search.trim() : null;
+        String roleParam = StringUtils.hasText(role) && !role.equalsIgnoreCase("Tất cả") ? role.trim() : null;
+        String statusParam = StringUtils.hasText(status) ? status.trim() : null;
+        
+        return userRepository.searchUsers(searchParam, roleParam, statusParam)
                 .stream()
                 .map(this::mapToUserResponse)
                 .toList();
@@ -71,6 +106,8 @@ public class AdminUserService {
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setRole(role);
         user.setProfile(profile);
+        user.setStatus(StringUtils.hasText(request.status()) ? UserStatus.valueOf(request.status()) : UserStatus.ACTIVE);
+        user.setCreatedAt(LocalDateTime.now());
 
         User saved = userRepository.save(user);
         return mapToUserResponse(saved);
@@ -105,7 +142,21 @@ public class AdminUserService {
         applyProfile(profile, request);
         profile = profileRepository.save(profile);
         user.setProfile(profile);
+        
+        if (StringUtils.hasText(request.status())) {
+            user.setStatus(UserStatus.valueOf(request.status()));
+        }
 
+        User saved = userRepository.save(user);
+        return mapToUserResponse(saved);
+    }
+
+    @Transactional
+    public UserResponse changeUserStatus(UUID userId, String newStatus) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+        
+        user.setStatus(UserStatus.valueOf(newStatus));
         User saved = userRepository.save(user);
         return mapToUserResponse(saved);
     }
@@ -201,6 +252,11 @@ public class AdminUserService {
                 .dateOfBirth(profile != null ? profile.getDateOfBirth() : null)
                 .address(profile != null ? profile.getAddress() : null)
                 .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
+                .cccdFrontUrl(profile != null ? profile.getCccdFrontUrl() : null)
+                .cccdBackUrl(profile != null ? profile.getCccdBackUrl() : null)
+                .diplomaUrl(profile != null ? profile.getDiplomaUrl() : null)
+                .status(user.getStatus() != null ? user.getStatus().name() : null)
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 
