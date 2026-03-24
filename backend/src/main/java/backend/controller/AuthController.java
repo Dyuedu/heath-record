@@ -36,4 +36,32 @@ public class AuthController {
         response.put("token", token);
         return ResponseEntity.ok().body(response);
     }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
+        try {
+            authService.verifyOtp(request.get("email"), request.get("otp"));
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Xác thực thành công");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOtp(@RequestBody Map<String, String> request) {
+        try {
+            authService.resendOtp(request.get("email"));
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Đã gửi lại mã OTP");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
 }

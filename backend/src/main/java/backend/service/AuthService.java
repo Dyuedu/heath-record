@@ -12,6 +12,7 @@ import backend.repository.ProfileRepository;
 import backend.repository.RelativeRepository;
 import backend.repository.RoleRepository;
 import backend.repository.UserRepository;
+import backend.model.UserStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -39,11 +40,12 @@ public class AuthService {
     private final LinkRequestService linkRequestService;
     private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
     public AuthService(PasswordEncoder passwordEncoder, RoleRepository roleRepository, UserRepository userRepository,
             ProfileRepository profileRepository, RelativeRepository relativeRepository,
             LinkRequestService linkRequestService, JWTService jwtService,
-            AuthenticationManager authenticationManager) {
+            AuthenticationManager authenticationManager, EmailService emailService) {
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
@@ -52,6 +54,7 @@ public class AuthService {
         this.linkRequestService = linkRequestService;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -94,6 +97,12 @@ public class AuthService {
         user.setPhoneNumber(normalizedPhone);
         user.setPassword(passwordEncoder.encode(registerRequest.password()));
         user.setRole(role);
+        
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        user.setOtpCode(otp);
+        user.setOtpExpiryTime(java.time.LocalDateTime.now().plusMinutes(1));
+        user.setStatus(UserStatus.PENDING);
+
         User savedUser = userRepository.save(user);
 
         if (duplicated != null) {
@@ -127,10 +136,16 @@ public class AuthService {
         self.setProfile(savedProfile);
         relativeRepository.save(self);
 
+        try {
+            emailService.sendRegistrationOtp(savedUser.getEmail(), otp);
+        } catch (Exception e) {
+            System.err.println("Info: Could not send email OTP: " + e.getMessage());
+        }
+
         return RegisterResultResponse.builder()
             .status("REGISTERED")
             .requestId(null)
-            .message("Đăng ký thành công")
+            .message("Đăng ký thành công. Vui lòng kiểm tra email để nhận mã OTP.")
             .build();
     }
 
@@ -144,9 +159,56 @@ public class AuthService {
 
         if (authentication.isAuthenticated()) {
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            User user = userRepository.findById(userPrincipal.getId()).orElse(null);
+            
+            if (user != null && user.getStatus() == UserStatus.PENDING) {
+                throw new IllegalStateException("Tài khoản chưa được xác thực OTP. Vui lòng kiểm tra email.");
+            }
+            if (user != null && user.getStatus() == UserStatus.LOCKED) {
+                throw new IllegalStateException("Tài khoản đã bị khóa.");
+            }
             return jwtService.generateToken(userPrincipal);
         }
         throw new BadCredentialsException("Email hoặc mật khẩu không chính xác");
+    }
+
+    @Transactional
+    public void verifyOtp(String email, String otp) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy user với email này"));
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            throw new IllegalStateException("Tài khoản đã được xác thực");
+        }
+        if (user.getOtpCode() == null || !user.getOtpCode().equals(otp)) {
+            throw new IllegalArgumentException("Mã OTP không chính xác");
+        }
+        if (user.getOtpExpiryTime() != null && user.getOtpExpiryTime().isBefore(java.time.LocalDateTime.now())) {
+            throw new IllegalStateException("Mã OTP đã hết hạn");
+        }
+        user.setStatus(UserStatus.ACTIVE);
+        user.setOtpCode(null);
+        user.setOtpExpiryTime(null);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void resendOtp(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy user với email này"));
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            throw new IllegalStateException("Tài khoản đã được xác thực");
+        }
+        
+        String newOtp = String.format("%06d", new java.util.Random().nextInt(999999));
+        user.setOtpCode(newOtp);
+        user.setOtpExpiryTime(java.time.LocalDateTime.now().plusMinutes(1));
+        userRepository.save(user);
+        
+        try {
+            emailService.sendRegistrationOtp(user.getEmail(), newOtp);
+        } catch (Exception e) {
+            System.err.println("Info: Could not send email OTP: " + e.getMessage());
+        }
     }
 
     private Boolean isEmailExist(String email) {
