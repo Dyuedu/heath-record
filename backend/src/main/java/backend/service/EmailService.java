@@ -64,4 +64,33 @@ public class EmailService {
             );
         }
     }
+    
+    public void sendRegistrationOtp(String toEmail, String otp) {
+        if (!mailEnabled) {
+            log.warn("Mail is disabled (app.mail.enabled=false). Registration OTP for {} is {}", toEmail, otp);
+            return;
+        }
+
+        if (fromEmail == null || fromEmail.isBlank()) {
+            throw new InvalidRequestException(
+                    "MAIL_CONFIG_MISSING",
+                    "MAIL_USERNAME is empty. Please configure MAIL_USERNAME and MAIL_PASSWORD"
+            );
+        }
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setFrom(fromEmail);
+            message.setSubject("Xác thực Email Đăng ký - Health Record");
+            message.setText("Chào bạn,\n\nMã xác thực (OTP) của bạn là: " + otp + "\n\nMã này sẽ hết hạn trong vòng 1 phút.\n\nTrân trọng.");
+            mailSender.send(message);
+        } catch (MailException ex) {
+            log.error("Failed to send Registration OTP email to {}", toEmail, ex);
+            throw new InvalidRequestException(
+                    "MAIL_SEND_FAILED",
+                    "Lỗi gửi email: " + ex.getMessage()
+            );
+        }
+    }
 }

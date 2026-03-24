@@ -39,8 +39,11 @@ public class UserController {
     @GetMapping("/doctor/search-patients")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<List<UserResponse>> searchPatients(
-            @RequestParam String phone) {
-        List<UserResponse> patients = userService.searchPatients(phone);
+            @RequestParam Map<String, String> queryParams) {
+        String keyword = queryParams.get("keyword");
+        String phone = queryParams.get("phone");
+        String searchTerm = keyword != null && !keyword.isBlank() ? keyword : phone;
+        List<UserResponse> patients = userService.searchPatients(searchTerm);
         return ResponseEntity.ok(patients);
     }
 

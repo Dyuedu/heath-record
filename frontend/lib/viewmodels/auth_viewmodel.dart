@@ -153,6 +153,40 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> verifyOtp(String email, String otp) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final success = await _authRepository.verifyOtp(email, otp);
+      if (!success) {
+        _errorMessage = "Mã OTP không chính xác hoặc đã hết hạn.";
+      }
+      _setLoading(false);
+      return success;
+    } catch (e) {
+      _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> resendOtp(String email) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final success = await _authRepository.resendOtp(email);
+      if (!success) {
+        _errorMessage = "Không thể gửi lại mã OTP lúc này.";
+      }
+      _setLoading(false);
+      return success;
+    } catch (e) {
+      _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
+      _setLoading(false);
+      return false;
+    }
+  }
+
   // Xóa thông báo lỗi khi người dùng bắt đầu nhập lại
   void clearError() {
     if (_errorMessage != null) {

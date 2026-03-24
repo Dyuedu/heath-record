@@ -2,10 +2,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/repositories/admin_repository.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
-import 'package:frontend/data/repositories/doctor_repository.dart';
 import 'package:frontend/data/repositories/impl/admin_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/auth_repository_imp.dart';
-import 'package:frontend/data/repositories/impl/doctor_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/secure_storage_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/user_repository_imp.dart';
 import 'package:frontend/data/repositories/link_request_repository.dart';
@@ -14,6 +12,7 @@ import 'package:frontend/data/repositories/impl/profile_repository_imp.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/data/repositories/user_repository.dart';
 import 'package:frontend/data/repositories/profile_repository.dart';
+import 'package:frontend/data/repositories/notification_repository.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
@@ -22,6 +21,7 @@ import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
 import 'package:frontend/viewmodels/relative_detail_viewmodel.dart';
 import 'package:frontend/viewmodels/user_viewmodel.dart';
+import 'package:frontend/viewmodels/notification_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -92,15 +92,8 @@ class AppProviders {
           repository: context.read<RecordRepository>(),
         ),
       ),
-      ProxyProvider<DioClient, DoctorRepository>(
-        update: (context, dioClient, previous) =>
-            DoctorRepositoryImp(dioClient),
-      ),
-      ChangeNotifierProxyProvider<DoctorRepository, DoctorViewModel>(
-        create: (context) =>
-            DoctorViewModel(repository: context.read<DoctorRepository>()),
-        update: (context, doctorRepository, previous) =>
-            previous ?? DoctorViewModel(repository: doctorRepository),
+      ChangeNotifierProvider<DoctorViewModel>(
+        create: (context) => DoctorViewModel(),
       ),
       ChangeNotifierProxyProvider<UserRepository, UserViewModel>(
         create: (context) =>
@@ -124,11 +117,21 @@ class AppProviders {
       ProxyProvider<DioClient, AdminRepository>(
         update: (context, dioClient, previous) => AdminRepositoryImp(dioClient),
       ),
+      ProxyProvider<DioClient, NotificationRepository>(
+        update: (context, dioClient, previous) => NotificationRepository(dioClient: dioClient),
+      ),
       ChangeNotifierProxyProvider<AdminRepository, AdminViewModel>(
         create: (context) =>
             AdminViewModel(repository: context.read<AdminRepository>()),
         update: (context, repository, previous) =>
             previous ?? AdminViewModel(repository: repository),
+      ),
+      ChangeNotifierProxyProvider<NotificationRepository, NotificationViewModel>(
+        create: (context) => NotificationViewModel(
+          repository: context.read<NotificationRepository>(),
+        ),
+        update: (context, repository, previous) =>
+            previous ?? NotificationViewModel(repository: repository),
       ),
     ];
   }

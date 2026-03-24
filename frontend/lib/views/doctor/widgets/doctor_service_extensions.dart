@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/utils/app_theme.dart';
-import 'package:frontend/views/doctor/create_medical_record_page.dart';
 
 /// Doctor-only service items that get injected into the HomePage services grid.
 /// This file is isolated to avoid conflicts with the shared HomePage.
@@ -17,10 +16,7 @@ class DoctorServiceExtensions extends StatelessWidget {
           label: 'Hồ sơ mới',
           bgColor: const Color(0xFFFFE8E8),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CreateMedicalRecordPage()),
-            );
+            _showHomeOnlyNotice(context);
           },
         ),
         const SizedBox(width: 35),
@@ -36,6 +32,14 @@ class DoctorServiceExtensions extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  void _showHomeOnlyNotice(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Vui lòng tạo hồ sơ từ trang Home > Hồ sơ mới.'),
+      ),
     );
   }
 

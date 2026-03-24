@@ -1,35 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/data/models/patient/patient_model.dart';
-import 'package:frontend/data/repositories/doctor_repository.dart';
 import '../data/models/doctor/doctor_model.dart';
 
 class DoctorViewModel extends ChangeNotifier {
-  final DoctorRepository _repository;
   List<DoctorModel> _allDoctors = []; // Dữ liệu gốc từ API
   List<DoctorModel> _displayDoctors = []; // Dữ liệu đã lọc/sắp xếp để hiển thị
-  List<PatientModel> searchResults = [];
-  bool isSearching = false;
   bool isLoading = false;
   bool isAscending = true; // true = A → Z
   String currentFilter = 'AZ';
   String searchQuery = '';
 
-  DoctorViewModel({required DoctorRepository repository})
-    : _repository = repository; // AZ, Rating, Favorite, Male, Female
+  DoctorViewModel(); // AZ, Rating, Favorite, Male, Female
 
   List<DoctorModel> get doctors => _displayDoctors;
-
-  Future<void> searchPatient(String phone) async {
-    if (phone.isEmpty) return;
-
-    isSearching = true;
-    notifyListeners();
-
-    searchResults = await _repository.searchPatientByPhone(phone);
-
-    isSearching = false;
-    notifyListeners();
-  }
 
   Future<void> fetchDoctors() async {
     isLoading = true;

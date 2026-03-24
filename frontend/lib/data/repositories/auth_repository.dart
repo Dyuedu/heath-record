@@ -5,6 +5,8 @@ import 'package:frontend/data/models/auth/register_result_model.dart';
 abstract class AuthRepository {
   Future<bool> login(LoginRequest request);
   Future<RegisterResultModel?> register(RegisterRequest request);
+  Future<bool> verifyOtp(String email, String otp);
+  Future<bool> resendOtp(String email);
   Future<void> logout();
   Future<bool> isLoggedIn();
   Future<dynamic> isAuthenticated() async {}

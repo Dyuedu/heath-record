@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:frontend/data/models/user/doctor_patient_detail_model.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 
 abstract class UserRepository {
@@ -26,4 +27,12 @@ abstract class UserRepository {
   });
 
   Future<UserProfileModel?> uploadAvatar({required File avatarFile});
+
+  Future<List<UserProfileModel>> searchPatientsForDoctor({
+    required String keyword,
+  });
+
+  Future<DoctorPatientDetailModel?> fetchDoctorPatientDetail({
+    required String patientId,
+  });
 }

@@ -206,8 +206,8 @@ class _AddProfilePageState extends State<AddProfilePage> {
               child: ElevatedButton(
                 onPressed: isSubmitting || !_isFormValid ? null : _handleSubmit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF26BC9B),
-                  disabledBackgroundColor: const Color(0xFFA8DADC),
+                  backgroundColor: const Color(0xFF246BFF),
+                  disabledBackgroundColor: const Color(0xFFB3CCFF),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -320,13 +320,13 @@ class _AddProfilePageState extends State<AddProfilePage> {
             borderSide: BorderSide(color: Colors.black12),
           ),
           focusedBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF26BC9B)),
+            borderSide: BorderSide(color: Color(0xFF246BFF)),
           ),
           suffixIcon: readOnly
               ? const Icon(
                   Icons.calendar_today,
                   size: 16,
-                  color: Color(0xFF26BC9B),
+                  color: Color(0xFF246BFF),
                 )
               : null,
         ),
@@ -346,11 +346,11 @@ class _AddProfilePageState extends State<AddProfilePage> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: isActive
-              ? const Color(0xFF26BC9B).withValues(alpha: 0.1)
+              ? const Color(0xFF246BFF).withValues(alpha: 0.1)
               : Colors.grey[50],
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isActive ? const Color(0xFF26BC9B) : Colors.transparent,
+            color: isActive ? const Color(0xFF246BFF) : Colors.transparent,
           ),
         ),
         child: Stack(
@@ -363,7 +363,7 @@ class _AddProfilePageState extends State<AddProfilePage> {
                   Icon(
                     icon,
                     size: 18,
-                    color: isActive ? const Color(0xFF26BC9B) : Colors.grey,
+                    color: isActive ? const Color(0xFF246BFF) : Colors.grey,
                   ),
                 if (icon != null) const SizedBox(width: 8),
                 Text(
@@ -384,7 +384,7 @@ class _AddProfilePageState extends State<AddProfilePage> {
                 child: Icon(
                   Icons.check_circle,
                   size: 14,
-                  color: Color(0xFF26BC9B),
+                  color: Color(0xFF246BFF),
                 ),
               ),
           ],

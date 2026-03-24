@@ -27,6 +27,8 @@ migrate_working_dir/
 /build/
 /coverage/
 
+lib/data/dio/dio_client.dart
+
 # Symbolication related
 app.*.symbols
 

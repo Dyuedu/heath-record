@@ -21,6 +21,13 @@ public class User {
     private UserStatus status;
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.PENDING;
+
+    private String otpCode;
+    private LocalDateTime otpExpiryTime;
+
     @OneToOne
     @JoinColumn(name = "profile_id")
     private Profile profile;
