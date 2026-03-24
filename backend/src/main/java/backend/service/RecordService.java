@@ -88,6 +88,23 @@ public class RecordService {
         return medicalRecordMapper.toRelativeHistory(relative, records);
     }
 
+    public MedicalRecordResponse getRecordById(UUID userId, Long recordId) {
+        MedicalRecord record = medicalRecordRepository.findById(recordId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bệnh án không tồn tại hoặc đã bị xóa"));
+
+        boolean isPatient = record.getRelative() != null && 
+                            record.getRelative().getUser() != null && 
+                            record.getRelative().getUser().getId().equals(userId);
+        boolean isDoctor = record.getDoctor() != null && 
+                           record.getDoctor().getId().equals(userId);
+
+        if (!isPatient && !isDoctor) {
+            throw new AccessDeniedException("Bạn không có quyền xem bệnh án này");
+        }
+
+        return medicalRecordMapper.toMedicalRecordResponse(record);
+    }
+
     private String resolvePrimaryTag(RecordCreateRequest request) {
         if (request.getTags() != null && !request.getTags().isEmpty()) {
             return request.getTags().get(0);

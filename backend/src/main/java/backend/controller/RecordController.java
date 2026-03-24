@@ -81,6 +81,17 @@ public class RecordController {
         return ResponseEntity.ok(records);
     }
 
+    @GetMapping("/records/{recordId}")
+    public ResponseEntity<MedicalRecordResponse> getRecordById(
+            @PathVariable("recordId") Long recordId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        MedicalRecordResponse response = recordService.getRecordById(userPrincipal.getId(), recordId);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping(value = "/relatives", consumes = {"multipart/form-data"})
     public ResponseEntity<AddRelativeResultResponse> addRelative(
             @Valid @ModelAttribute AddRelativeRequest request,

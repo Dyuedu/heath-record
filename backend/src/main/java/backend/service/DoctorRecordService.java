@@ -16,8 +16,12 @@ import backend.repository.MedicalRecordRepository;
 import backend.repository.ProfileRepository;
 import backend.repository.RelativeRepository;
 import backend.repository.UserRepository;
+import backend.repository.NotificationRepository;
+import backend.model.Notification;
 import backend.service.mapper.MedicalRecordMapper;
 import backend.model.dto.response.RelativeSearchResponse;
+import backend.model.dto.response.NotificationMessageDTO;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -37,6 +41,8 @@ public class DoctorRecordService {
     private final HospitalRepository hospitalRepository;
     private final TagRepository tagRepository;
     private final RelativeRepository relativeRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationRepository notificationRepository;
 
     public DoctorRecordService(MedicalRecordRepository medicalRecordRepository,
             ProfileRepository profileRepository,
@@ -44,7 +50,9 @@ public class DoctorRecordService {
             MedicalRecordMapper medicalRecordMapper,
             HospitalRepository hospitalRepository,
             TagRepository tagRepository,
-            RelativeRepository relativeRepository) {
+            RelativeRepository relativeRepository,
+            SimpMessagingTemplate messagingTemplate,
+            NotificationRepository notificationRepository) {
         this.medicalRecordRepository = medicalRecordRepository;
         this.profileRepository = profileRepository;
         this.userRepository = userRepository;
@@ -52,6 +60,8 @@ public class DoctorRecordService {
         this.hospitalRepository = hospitalRepository;
         this.tagRepository = tagRepository;
         this.relativeRepository = relativeRepository;
+        this.messagingTemplate = messagingTemplate;
+        this.notificationRepository = notificationRepository;
     }
 
     private String buildAuditField(User doctor) {
@@ -124,6 +134,69 @@ public class DoctorRecordService {
         }
 
         MedicalRecord saved = medicalRecordRepository.save(record);
+
+        if (profile.getUser() != null) {
+            String patientUserId = profile.getUser().getId().toString();
+            String docName = doctor.getProfile() != null && doctor.getProfile().getFullname() != null ? doctor.getProfile().getFullname() : doctor.getEmail();
+            String hospName = hospital != null && hospital.getName() != null ? hospital.getName() : "Phòng khám";
+
+            Notification notificationEntity = Notification.builder()
+                    .user(profile.getUser())
+                    .title("Bệnh án mới")
+                    .message("Bác sĩ " + docName + " đã thêm một bệnh án mới.")
+                    .doctorName(docName)
+                    .hospitalName(hospName)
+                    .recordId(saved.getId() != null ? saved.getId().toString() : "")
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            
+            notificationEntity = notificationRepository.save(notificationEntity);
+
+            NotificationMessageDTO notification = NotificationMessageDTO.builder()
+                    .id(notificationEntity.getId())
+                    .title(notificationEntity.getTitle())
+                    .message(notificationEntity.getMessage())
+                    .doctorName(notificationEntity.getDoctorName())
+                    .hospitalName(notificationEntity.getHospitalName())
+                    .recordId(notificationEntity.getRecordId())
+                    .isRead(false)
+                    .timestamp(notificationEntity.getCreatedAt())
+                    .build();
+            messagingTemplate.convertAndSend("/topic/notifications/" + patientUserId, notification);
+        }
+
+        // Send success notification to Doctor
+        String docName = doctor.getProfile() != null && doctor.getProfile().getFullname() != null ? doctor.getProfile().getFullname() : doctor.getEmail();
+        String hospName = hospital != null && hospital.getName() != null ? hospital.getName() : "Phòng khám";
+        String patientName = profile.getFullname() != null ? profile.getFullname() : "N/A";
+        
+        Notification doctorNotification = Notification.builder()
+                .user(doctor)
+                .title("Tạo bệnh án thành công")
+                .message("Bạn đã thêm thành công bệnh án mới cho bệnh nhân " + patientName)
+                .doctorName(docName)
+                .hospitalName(hospName)
+                .recordId(saved.getId() != null ? saved.getId().toString() : "")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+                
+        doctorNotification = notificationRepository.save(doctorNotification);
+        
+        NotificationMessageDTO docNotificationDto = NotificationMessageDTO.builder()
+                .id(doctorNotification.getId())
+                .title(doctorNotification.getTitle())
+                .message(doctorNotification.getMessage())
+                .doctorName(doctorNotification.getDoctorName())
+                .hospitalName(doctorNotification.getHospitalName())
+                .recordId(doctorNotification.getRecordId())
+                .isRead(false)
+                .timestamp(doctorNotification.getCreatedAt())
+                .build();
+                
+        messagingTemplate.convertAndSend("/topic/notifications/" + doctor.getId().toString(), docNotificationDto);
+
         return medicalRecordMapper.toMedicalRecordResponse(saved);
     }
 
