@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/record/medical_record_model.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
-import 'package:frontend/views/medical-record/create_record_page.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
 import 'package:provider/provider.dart';
 
@@ -81,27 +80,6 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
               ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: vm.selectedRelativeId == null
-            ? null
-            : () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreateRecordPage(
-                      patientProfileId: vm.selectedPatientProfileId ?? vm.selectedRelativeId!,
-                    ),
-                  ),
-                );
-                // Tự động reload nếu lưu thành công (trả về true)
-                if (result == true) {
-                  vm.fetchRecords(vm.selectedRelativeId!);
-                }
-              },
-        backgroundColor: vm.selectedRelativeId == null ? Colors.grey : const Color(0xFF246BFF),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("New Record", style: TextStyle(color: Colors.white)),
       ),
       bottomNavigationBar: const CustomBottomNav(),
     );

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:frontend/data/dio/dio_client.dart';
+import 'package:frontend/data/models/user/doctor_patient_detail_model.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/user_repository.dart';
 
@@ -171,5 +172,57 @@ class UserRepositoryImp implements UserRepository {
     }
 
     _lastErrorMessage = 'Không thể cập nhật hồ sơ.';
+  }
+
+  @override
+  Future<List<UserProfileModel>> searchPatientsForDoctor({
+    required String keyword,
+  }) async {
+    final cleanKeyword = keyword.trim();
+    if (cleanKeyword.isEmpty) {
+      return const [];
+    }
+
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/doctor/search-patients',
+        queryParameters: {'keyword': cleanKeyword},
+      );
+
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map(
+              (e) => UserProfileModel.fromMap(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
+            .toList();
+      }
+      return const [];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  @override
+  Future<DoctorPatientDetailModel?> fetchDoctorPatientDetail({
+    required String patientId,
+  }) async {
+    final id = patientId.trim();
+    if (id.isEmpty) {
+      return null;
+    }
+
+    try {
+      final response = await _dioClient.dio.get('/api/doctor/patients/$id');
+      if (response.statusCode == 200 && response.data != null) {
+        return DoctorPatientDetailModel.fromMap(
+          Map<String, dynamic>.from(response.data as Map),
+        );
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/data/models/record/add_relative_result_model.dart';
 import 'package:frontend/data/models/record/add_relative_request.dart';
 import 'package:frontend/data/models/record/relative.dart';
+import 'package:frontend/data/models/user/doctor_patient_detail_model.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/profile_repository.dart';
 
@@ -19,8 +20,11 @@ class ProfileViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? _familyErrorMessage;
   String? _addErrorMessage;
+  String? _doctorSearchErrorMessage;
   UserProfileModel? _profile;
   List<Relative> _familyProfiles = const [];
+  List<UserProfileModel> _doctorSearchResults = const [];
+  bool _isDoctorSearchLoading = false;
 
   bool get isLoading => _isLoading;
   bool get isFamilyLoading => _isFamilyLoading;
@@ -28,8 +32,12 @@ class ProfileViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get familyErrorMessage => _familyErrorMessage;
   String? get addErrorMessage => _addErrorMessage;
+  String? get doctorSearchErrorMessage => _doctorSearchErrorMessage;
   UserProfileModel? get profile => _profile;
   List<Relative> get familyProfiles => List.unmodifiable(_familyProfiles);
+  List<UserProfileModel> get doctorSearchResults =>
+      List.unmodifiable(_doctorSearchResults);
+  bool get isDoctorSearchLoading => _isDoctorSearchLoading;
 
   Future<void> loadOverview() async {
     _errorMessage = null;
@@ -114,5 +122,40 @@ class ProfileViewModel extends ChangeNotifier {
   void _setAddLoading(bool value) {
     _isAddLoading = value;
     notifyListeners();
+  }
+
+  Future<void> searchPatientsForDoctor(String keyword) async {
+    final cleanKeyword = keyword.trim();
+    _doctorSearchErrorMessage = null;
+
+    if (cleanKeyword.isEmpty) {
+      _doctorSearchResults = const [];
+      notifyListeners();
+      return;
+    }
+
+    _isDoctorSearchLoading = true;
+    notifyListeners();
+
+    try {
+      _doctorSearchResults = await _repository.searchPatientsForDoctor(
+        keyword: cleanKeyword,
+      );
+      if (_doctorSearchResults.isEmpty) {
+        _doctorSearchErrorMessage = 'Không tìm thấy người dùng phù hợp.';
+      }
+    } catch (_) {
+      _doctorSearchResults = const [];
+      _doctorSearchErrorMessage = 'Không thể tìm kiếm lúc này.';
+    } finally {
+      _isDoctorSearchLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<DoctorPatientDetailModel?> fetchDoctorPatientDetail(
+    String patientId,
+  ) {
+    return _repository.fetchDoctorPatientDetail(patientId: patientId);
   }
 }

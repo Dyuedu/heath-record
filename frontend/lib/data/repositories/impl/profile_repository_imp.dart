@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:frontend/data/models/record/add_relative_result_model.dart';
 import 'package:frontend/data/models/record/add_relative_request.dart';
 import 'package:frontend/data/models/record/relative.dart';
+import 'package:frontend/data/models/user/doctor_patient_detail_model.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/profile_repository.dart';
 import 'package:frontend/data/repositories/record_repository.dart';
@@ -34,5 +35,19 @@ class ProfileRepositoryImp implements ProfileRepository {
     File? avatarFile,
   }) {
     return _recordRepository.addRelative(request, avatarFile: avatarFile);
+  }
+
+  @override
+  Future<List<UserProfileModel>> searchPatientsForDoctor({
+    required String keyword,
+  }) {
+    return _userRepository.searchPatientsForDoctor(keyword: keyword);
+  }
+
+  @override
+  Future<DoctorPatientDetailModel?> fetchDoctorPatientDetail({
+    required String patientId,
+  }) {
+    return _userRepository.fetchDoctorPatientDetail(patientId: patientId);
   }
 }

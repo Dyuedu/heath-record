@@ -4,7 +4,6 @@ import 'package:frontend/utils/app_theme.dart';
 import 'package:frontend/utils/doctor_ui_helpers.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
-import 'package:frontend/views/doctor/create_medical_record_page.dart';
 import 'package:provider/provider.dart';
 
 class DoctorDashboardPage extends StatefulWidget {
@@ -183,11 +182,8 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
       {
         'title': 'Create Record',
         'icon': Icons.note_add_rounded,
-        'onTap': (BuildContext context) {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const CreateMedicalRecordPage()),
-          );
-        },
+        'onTap': (BuildContext context) =>
+            _showComingSoon(context, 'Vui lòng tạo hồ sơ từ trang Home > Hồ sơ mới.'),
       },
       {
         'title': 'View Patients',

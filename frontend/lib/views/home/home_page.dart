@@ -3,7 +3,7 @@ import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/views/doctor/create_medical_record_page.dart';
-import 'package:frontend/views/search/search_patient_page.dart';
+import 'package:frontend/views/home/doctor_user_search_page.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:provider/provider.dart';
@@ -127,7 +127,7 @@ class _HomePageState extends State<HomePage> {
               // 2. Banner/Search Section (chỉ hiển thị với bác sĩ)
               if (!_isRoleLoading && _isDoctor) ...[
                 const Text(
-                  "Tìm kiếm thông tin",
+                  "Truy cập nhanh",
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -141,7 +141,7 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const SearchPatientPage(),
+                        builder: (_) => const DoctorUserSearchPage(),
                       ),
                     );
                   },
@@ -307,15 +307,22 @@ class _DoctorSearchInput extends StatelessWidget {
               size: 28,
             ),
             const SizedBox(width: 15),
-            Text(
-              isDoctor ? "Tìm kiếm bệnh nhân..." : "Tìm bác sĩ, bệnh viện...",
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
+            Expanded(
+              child: Text(
+                isDoctor
+                  ? "Tìm người dùng theo CCCD hoặc SĐT"
+                    : "Tìm bác sĩ, bệnh viện...",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-            const Spacer(),
+            if (isDoctor)
+              const SizedBox(width: 10),
             if (isDoctor)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -480,12 +487,7 @@ class _QuickServicesGrid extends StatelessWidget {
           'icon': Icons.assignment_ind_rounded,
           'label': 'Bệnh nhân',
           'color': const Color(0xFFFFF8E1),
-          'onTap': () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SearchPatientPage()),
-            );
-          },
+          'onTap': () {},
         },
     ];
 

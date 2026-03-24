@@ -2,10 +2,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/repositories/admin_repository.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
-import 'package:frontend/data/repositories/doctor_repository.dart';
 import 'package:frontend/data/repositories/impl/admin_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/auth_repository_imp.dart';
-import 'package:frontend/data/repositories/impl/doctor_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/secure_storage_repository_imp.dart';
 import 'package:frontend/data/repositories/impl/user_repository_imp.dart';
 import 'package:frontend/data/repositories/link_request_repository.dart';
@@ -92,15 +90,8 @@ class AppProviders {
           repository: context.read<RecordRepository>(),
         ),
       ),
-      ProxyProvider<DioClient, DoctorRepository>(
-        update: (context, dioClient, previous) =>
-            DoctorRepositoryImp(dioClient),
-      ),
-      ChangeNotifierProxyProvider<DoctorRepository, DoctorViewModel>(
-        create: (context) =>
-            DoctorViewModel(repository: context.read<DoctorRepository>()),
-        update: (context, doctorRepository, previous) =>
-            previous ?? DoctorViewModel(repository: doctorRepository),
+      ChangeNotifierProvider<DoctorViewModel>(
+        create: (context) => DoctorViewModel(),
       ),
       ChangeNotifierProxyProvider<UserRepository, UserViewModel>(
         create: (context) =>

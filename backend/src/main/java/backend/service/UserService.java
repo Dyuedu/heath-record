@@ -73,8 +73,13 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserResponse> searchPatients(String phone) {
-        return userRepository.findByPhoneNumberContaining(phone)
+    public List<UserResponse> searchPatients(String keyword) {
+        String normalized = trimToNull(keyword);
+        if (!StringUtils.hasText(normalized)) {
+            return List.of();
+        }
+
+        return userRepository.searchByPhoneOrIdentity(normalized)
                 .stream()
                 .map(this::mapToUserResponse)
                 .toList();
@@ -211,6 +216,7 @@ public class UserService {
                 .id(user.getId())
                 .phoneNumber(user.getPhoneNumber())
                 .email(user.getEmail())
+            .identityNumber(profile != null ? profile.getIdentityNumber() : null)
                 .role(user.getRole() != null ? user.getRole().getName() : "user")
                 // Các thông tin nhân khẩu học lấy từ Profile object
                 .fullName(profile != null ? profile.getFullname() : "N/A")
