@@ -19,6 +19,9 @@ public class Profile {
     private String phoneNumber;
     private String address;
     private String avatarUrl;
+    private String cccdFrontUrl;
+    private String cccdBackUrl;
+    private String diplomaUrl;
 
     @OneToOne(mappedBy = "profile")
     private User user;

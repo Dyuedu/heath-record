@@ -21,6 +21,7 @@ public record AdminUserRequest(
 
         String gender,
         String dateOfBirth,
-        String address
+        String address,
+        String status
 ) {
 }

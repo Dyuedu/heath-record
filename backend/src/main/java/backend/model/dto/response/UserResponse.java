@@ -3,6 +3,7 @@ package backend.model.dto.response;
 import lombok.Builder;
 import lombok.Value;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Value
@@ -17,4 +18,9 @@ public class UserResponse {
     String dateOfBirth;
     String address;
     String avatarUrl;
+    String status;
+    String cccdFrontUrl;
+    String cccdBackUrl;
+    String diplomaUrl;
+    LocalDateTime createdAt;
 }

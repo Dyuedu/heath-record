@@ -1,5 +1,6 @@
 package backend.model;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,6 +17,9 @@ public class User {
     private String phoneNumber;
     private String password;
     private String email;
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
+    private LocalDateTime createdAt;
 
     @OneToOne
     @JoinColumn(name = "profile_id")

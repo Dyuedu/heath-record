@@ -5,6 +5,7 @@ import backend.model.dto.response.UserResponse;
 import backend.service.AdminUserService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -30,9 +32,17 @@ public class AdminController {
         this.adminUserService = adminUserService;
     }
 
+    @GetMapping("/dashboard/stats")
+    public ResponseEntity<Map<String, Object>> getDashboardStats() {
+        return ResponseEntity.ok(adminUserService.getDashboardStats());
+    }
+
     @GetMapping("/users")
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
-        return ResponseEntity.ok(adminUserService.getAllUsers());
+    public ResponseEntity<List<UserResponse>> searchUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String status) {
+        return ResponseEntity.ok(adminUserService.searchUsers(search, role, status));
     }
 
     @PostMapping("/users")
@@ -46,5 +56,30 @@ public class AdminController {
                                                    @Valid @RequestBody AdminUserRequest request) {
         UserResponse response = adminUserService.updateUser(userId, request);
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/users/{userId}/status")
+    public ResponseEntity<UserResponse> updateUserStatus(
+            @PathVariable UUID userId,
+            @RequestBody Map<String, String> body) {
+        String newStatus = body.get("status");
+        return ResponseEntity.ok(adminUserService.changeUserStatus(userId, newStatus));
+    }
+
+    @GetMapping("/approvals/pending")
+    public ResponseEntity<List<UserResponse>> getPendingApprovals(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role) {
+        return ResponseEntity.ok(adminUserService.searchUsers(search, role, "PENDING"));
+    }
+
+    @PostMapping("/approvals/{id}/approve")
+    public ResponseEntity<UserResponse> approveUser(@PathVariable UUID id) {
+        return ResponseEntity.ok(adminUserService.changeUserStatus(id, "ACTIVE"));
+    }
+
+    @PostMapping("/approvals/{id}/reject")
+    public ResponseEntity<UserResponse> rejectUser(@PathVariable UUID id) {
+        return ResponseEntity.ok(adminUserService.changeUserStatus(id, "LOCKED"));
     }
 }
