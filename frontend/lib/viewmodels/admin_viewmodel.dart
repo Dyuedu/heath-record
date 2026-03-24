@@ -14,24 +14,124 @@ class AdminViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? _successMessage;
   List<UserProfileModel> _users = const [];
+  List<UserProfileModel> _pendingUsers = const [];
+  Map<String, dynamic>? _dashboardStats;
 
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
   List<UserProfileModel> get users => List.unmodifiable(_users);
+  List<UserProfileModel> get pendingUsers => List.unmodifiable(_pendingUsers);
+  Map<String, dynamic>? get dashboardStats => _dashboardStats;
 
-  Future<void> loadAllUsers() async {
+  Future<void> loadDashboardStats() async {
+    _errorMessage = null;
+    try {
+      _dashboardStats = await _repository.getDashboardStats();
+      notifyListeners();
+    } catch (_) {
+      _errorMessage = 'Không thể tải thống kê dashboard.';
+    }
+  }
+
+  Future<void> searchUsers({String? search, String? role, String? status}) async {
     _errorMessage = null;
     _setLoading(true);
     try {
-      _users = await _repository.getAllUsers();
+      _users = await _repository.searchUsers(search: search, role: role, status: status);
       _successMessage = null;
     } catch (_) {
       _errorMessage = 'Không thể tải danh sách người dùng.';
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<void> loadPendingUsers({String? search, String? role}) async {
+    _errorMessage = null;
+    _setLoading(true);
+    try {
+      _pendingUsers = await _repository.getPendingApprovals(search: search, role: role);
+      _successMessage = null;
+    } catch (_) {
+      _errorMessage = 'Không thể tải danh sách chờ duyệt.';
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> updateUserStatus(String id, String status) async {
+    _errorMessage = null;
+    _successMessage = null;
+    _setSaving(true);
+    try {
+      final updated = await _repository.updateUserStatus(id, status);
+      if (updated == null) {
+        _errorMessage = 'Không thể cập nhật trạng thái.';
+        return false;
+      }
+      // Update local lists
+      _users = _users.map((u) => u.id == id ? updated : u).toList();
+      _successMessage = 'Cập nhật trạng thái thành công.';
+      notifyListeners();
+      return true;
+    } catch (_) {
+      _errorMessage = 'Lỗi cập nhật trạng thái.';
+      return false;
+    } finally {
+      _setSaving(false);
+    }
+  }
+
+  Future<bool> approveUser(String id) async {
+    _errorMessage = null;
+    _successMessage = null;
+    _setSaving(true);
+    try {
+      final approved = await _repository.approveUser(id);
+      if (approved == null) {
+        _errorMessage = 'Không thể duyệt người dùng.';
+        return false;
+      }
+      _pendingUsers = _pendingUsers.where((u) => u.id != id).toList();
+      _successMessage = 'Đã duyệt tài khoản.';
+      notifyListeners();
+      return true;
+    } catch (_) {
+      _errorMessage = 'Lỗi duyệt tài khoản.';
+      return false;
+    } finally {
+      _setSaving(false);
+    }
+  }
+
+  Future<bool> rejectUser(String id) async {
+    _errorMessage = null;
+    _successMessage = null;
+    _setSaving(true);
+    try {
+      final rejected = await _repository.rejectUser(id);
+      if (rejected == null) {
+        _errorMessage = 'Không thể từ chối người dùng.';
+        return false;
+      }
+      _pendingUsers = _pendingUsers.where((u) => u.id != id).toList();
+      _successMessage = 'Đã từ chối tài khoản.';
+      notifyListeners();
+      return true;
+    } catch (_) {
+      _errorMessage = 'Lỗi từ chối tài khoản.';
+      return false;
+    } finally {
+      _setSaving(false);
+    }
+  }
+
+  // Legacy loadAllUsers mapping to searchUsers for backward compatibility if needed, 
+  // but we usually call searchUsers directly now.
+  Future<void> loadAllUsers() async {
+    await searchUsers();
   }
 
   Future<bool> createUser(AdminUserPayload payload) async {

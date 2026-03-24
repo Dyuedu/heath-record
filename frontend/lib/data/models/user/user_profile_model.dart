@@ -8,6 +8,11 @@ class UserProfileModel {
   final String dateOfBirth;
   final String address;
   final String avatarUrl;
+  final String status;
+  final String? cccdFrontUrl;
+  final String? cccdBackUrl;
+  final String? diplomaUrl;
+  final String? createdAt;
 
   const UserProfileModel({
     required this.id,
@@ -19,6 +24,11 @@ class UserProfileModel {
     required this.dateOfBirth,
     required this.address,
     required this.avatarUrl,
+    required this.status,
+    this.cccdFrontUrl,
+    this.cccdBackUrl,
+    this.diplomaUrl,
+    this.createdAt,
   });
 
   factory UserProfileModel.fromMap(Map<String, dynamic> map) {
@@ -32,6 +42,11 @@ class UserProfileModel {
       dateOfBirth: (map['dateOfBirth'] ?? '').toString(),
       address: (map['address'] ?? '').toString(),
       avatarUrl: (map['avatarUrl'] ?? '').toString(),
+      status: (map['status'] ?? 'ACTIVE').toString(), // Default to ACTIVE
+      cccdFrontUrl: map['cccdFrontUrl']?.toString(),
+      cccdBackUrl: map['cccdBackUrl']?.toString(),
+      diplomaUrl: map['diplomaUrl']?.toString(),
+      createdAt: map['createdAt']?.toString(),
     );
   }
 }
