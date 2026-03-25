@@ -28,8 +28,11 @@ build/
 .idea/
 
 .env
+src/main/resources/application.properties
 
 Antigravity.exe
 
 out/
+
+
 
