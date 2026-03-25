@@ -84,10 +84,7 @@ public class AdminUserService {
     @Transactional
     public UserResponse createUser(AdminUserRequest request) {
         String email = trimToNull(request.email());
-        String phone = trimToNull(request.phoneNumber());
-
         validateEmail(email, null);
-        validatePhone(phone, null);
 
         String rawPassword = trimToNull(request.password());
         if (!StringUtils.hasText(rawPassword)) {
@@ -96,18 +93,23 @@ public class AdminUserService {
 
         Role role = resolveRole(request.role());
 
-        Profile profile = new Profile();
-        applyProfile(profile, request);
-        profile = profileRepository.save(profile);
-
         User user = new User();
         user.setEmail(email);
-        user.setPhoneNumber(phone);
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setRole(role);
-        user.setProfile(profile);
         user.setStatus(StringUtils.hasText(request.status()) ? UserStatus.valueOf(request.status()) : UserStatus.ACTIVE);
         user.setCreatedAt(LocalDateTime.now());
+
+        if (!role.getName().equalsIgnoreCase("ROLE_ADMIN") && !role.getName().equalsIgnoreCase("ADMIN")) {
+            String phone = trimToNull(request.phoneNumber());
+            validatePhone(phone, null);
+            user.setPhoneNumber(phone);
+            
+            Profile profile = new Profile();
+            applyProfile(profile, request);
+            profile = profileRepository.save(profile);
+            user.setProfile(profile);
+        }
 
         User saved = userRepository.save(user);
         return mapToUserResponse(saved);
@@ -119,13 +121,9 @@ public class AdminUserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
 
         String email = trimToNull(request.email());
-        String phone = trimToNull(request.phoneNumber());
-
         validateEmail(email, user.getId());
-        validatePhone(phone, user.getId());
 
         user.setEmail(email);
-        user.setPhoneNumber(phone);
 
         String newPassword = trimToNull(request.password());
         if (StringUtils.hasText(newPassword)) {
@@ -135,13 +133,19 @@ public class AdminUserService {
         Role role = resolveRole(request.role());
         user.setRole(role);
 
-        Profile profile = user.getProfile();
-        if (profile == null) {
-            profile = new Profile();
+        if (!role.getName().equalsIgnoreCase("ROLE_ADMIN") && !role.getName().equalsIgnoreCase("ADMIN")) {
+            String phone = trimToNull(request.phoneNumber());
+            validatePhone(phone, user.getId());
+            user.setPhoneNumber(phone);
+
+            Profile profile = user.getProfile();
+            if (profile == null) {
+                profile = new Profile();
+            }
+            applyProfile(profile, request);
+            profile = profileRepository.save(profile);
+            user.setProfile(profile);
         }
-        applyProfile(profile, request);
-        profile = profileRepository.save(profile);
-        user.setProfile(profile);
         
         if (StringUtils.hasText(request.status())) {
             user.setStatus(UserStatus.valueOf(request.status()));
@@ -187,6 +191,7 @@ public class AdminUserService {
 
     private void applyProfile(Profile profile, AdminUserRequest request) {
         profile.setFullname(trimToNull(request.fullName()));
+        profile.setIdentityNumber(trimToNull(request.identityNumber()));
         profile.setGender(trimToNull(request.gender()));
         profile.setDateOfBirth(trimToNull(request.dateOfBirth()));
         profile.setAddress(trimToNull(request.address()));

@@ -90,7 +90,7 @@ public class AuthService {
                 .build();
         }
 
-        Role role = resolveSignupRole(registerRequest.role());
+        Role role = resolveSignupRole("user");
 
         User user = new User();
         user.setEmail(registerRequest.email());
