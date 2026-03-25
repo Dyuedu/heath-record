@@ -353,9 +353,9 @@ class _DoctorPatientDetailPageState extends State<DoctorPatientDetailPage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  if (relatives.isNotEmpty)
-                    ...relatives.map((rel) => _buildRelativeAvatar(rel.relationship, rel.avatarUrl)),
-                  if (relatives.isEmpty)
+                  if (relatives.any((r) => r.relationship.toLowerCase() != 'me'))
+                    ...relatives.where((r) => r.relationship.toLowerCase() != 'me').map((rel) => _buildRelativeAvatar(rel.relativeName.isNotEmpty ? '${rel.relativeName}\n(${rel.relationship})' : rel.relationship, rel.avatarUrl)),
+                  if (!relatives.any((r) => r.relationship.toLowerCase() != 'me'))
                     const Text('Chưa có người thân liên kết.', style: TextStyle(color: Colors.grey)),
                 ],
               ),
@@ -552,6 +552,7 @@ class _DoctorPatientDetailPageState extends State<DoctorPatientDetailPage> {
           const SizedBox(height: 8),
           Text(
             label,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
