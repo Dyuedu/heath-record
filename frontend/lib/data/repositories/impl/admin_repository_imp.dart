@@ -9,6 +9,21 @@ class AdminRepositoryImp implements AdminRepository {
 
   AdminRepositoryImp(this._dioClient);
 
+  void _throwIfApiError(DioException error) {
+    if (error.response?.data is Map) {
+      final data = error.response!.data;
+      if (data['validationErrors'] != null && data['validationErrors'] is Map) {
+        final errors = data['validationErrors'] as Map;
+        if (errors.isNotEmpty) {
+          throw Exception(errors.values.first.toString());
+        }
+      }
+      if (data['message'] != null) {
+        throw Exception(data['message'].toString());
+      }
+    }
+  }
+
   @override
   Future<List<UserProfileModel>> getAllUsers() async {
     return searchUsers();
@@ -25,6 +40,42 @@ class AdminRepositoryImp implements AdminRepository {
       print('Get dashboard stats failed: ${error.message}');
     } catch (error) {
       print('Unexpected error when fetching dashboard stats: $error');
+    }
+    return null;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getRecordStats(String period) async {
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/admin/records/stats',
+        queryParameters: {'period': period},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data as Map<String, dynamic>;
+      }
+    } on DioException catch (error) {
+      print('Get record stats failed: ${error.message}');
+    } catch (error) {
+      print('Unexpected error when fetching record stats: $error');
+    }
+    return null;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getStats(String period, String type) async {
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/admin/records/stats',
+        queryParameters: {'period': period, 'type': type},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data as Map<String, dynamic>;
+      }
+    } on DioException catch (error) {
+      print('Get stats failed: ${error.message}');
+    } catch (error) {
+      print('Unexpected error when fetching stats: $error');
     }
     return null;
   }
@@ -148,11 +199,13 @@ class AdminRepositoryImp implements AdminRepository {
         return UserProfileModel.fromMap(response.data);
       }
     } on DioException catch (error) {
-      print('Create user failed: ${error.message}');
+      print('Create user failed (DioException): ${error.message}, data: ${error.response?.data}');
+      _throwIfApiError(error);
+      throw Exception('Repo generic error (Create): ${error.response?.data}');
     } catch (error) {
       print('Unexpected error when creating user: $error');
+      throw Exception('Repo unexpected error (Create)');
     }
-    return null;
   }
 
   @override
@@ -170,9 +223,11 @@ class AdminRepositoryImp implements AdminRepository {
       }
     } on DioException catch (error) {
       print('Update user failed: ${error.message}');
+      _throwIfApiError(error);
+      throw Exception('Không thể cập nhật người dùng.');
     } catch (error) {
       print('Unexpected error when updating user: $error');
+      throw Exception('Không thể cập nhật người dùng.');
     }
-    return null;
   }
 }

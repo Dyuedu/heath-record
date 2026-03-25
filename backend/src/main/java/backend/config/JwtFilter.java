@@ -74,18 +74,21 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            try {
-                UserDetails userDetails = userDetailsService.loadUserById(userId);
-                if (jwtService.isTokenValid(token, userDetails)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities());
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
-            } catch (UsernameNotFoundException ex) {
-                SecurityContextHolder.clearContext();
+            UserDetails userDetails = userDetailsService.loadUserById(userId);
+            if (!userDetails.isAccountNonLocked()) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"message\":\"Tài khoản đã bị khoá, vui lòng liên hệ ban quản lý\"}");
+                return;
+            }
+            if (jwtService.isTokenValid(token, userDetails)) {
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities());
+                // Gắn thêm thông tin request (IP, Browser...)
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
         filterChain.doFilter(request, response);

@@ -5,9 +5,11 @@ import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/views/admin/admin_bottom_nav.dart';
 import 'package:frontend/views/admin/admin_create_account_page.dart';
 import 'package:frontend/views/admin/admin_dashboard_page.dart';
-import 'package:frontend/views/admin/admin_pending_list_page.dart';
+import 'package:frontend/views/admin/admin_statistics_page.dart';
 import 'package:frontend/views/admin/admin_user_detail_page.dart';
+import 'package:frontend/views/admin/admin_profile_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
+import 'package:frontend/views/admin/admin_tag_management_page.dart';
 class AdminUserManagementPage extends StatefulWidget {
   const AdminUserManagementPage({super.key});
 
@@ -27,6 +29,14 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
     'user': 'Bệnh nhân',
   };
 
+  int _selectedStatus = 0;
+  static const List<String> _statusFilters = ['Tất cả', 'ACTIVE', 'LOCKED'];
+  static const Map<String, String> _statusLabels = {
+    'Tất cả': 'Tất cả',
+    'ACTIVE': 'Hoạt động',
+    'LOCKED': 'Khóa',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -37,10 +47,11 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
 
   void _loadUsers() {
     String? role = _selectedFilter == 0 ? null : _filters[_selectedFilter];
+    String? statusParam = _selectedStatus == 0 ? null : _statusFilters[_selectedStatus];
     String? search = _searchController.text.trim();
     if (search.isEmpty) search = null;
     
-    context.read<AdminViewModel>().searchUsers(search: search, role: role);
+    context.read<AdminViewModel>().searchUsers(search: search, role: role, status: statusParam);
   }
 
   @override
@@ -60,7 +71,16 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           color: const Color(0xFF1F2A44),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
+              );
+            }
+          },
         ),
         title: const Text(
           'Quản lý Người dùng',
@@ -70,28 +90,6 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
             color: Color(0xFF1F2A44),
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AdminCreateAccountPage()),
-                );
-              },
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.add, color: Colors.white, size: 20),
-              ),
-            ),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -120,6 +118,8 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                         border: InputBorder.none,
                         isDense: true,
+                        filled: true,
+                        fillColor: Colors.transparent,
                         contentPadding: EdgeInsets.zero,
                       ),
                     ),
@@ -131,43 +131,100 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
 
           // Filter chips + counts
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+            padding: const EdgeInsets.fromLTRB(20, 14, 0, 4),
             child: Row(
               children: [
                 // Filter icon
                 Icon(Icons.filter_list_rounded, color: Colors.grey.shade500, size: 20),
                 const SizedBox(width: 10),
                 // Filter chips
-                ..._filters.asMap().entries.map((entry) {
-                  final isSelected = _selectedFilter == entry.key;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() => _selectedFilter = entry.key);
-                        _loadUsers();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFF246BFF) : Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isSelected ? const Color(0xFF246BFF) : Colors.grey.shade300,
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _filters.asMap().entries.map((entry) {
+                        final isSelected = _selectedFilter == entry.key;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() => _selectedFilter = entry.key);
+                              _loadUsers();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF246BFF) : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? const Color(0xFF246BFF) : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: Text(
+                                _filterLabels[entry.value] ?? entry.value,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: isSelected ? Colors.white : Colors.grey.shade600,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          _filterLabels[entry.value] ?? entry.value,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: isSelected ? Colors.white : Colors.grey.shade600,
-                          ),
-                        ),
-                      ),
+                        );
+                      }).toList(),
                     ),
-                  );
-                }),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Status filter chips
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 0, 4),
+            child: Row(
+              children: [
+                // Filter icon
+                Icon(Icons.rule_rounded, color: Colors.grey.shade500, size: 20),
+                const SizedBox(width: 10),
+                // Status chips
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _statusFilters.asMap().entries.map((entry) {
+                        final isSelected = _selectedStatus == entry.key;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() => _selectedStatus = entry.key);
+                              _loadUsers();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF10B981) : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? const Color(0xFF10B981) : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: Text(
+                                _statusLabels[entry.value] ?? entry.value,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: isSelected ? Colors.white : Colors.grey.shade600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -180,7 +237,13 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                   return const Center(child: CircularProgressIndicator(color: Color(0xFF246BFF)));
                 }
 
-                final users = viewModel.users;
+                final apiUsers = viewModel.users;
+                // Fallback local filtering in case backend ignores the status parameter
+                final users = apiUsers.where((u) {
+                  if (_selectedStatus == 0) return true;
+                  return u.status == _statusFilters[_selectedStatus];
+                }).toList();
+
                 final activeCount = users.where((u) => u.status == 'ACTIVE').length;
                 final lockedCount = users.where((u) => u.status == 'LOCKED').length;
 
@@ -223,6 +286,18 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminCreateAccountPage()),
+          );
+        },
+        backgroundColor: const Color(0xFF10B981),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 4,
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
       bottomNavigationBar: AdminBottomNav(
         currentIndex: 1,
@@ -334,21 +409,54 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
               GestureDetector(
                 onTap: () async {
                   final newStatus = isActive ? 'LOCKED' : 'ACTIVE';
-                  _showLoadingOverlay(context);
-                  await context.read<AdminViewModel>().updateUserStatus(user.id, newStatus);
-                  if (context.mounted) Navigator.pop(context); // close overlay
+                  final statusText = isActive ? 'khóa' : 'mở khóa';
+
+                  final bool? confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Xác nhận', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                        content: Text('Bạn có chắc chắn muốn $statusText tài khoản của ${user.fullName} không?',
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Hủy', style: TextStyle(color: Colors.grey, fontSize: 15)),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isActive ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Xác nhận'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  if (confirm != true) return;
+
+                  if (context.mounted) {
+                    _showLoadingOverlay(context);
+                    await context.read<AdminViewModel>().updateUserStatus(user.id, newStatus);
+                    if (context.mounted) Navigator.pop(context); // close overlay
+                  }
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
                     color: isActive ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     isActive ? 'Hoạt động' : 'Khóa',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 9,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -419,6 +527,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                 setState(() {
                   _searchController.clear();
                   _selectedFilter = 0;
+                  _selectedStatus = 0;
                 });
                 _loadUsers();
               },
@@ -449,13 +558,13 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       case 2:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const AdminPendingListPage()),
+          MaterialPageRoute(builder: (_) => const AdminStatisticsPage()),
         );
         break;
       case 3:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => UserProfilePage()),
+          MaterialPageRoute(builder: (_) => const AdminProfilePage()),
         );
         break;
     }

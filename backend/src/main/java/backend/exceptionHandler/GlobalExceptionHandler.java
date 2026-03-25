@@ -57,10 +57,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MultipleResourceDuplicateException.class)
     public ResponseEntity<ErrorResponse> handleMultipleDuplicates(MultipleResourceDuplicateException ex) {
         Map<String, String> errorMap = new HashMap<>();
-        // Lặp qua danh sách các lỗi con (EmailDuplicate, PhoneDuplicate...)
         for (ResourceDuplicateException subEx : ex.getDuplicateExceptions()) {
-            // Giả sử errorCode của Email là "EMAIL_DUPLICATE", bạn có thể cắt chuỗi hoặc map lại key tùy ý
-            String fieldName = subEx.getErrorCode().split("_")[0].toLowerCase(); // Lấy chữ "email" hoặc "phone"
+            String fieldName = mapDuplicateField(subEx.getErrorCode());
             errorMap.put(fieldName, subEx.getMessage());
         }
         ErrorResponse errorResponse = ErrorResponse.builder()
@@ -72,6 +70,19 @@ public class GlobalExceptionHandler {
                 .build();
 
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    private String mapDuplicateField(String errorCode) {
+        if ("EMAIL_DUPLICATE".equals(errorCode)) {
+            return "email";
+        }
+        if ("PHONE_DUPLICATE".equals(errorCode)) {
+            return "phone";
+        }
+        if ("IDENTITY_DUPLICATE".equals(errorCode)) {
+            return "identityNumber";
+        }
+        return errorCode.split("_")[0].toLowerCase();
     }
 
     @ExceptionHandler(BaseException.class)

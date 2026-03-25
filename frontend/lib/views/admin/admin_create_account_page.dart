@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/data/models/admin/admin_user_payload.dart';
+import 'package:frontend/utils/app_notifier.dart';
 
 class AdminCreateAccountPage extends StatefulWidget {
   const AdminCreateAccountPage({super.key});
@@ -44,21 +45,16 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mật khẩu xác nhận không khớp'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppNotifier.error(context, 'Mật khẩu xác nhận không khớp');
       return;
     }
 
     final vm = context.read<AdminViewModel>();
     final payload = AdminUserPayload(
-      fullName: _selectedRole == 'admin' ? null : _nameController.text.trim(),
+      fullName: _nameController.text.trim(),
       identityNumber: _selectedRole == 'admin' ? null : _identityController.text.trim(),
       email: _emailController.text.trim(),
-      phoneNumber: _selectedRole == 'admin' ? null : _phoneController.text.trim(),
+      phoneNumber: _phoneController.text.trim(),
       password: _passwordController.text,
       role: _selectedRole,
       status: _accountActive ? 'ACTIVE' : 'LOCKED',
@@ -69,17 +65,10 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.successMessage ?? 'Tạo tài khoản thành công')),
-      );
+      AppNotifier.success(context, vm.successMessage ?? 'Tạo tài khoản thành công');
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(vm.errorMessage ?? 'Có lỗi xảy ra'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppNotifier.error(context, vm.errorMessage ?? 'Có lỗi xảy ra');
     }
   }
 
@@ -203,7 +192,7 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
                         Switch(
                           value: _accountActive,
                           onChanged: (v) => setState(() => _accountActive = v),
-                          activeColor: const Color(0xFF246BFF),
+                          activeThumbColor: const Color(0xFF246BFF),
                         ),
                       ],
                     ),
@@ -214,30 +203,30 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
                   _buildSectionHeader(Icons.person_outline_rounded, 'THÔNG TIN BẮT BUỘC'),
                   const SizedBox(height: 16),
 
+                  _buildLabeledField(
+                    label: 'Họ và tên',
+                    child: _buildTextField(
+                      controller: _nameController,
+                      hintText: 'VD: Nguyễn Văn An',
+                      prefixIcon: Icons.person_outline_rounded,
+                      validator: (v) => v!.isEmpty ? 'Vui lòng nhập họ tên' : null,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildLabeledField(
+                    label: 'Số điện thoại',
+                    child: _buildTextField(
+                      controller: _phoneController,
+                      hintText: '09XX XXX XXX',
+                      prefixIcon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      validator: (v) => v!.isEmpty ? 'Vui lòng nhập số điện thoại' : null,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
                   if (!isAdmin) ...[
-                    _buildLabeledField(
-                      label: 'Họ và tên',
-                      child: _buildTextField(
-                        controller: _nameController,
-                        hintText: 'VD: Nguyễn Văn An',
-                        prefixIcon: Icons.person_outline_rounded,
-                        validator: (v) => v!.isEmpty ? 'Vui lòng nhập họ tên' : null,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildLabeledField(
-                      label: 'Số điện thoại',
-                      child: _buildTextField(
-                        controller: _phoneController,
-                        hintText: '09XX XXX XXX',
-                        prefixIcon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                        validator: (v) => v!.isEmpty ? 'Vui lòng nhập số điện thoại' : null,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
                     _buildLabeledField(
                       label: 'CCCD/CMND',
                       child: _buildTextField(
@@ -414,6 +403,8 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
           prefixIcon: Icon(prefixIcon, size: 20, color: Colors.grey.shade400),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
+          filled: false,
+          fillColor: Colors.transparent,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),

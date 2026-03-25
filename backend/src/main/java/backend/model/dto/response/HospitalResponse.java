@@ -8,4 +8,5 @@ import lombok.Value;
 public class HospitalResponse {
     Long id;
     String name;
+    boolean isActive;
 }

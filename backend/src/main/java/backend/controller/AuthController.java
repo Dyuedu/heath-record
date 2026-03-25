@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.authentication.LockedException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,10 +32,20 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest){
-        String token = authService.login(loginRequest);
-        Map<String, String> response = new HashMap<>();
-        response.put("token", token);
-        return ResponseEntity.ok().body(response);
+        try {
+            String token = authService.login(loginRequest);
+            Map<String, String> response = new HashMap<>();
+            response.put("token", token);
+            return ResponseEntity.ok().body(response);
+        } catch (LockedException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Tài khoản đã bị khoá, vui lòng liên hệ ban quản lý");
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
     }
 
     @PostMapping("/verify-otp")

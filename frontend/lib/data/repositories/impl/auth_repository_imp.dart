@@ -10,8 +10,46 @@ import 'package:jwt_decoder/jwt_decoder.dart';
 class AuthRepositoryImp implements AuthRepository {
   final DioClient _dioClient;
   final SecureStorageRepository _secureStorageRepository;
+  String? _lastErrorMessage;
+  Map<String, String> _lastValidationErrors = const {};
 
   AuthRepositoryImp(this._dioClient, this._secureStorageRepository);
+
+  @override
+  String? get lastErrorMessage => _lastErrorMessage;
+
+  @override
+  Map<String, String> get lastValidationErrors => _lastValidationErrors;
+
+  void _clearLastError() {
+    _lastErrorMessage = null;
+    _lastValidationErrors = const {};
+  }
+
+  void _captureErrorFromDio(DioException error) {
+    final data = error.response?.data;
+    if (data is Map) {
+      final map = Map<String, dynamic>.from(data);
+      final message = map['message']?.toString();
+      _lastErrorMessage = (message != null && message.trim().isNotEmpty)
+          ? message
+          : 'Đăng ký thất bại. Vui lòng thử lại.';
+
+      final validation = map['validationErrors'];
+      if (validation is Map) {
+        _lastValidationErrors = validation.map(
+          (key, value) => MapEntry(
+            key.toString(),
+            value?.toString() ?? 'Dữ liệu không hợp lệ',
+          ),
+        );
+      }
+      return;
+    }
+
+    _lastErrorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
+  }
+
   @override
   Future<bool> isLoggedIn() {
     return _secureStorageRepository.getToken().then((token) => token != null);
@@ -32,6 +70,12 @@ class AuthRepositoryImp implements AuthRepository {
         return false;
       }
     } catch (error) {
+      if (error is DioException && error.response?.data is Map) {
+        final message = error.response!.data['message'];
+        if (message != null) {
+          throw Exception(message);
+        }
+      }
       return false;
     }
   }
@@ -43,6 +87,7 @@ class AuthRepositoryImp implements AuthRepository {
 
   @override
   Future<RegisterResultModel?> register(RegisterRequest request) async {
+    _clearLastError();
     try {
       final payload = request.toMap();
       payload['role'] =

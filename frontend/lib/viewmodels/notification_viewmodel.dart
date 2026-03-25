@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import 'package:frontend/data/models/notification_model.dart';

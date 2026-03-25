@@ -24,6 +24,16 @@ class _AdminAccountApprovalPageState extends State<AdminAccountApprovalPage> {
     super.dispose();
   }
 
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return 'Không rõ';
+    try {
+      final DateTime dt = DateTime.parse(dateStr);
+      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+    } catch (e) {
+      return dateStr.split('T').first;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -176,7 +186,7 @@ class _AdminAccountApprovalPageState extends State<AdminAccountApprovalPage> {
           const SizedBox(height: 6),
           _infoRow(Icons.medical_services_outlined, widget.user.role),
           const SizedBox(height: 6),
-          _infoRow(Icons.calendar_today_outlined, 'Đăng ký ngày: ${widget.user.createdAt ?? "Không rõ"}'),
+          _infoRow(Icons.calendar_today_outlined, 'Đăng ký ngày: ${_formatDate(widget.user.createdAt)}'),
         ],
       ),
     );
@@ -351,13 +361,13 @@ class _AdminAccountApprovalPageState extends State<AdminAccountApprovalPage> {
       child: Column(
         children: [
           _timelineItem(
-            time: widget.user.createdAt ?? '',
+            time: _formatDate(widget.user.createdAt),
             title: 'Tạo tài khoản đăng ký mới',
             actor: 'Thực hiện bởi: ${widget.user.fullName}',
             isFirst: true,
           ),
           _timelineItem(
-            time: widget.user.createdAt ?? '',
+            time: _formatDate(widget.user.createdAt),
             title: 'Hồ sơ đã tự động được gửi đi phê duyệt',
             actor: 'Thực hiện bởi: Hệ thống',
             isLast: true,

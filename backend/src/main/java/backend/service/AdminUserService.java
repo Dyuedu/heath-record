@@ -14,6 +14,7 @@ import backend.repository.MedicalRecordRepository;
 import backend.repository.ProfileRepository;
 import backend.repository.RoleRepository;
 import backend.repository.UserRepository;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -70,6 +71,50 @@ public class AdminUserService {
     }
 
     @Transactional(readOnly = true)
+    public Map<String, Object> getRecordStats(String period) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start;
+
+        String normalizedPeriod = (period == null || period.isBlank()) ? "month" : period.trim().toLowerCase();
+
+        switch (normalizedPeriod) {
+            case "day"  -> start = now.minusDays(13).toLocalDate().atStartOfDay();  // 14 days
+            case "week" -> start = now.minusWeeks(7).toLocalDate().atStartOfDay();  // 8 weeks
+            case "year" -> start = now.minusYears(4).withMonth(1).withDayOfMonth(1).toLocalDate().atStartOfDay(); // 5 years
+            default     -> { normalizedPeriod = "month"; start = now.minusMonths(11).withDayOfMonth(1).toLocalDate().atStartOfDay(); } // 12 months
+        }
+
+        long totalRecords = medicalRecordRepository.countByDatetimeStartBetween(start, now);
+        long totalUsers   = userRepository.count();
+
+        List<Object[]> recordRows = medicalRecordRepository.countGroupedByPeriod(normalizedPeriod, start, now);
+        List<Map<String, Object>> recordChartData = new ArrayList<>();
+        for (Object[] row : recordRows) {
+            Map<String, Object> point = new HashMap<>();
+            point.put("label", row[0] != null ? row[0].toString() : "");
+            point.put("count", ((Number) row[1]).longValue());
+            recordChartData.add(point);
+        }
+
+        List<Object[]> userRows = userRepository.countUsersGroupedByPeriod(normalizedPeriod, start, now);
+        List<Map<String, Object>> userChartData = new ArrayList<>();
+        for (Object[] row : userRows) {
+            Map<String, Object> point = new HashMap<>();
+            point.put("label", row[0] != null ? row[0].toString() : "");
+            point.put("count", ((Number) row[1]).longValue());
+            userChartData.add(point);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalRecords", totalRecords);
+        result.put("totalUsers", totalUsers);
+        result.put("chartData", recordChartData); // Keep for backwards compatibility/dashboard
+        result.put("recordChartData", recordChartData);
+        result.put("userChartData", userChartData);
+        return result;
+    }
+
+    @Transactional(readOnly = true)
     public List<UserResponse> searchUsers(String search, String role, String status) {
         String searchParam = StringUtils.hasText(search) ? search.trim() : null;
         String roleParam = StringUtils.hasText(role) && !role.equalsIgnoreCase("Tất cả") ? role.trim() : null;
@@ -84,10 +129,7 @@ public class AdminUserService {
     @Transactional
     public UserResponse createUser(AdminUserRequest request) {
         String email = trimToNull(request.email());
-        String phone = trimToNull(request.phoneNumber());
-
         validateEmail(email, null);
-        validatePhone(phone, null);
 
         String rawPassword = trimToNull(request.password());
         if (!StringUtils.hasText(rawPassword)) {
@@ -96,18 +138,23 @@ public class AdminUserService {
 
         Role role = resolveRole(request.role());
 
-        Profile profile = new Profile();
-        applyProfile(profile, request);
-        profile = profileRepository.save(profile);
-
         User user = new User();
         user.setEmail(email);
-        user.setPhoneNumber(phone);
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setRole(role);
-        user.setProfile(profile);
         user.setStatus(StringUtils.hasText(request.status()) ? UserStatus.valueOf(request.status()) : UserStatus.ACTIVE);
         user.setCreatedAt(LocalDateTime.now());
+
+        if (!role.getName().equalsIgnoreCase("ROLE_ADMIN") && !role.getName().equalsIgnoreCase("ADMIN")) {
+            String phone = trimToNull(request.phoneNumber());
+            validatePhone(phone, null);
+            user.setPhoneNumber(phone);
+            
+            Profile profile = new Profile();
+            applyProfile(profile, request);
+            profile = profileRepository.save(profile);
+            user.setProfile(profile);
+        }
 
         User saved = userRepository.save(user);
         return mapToUserResponse(saved);
@@ -119,13 +166,9 @@ public class AdminUserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
 
         String email = trimToNull(request.email());
-        String phone = trimToNull(request.phoneNumber());
-
         validateEmail(email, user.getId());
-        validatePhone(phone, user.getId());
 
         user.setEmail(email);
-        user.setPhoneNumber(phone);
 
         String newPassword = trimToNull(request.password());
         if (StringUtils.hasText(newPassword)) {
@@ -135,13 +178,19 @@ public class AdminUserService {
         Role role = resolveRole(request.role());
         user.setRole(role);
 
-        Profile profile = user.getProfile();
-        if (profile == null) {
-            profile = new Profile();
+        if (!role.getName().equalsIgnoreCase("ROLE_ADMIN") && !role.getName().equalsIgnoreCase("ADMIN")) {
+            String phone = trimToNull(request.phoneNumber());
+            validatePhone(phone, user.getId());
+            user.setPhoneNumber(phone);
+
+            Profile profile = user.getProfile();
+            if (profile == null) {
+                profile = new Profile();
+            }
+            applyProfile(profile, request);
+            profile = profileRepository.save(profile);
+            user.setProfile(profile);
         }
-        applyProfile(profile, request);
-        profile = profileRepository.save(profile);
-        user.setProfile(profile);
         
         if (StringUtils.hasText(request.status())) {
             user.setStatus(UserStatus.valueOf(request.status()));
@@ -187,6 +236,7 @@ public class AdminUserService {
 
     private void applyProfile(Profile profile, AdminUserRequest request) {
         profile.setFullname(trimToNull(request.fullName()));
+        profile.setIdentityNumber(trimToNull(request.identityNumber()));
         profile.setGender(trimToNull(request.gender()));
         profile.setDateOfBirth(trimToNull(request.dateOfBirth()));
         profile.setAddress(trimToNull(request.address()));

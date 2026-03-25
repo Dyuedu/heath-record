@@ -43,6 +43,10 @@ class _SignupPageState extends State<SignupPage> {
     if (value == null || value.isEmpty) return 'Vui lòng nhập Email';
     final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegExp.hasMatch(value)) return 'Định dạng Email không hợp lệ';
+    final serverError = context.read<AuthViewModel>().fieldErrors['email'];
+    if (serverError != null && serverError.trim().isNotEmpty) {
+      return serverError;
+    }
     return null;
   }
 
@@ -50,6 +54,10 @@ class _SignupPageState extends State<SignupPage> {
     if (value == null || value.isEmpty) return 'Vui lòng nhập số điện thoại';
     final phoneRegExp = RegExp(r'^(0[3|5|7|8|9])([0-9]{8})$');
     if (!phoneRegExp.hasMatch(value)) return 'Số điện thoại không hợp lệ';
+    final serverError = context.read<AuthViewModel>().fieldErrors['phone'];
+    if (serverError != null && serverError.trim().isNotEmpty) {
+      return serverError;
+    }
     return null;
   }
 
@@ -66,6 +74,11 @@ class _SignupPageState extends State<SignupPage> {
     final identityRegExp = RegExp(r'^\d{9,12}$');
     if (!identityRegExp.hasMatch(compact)) {
       return 'CCCD/CMND phải gồm 9-12 chữ số';
+    }
+    final fieldErrors = context.read<AuthViewModel>().fieldErrors;
+    final serverError = fieldErrors['identityNumber'] ?? fieldErrors['identity'];
+    if (serverError != null && serverError.trim().isNotEmpty) {
+      return serverError;
     }
     return null;
   }
@@ -164,7 +177,10 @@ class _SignupPageState extends State<SignupPage> {
                     controller: _emailController,
                     hint: "vidu@email.com",
                     icon: Icons.email_outlined,
-                    onChanged: (_) => authVM.clearError(),
+                    onChanged: (_) {
+                      authVM.clearFieldError('email');
+                      authVM.clearError();
+                    },
                     keyboardType: TextInputType.emailAddress,
                     validator: _validateEmail,
                   ),
@@ -175,7 +191,10 @@ class _SignupPageState extends State<SignupPage> {
                     controller: _phoneController,
                     hint: "0987 654 321",
                     icon: Icons.phone_android_outlined,
-                    onChanged: (_) => authVM.clearError(),
+                    onChanged: (_) {
+                      authVM.clearFieldError('phone');
+                      authVM.clearError();
+                    },
                     keyboardType: TextInputType.phone,
                     validator: _validatePhone,
                   ),
@@ -186,7 +205,10 @@ class _SignupPageState extends State<SignupPage> {
                     controller: _identityNumberController,
                     hint: "Nhập số định danh của bạn",
                     icon: Icons.credit_card_outlined,
-                    onChanged: (_) => authVM.clearError(),
+                    onChanged: (_) {
+                      authVM.clearFieldError('identityNumber');
+                      authVM.clearError();
+                    },
                     keyboardType: TextInputType.number,
                     validator: _validateIdentityNumber,
                   ),
@@ -420,8 +442,7 @@ class _SignupPageState extends State<SignupPage> {
                     final shouldCreateLinkRequest =
                         await _showLinkConfirmDialog();
                     if (!context.mounted || !shouldCreateLinkRequest) return;
-                    // Logic gọi lại confirm...
-                    await vm.registerWithResult(
+                    final confirmResult = await vm.registerWithResult(
                       _nameController.text.trim(),
                       _identityNumberController.text.trim().isEmpty
                           ? null
@@ -432,6 +453,10 @@ class _SignupPageState extends State<SignupPage> {
                       confirmLinkRequest: true,
                     );
                     if (!context.mounted) return;
+                    if (confirmResult == null) {
+                      _formKey.currentState?.validate();
+                      return;
+                    }
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -450,6 +475,8 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                     ),
                   );
+                } else {
+                  _formKey.currentState?.validate();
                 }
               }
             },

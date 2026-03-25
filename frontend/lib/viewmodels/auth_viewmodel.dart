@@ -19,16 +19,19 @@ class AuthViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   String? _currentRole;
+  Map<String, String> _fieldErrors = const {};
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get currentRole => _currentRole;
+  Map<String, String> get fieldErrors => _fieldErrors;
   bool get isAdmin => (_currentRole ?? '').toUpperCase().contains('ADMIN');
 
   // Logic Đăng nhập
   Future<bool> login(String email, String password) async {
     _setLoading(true);
     _errorMessage = null;
+    _fieldErrors = const {};
 
     try {
       final request = LoginRequest(email: email, password: password);
@@ -43,7 +46,11 @@ class AuthViewModel extends ChangeNotifier {
       _setLoading(false);
       return success;
     } catch (e) {
-      _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
+      if (e is Exception && e.toString().startsWith("Exception: ")) {
+        _errorMessage = e.toString().replaceFirst("Exception: ", "");
+      } else {
+        _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
+      }
       _setLoading(false);
       return false;
     }
@@ -137,7 +144,15 @@ class AuthViewModel extends ChangeNotifier {
       final result = await _authRepository.register(request);
 
       if (result == null) {
-        _errorMessage = "Đăng ký thất bại. Vui lòng thử lại.";
+        _fieldErrors = _authRepository.lastValidationErrors;
+        final firstFieldError = _fieldErrors.values.isNotEmpty
+            ? _fieldErrors.values.first
+            : null;
+        _errorMessage =
+            _authRepository.lastErrorMessage ??
+            (firstFieldError != null && firstFieldError.trim().isNotEmpty
+                ? firstFieldError
+                : "Đăng ký thất bại. Vui lòng thử lại.");
       }
 
       _setLoading(false);
@@ -194,6 +209,22 @@ class AuthViewModel extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
     }
+  }
+
+  void clearFieldError(String fieldKey) {
+    if (!_fieldErrors.containsKey(fieldKey)) {
+      return;
+    }
+    final updated = Map<String, String>.from(_fieldErrors);
+    updated.remove(fieldKey);
+    if (fieldKey == 'identityNumber') {
+      updated.remove('identity');
+    }
+    _fieldErrors = updated;
+    if (_fieldErrors.isEmpty) {
+      _errorMessage = null;
+    }
+    notifyListeners();
   }
 
   Future<void> refreshCurrentRole() async {

@@ -17,7 +17,11 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
 
+        List<User> findAllByEmail(String email);
+
     Optional<User> findByPhoneNumber(String phoneNumber);
+
+        List<User> findAllByPhoneNumber(String phoneNumber);
 
     Optional<User> findById(UUID id);
 
@@ -69,4 +73,23 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             @org.springframework.data.repository.query.Param("roleName") String roleName,
             @org.springframework.data.repository.query.Param("status") String status
     );
+
+    @Query(value =
+        "SELECT label, COUNT(*) AS cnt FROM (" +
+        "  SELECT CASE :period" +
+        "    WHEN 'day'   THEN TO_CHAR(created_at, 'DD/MM')" +
+        "    WHEN 'week'  THEN CONCAT('T', TO_CHAR(created_at, 'IW'))" +
+        "    WHEN 'month' THEN TO_CHAR(created_at, 'MM/YYYY')" +
+        "    WHEN 'year'  THEN TO_CHAR(created_at, 'YYYY')" +
+        "    ELSE TO_CHAR(created_at, 'MM/YYYY')" +
+        "  END AS label," +
+        "  created_at" +
+        "  FROM users u" +
+        "  WHERE u.created_at BETWEEN :start AND :end" +
+        ") t GROUP BY label ORDER BY MIN(created_at)",
+        nativeQuery = true)
+    List<Object[]> countUsersGroupedByPeriod(
+        @Param("period") String period,
+        @Param("start") java.time.LocalDateTime start,
+        @Param("end") java.time.LocalDateTime end);
 }

@@ -6,6 +6,10 @@ abstract class AdminRepository {
 
   Future<Map<String, dynamic>?> getDashboardStats();
 
+  Future<Map<String, dynamic>?> getRecordStats(String period);
+
+  Future<Map<String, dynamic>?> getStats(String period, String type);
+
   Future<List<UserProfileModel>> searchUsers({
     String? search,
     String? role,

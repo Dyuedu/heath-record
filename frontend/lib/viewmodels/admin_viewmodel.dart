@@ -11,19 +11,37 @@ class AdminViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _isSaving = false;
+  bool _userLoading = false;
+  bool _recordLoading = false;
   String? _errorMessage;
   String? _successMessage;
   List<UserProfileModel> _users = const [];
   List<UserProfileModel> _pendingUsers = const [];
   Map<String, dynamic>? _dashboardStats;
+  Map<String, dynamic>? _recordStats;
+  Map<String, dynamic>? _userStats;
+  String _selectedPeriod = 'month';
+  String _userPeriod = 'month';
+  String _recordPeriod = 'month';
+  String _recordChartType = 'bar'; // 'bar' or 'line'
+  String _userChartType = 'bar';
 
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
+  bool get userLoading => _userLoading;
+  bool get recordLoading => _recordLoading;
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
   List<UserProfileModel> get users => List.unmodifiable(_users);
   List<UserProfileModel> get pendingUsers => List.unmodifiable(_pendingUsers);
   Map<String, dynamic>? get dashboardStats => _dashboardStats;
+  Map<String, dynamic>? get recordStats => _recordStats;
+  Map<String, dynamic>? get userStats => _userStats;
+  String get selectedPeriod => _selectedPeriod;
+  String get userPeriod => _userPeriod;
+  String get recordPeriod => _recordPeriod;
+  String get recordChartType => _recordChartType;
+  String get userChartType => _userChartType;
 
   Future<void> loadDashboardStats() async {
     _errorMessage = null;
@@ -33,6 +51,58 @@ class AdminViewModel extends ChangeNotifier {
     } catch (_) {
       _errorMessage = 'Không thể tải thống kê dashboard.';
     }
+  }
+
+  Future<void> loadRecordStats({String? period}) async {
+    if (period != null) _selectedPeriod = period;
+    _errorMessage = null;
+    _setLoading(true);
+    try {
+      _recordStats = await _repository.getRecordStats(_selectedPeriod);
+      notifyListeners();
+    } catch (_) {
+      _errorMessage = 'Không thể tải dữ liệu thống kê.';
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> loadUserStats({String? period}) async {
+    if (period != null) _userPeriod = period;
+    _errorMessage = null;
+    _setUserLoading(true);
+    try {
+      _userStats = await _repository.getStats(_userPeriod, 'user');
+      notifyListeners();
+    } catch (_) {
+      _errorMessage = 'Không thể tải dữ liệu thống kê người dùng.';
+    } finally {
+      _setUserLoading(false);
+    }
+  }
+
+  Future<void> loadRecordStatsSeparate({String? period}) async {
+    if (period != null) _recordPeriod = period;
+    _errorMessage = null;
+    _setRecordLoading(true);
+    try {
+      _recordStats = await _repository.getStats(_recordPeriod, 'record');
+      notifyListeners();
+    } catch (_) {
+      _errorMessage = 'Không thể tải dữ liệu thống kê bệnh án.';
+    } finally {
+      _setRecordLoading(false);
+    }
+  }
+
+  void setRecordChartType(String type) {
+    _recordChartType = type;
+    notifyListeners();
+  }
+
+  void setUserChartType(String type) {
+    _userChartType = type;
+    notifyListeners();
   }
 
   Future<void> searchUsers({String? search, String? role, String? status}) async {
@@ -148,8 +218,13 @@ class AdminViewModel extends ChangeNotifier {
       _successMessage = 'Tạo người dùng thành công.';
       notifyListeners();
       return true;
-    } catch (_) {
-      _errorMessage = 'Không thể tạo người dùng mới.';
+    } catch (e) {
+      print('AdminViewModel catch (Create): $e');
+      if (e is Exception && e.toString().startsWith('Exception: ')) {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      } else {
+        _errorMessage = 'VM fallback (Create): $e';
+      }
       return false;
     } finally {
       _setSaving(false);
@@ -173,8 +248,12 @@ class AdminViewModel extends ChangeNotifier {
       _successMessage = 'Cập nhật người dùng thành công.';
       notifyListeners();
       return true;
-    } catch (_) {
-      _errorMessage = 'Không thể cập nhật người dùng.';
+    } catch (e) {
+      if (e is Exception && e.toString().startsWith('Exception: ')) {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      } else {
+        _errorMessage = 'Không thể cập nhật người dùng.';
+      }
       return false;
     } finally {
       _setSaving(false);
@@ -189,6 +268,16 @@ class AdminViewModel extends ChangeNotifier {
 
   void _setLoading(bool value) {
     _isLoading = value;
+    notifyListeners();
+  }
+
+  void _setUserLoading(bool value) {
+    _userLoading = value;
+    notifyListeners();
+  }
+
+  void _setRecordLoading(bool value) {
+    _recordLoading = value;
     notifyListeners();
   }
 

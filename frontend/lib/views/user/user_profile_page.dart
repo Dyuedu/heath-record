@@ -13,10 +13,6 @@ import '../../viewmodels/profile_viewmodel.dart';
 import '../../viewmodels/user_viewmodel.dart';
 import '../../widgets/bottom_nav.dart';
 import 'edit_profile_page.dart';
-import 'package:frontend/views/admin/admin_bottom_nav.dart';
-import 'package:frontend/views/admin/admin_dashboard_page.dart';
-import 'package:frontend/views/admin/admin_user_management_page.dart';
-import 'package:frontend/views/admin/admin_pending_list_page.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -43,14 +39,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
     final profile = userVM.profile;
     final avatar = (profile?.avatarUrl ?? '').trim();
 
-    final isAdmin = profile?.role?.toUpperCase() == 'ADMIN';
+    final isAdmin = profile?.role.toUpperCase() == 'ADMIN';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA), // Nền xám nhạt như ảnh
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Text(isAdmin ? 'Cài đặt' : 'Hồ sơ', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text('Hồ sơ', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
@@ -131,32 +127,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 ],
               ),
             ),
-      bottomNavigationBar: isAdmin 
-          ? AdminBottomNav(
-              currentIndex: 3,
-              onTap: (index) => _onAdminNavTap(context, index),
-            )
-          : const CustomBottomNav(),
+      bottomNavigationBar: const CustomBottomNav(),
     );
-  }
-
-  void _onAdminNavTap(BuildContext context, int index) {
-    if (index == 3) return; // Already here
-    Widget page;
-    switch (index) {
-      case 0:
-        page = const AdminDashboardPage();
-        break;
-      case 1:
-        page = const AdminUserManagementPage();
-        break;
-      case 2:
-        page = const AdminPendingListPage();
-        break;
-      default:
-        return;
-    }
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => page));
   }
 
   // --- Widget Components ---
@@ -269,8 +241,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
       final vm = context.read<UserViewModel>();
       final success = await vm.updateAvatar(File(pickedFile.path));
       if (!mounted) return;
-      if (success) AppNotifier.success(context, 'Ảnh đại diện đã được cập nhật.');
-      else AppNotifier.error(context, vm.avatarErrorMessage ?? 'Không thể cập nhật.');
+      if (success) {
+        AppNotifier.success(context, 'Ảnh đại diện đã được cập nhật.');
+      } else {
+        AppNotifier.error(context, vm.avatarErrorMessage ?? 'Không thể cập nhật.');
+      }
     } on PlatformException catch (error) {
       if (!mounted) return;
       AppNotifier.error(context, error.message ?? 'Lỗi truy cập thư viện.');

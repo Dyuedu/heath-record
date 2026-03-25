@@ -19,6 +19,19 @@ class _LoginPageState extends State<LoginPage> {
   String? _lastNotifiedError;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is String && args.isNotEmpty && _lastNotifiedError != args) {
+      _lastNotifiedError = args;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        AppNotifier.error(context, args);
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
