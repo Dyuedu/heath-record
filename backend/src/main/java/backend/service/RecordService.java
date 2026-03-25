@@ -7,17 +7,22 @@ import backend.model.User;
 import backend.model.DiagnosticRecord;
 import backend.model.Attachment;
 import backend.model.Hospital;
+import backend.model.Profile;
 import backend.model.Tag;
 import backend.model.dto.request.RecordCreateRequest;
+import backend.model.dto.request.UpdateRelativeProfileRequest;
 import backend.model.dto.response.MedicalRecordResponse;
 import backend.model.dto.response.RelativeHealthHistoryResponse;
+import backend.model.dto.response.RelativeProfileDetailResponse;
 import backend.repository.MedicalRecordRepository;
+import backend.repository.ProfileRepository;
 import backend.repository.RelativeRepository;
 import backend.repository.UserRepository;
 import backend.service.mapper.MedicalRecordMapper;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.util.StringUtils;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,17 +33,23 @@ import org.springframework.web.multipart.MultipartFile;
 public class RecordService {
     private final MedicalRecordRepository medicalRecordRepository;
     private final RelativeRepository relativeRepository;
+    private final ProfileRepository profileRepository;
     private final UserRepository userRepository;
     private final MedicalRecordMapper medicalRecordMapper;
+    private final CloudinaryService cloudinaryService;
 
     public RecordService(MedicalRecordRepository medicalRecordRepository,
             RelativeRepository relativeRepository,
+            ProfileRepository profileRepository,
             UserRepository userRepository,
-            MedicalRecordMapper medicalRecordMapper) {
+            MedicalRecordMapper medicalRecordMapper,
+            CloudinaryService cloudinaryService) {
         this.medicalRecordRepository = medicalRecordRepository;
         this.relativeRepository = relativeRepository;
+        this.profileRepository = profileRepository;
         this.userRepository = userRepository;
         this.medicalRecordMapper = medicalRecordMapper;
+        this.cloudinaryService = cloudinaryService;
     }
 
     public MedicalRecordResponse createRecord(UUID doctorId, RecordCreateRequest request, List<MultipartFile> files) {
@@ -105,6 +116,83 @@ public class RecordService {
         return medicalRecordMapper.toMedicalRecordResponse(record);
     }
 
+    public RelativeProfileDetailResponse getRelativeProfileDetail(UUID userId, UUID profileId) {
+        Relative relative = getOwnedRelative(userId, profileId);
+        return mapToRelativeProfileDetail(relative);
+    }
+
+    public RelativeProfileDetailResponse updateRelativeProfile(
+            UUID userId,
+            UUID profileId,
+            UpdateRelativeProfileRequest request) {
+        Relative relative = getOwnedRelative(userId, profileId);
+        Profile profile = relative.getProfile();
+        if (profile == null) {
+            throw new ResourceNotFoundException("Không tìm thấy hồ sơ người thân");
+        }
+
+        profile.setFullname(trimToNull(request.fullName()));
+        profile.setNickname(trimToNull(request.nickname()));
+        profile.setGender(normalizeGender(request.gender()));
+        profile.setDateOfBirth(normalizeDate(request.dateOfBirth()));
+        profile.setAddress(trimToNull(request.address()));
+        profile.setAllergy(trimToNull(request.allergy()));
+        profile.setChronicDisease(trimToNull(request.chronicDisease()));
+        profile.setClinicalNotes(trimToNull(request.clinicalNotes()));
+        profile.setBloodGroup(trimToNull(request.bloodGroup()));
+
+        profileRepository.save(profile);
+        return mapToRelativeProfileDetail(relative);
+    }
+
+    public RelativeProfileDetailResponse updateRelativeAvatar(
+            UUID userId,
+            UUID profileId,
+            MultipartFile avatarFile) {
+        Relative relative = getOwnedRelative(userId, profileId);
+        Profile profile = relative.getProfile();
+        if (profile == null) {
+            throw new ResourceNotFoundException("Không tìm thấy hồ sơ người thân");
+        }
+
+        String avatarUrl = cloudinaryService.uploadImage(avatarFile);
+        profile.setAvatarUrl(avatarUrl);
+        profileRepository.save(profile);
+
+        return mapToRelativeProfileDetail(relative);
+    }
+
+    private Relative getOwnedRelative(UUID userId, UUID profileId) {
+        return relativeRepository.findFirstByUserIdAndProfileId(userId, profileId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ người thân"));
+    }
+
+    private RelativeProfileDetailResponse mapToRelativeProfileDetail(Relative relative) {
+        Profile profile = relative.getProfile();
+        if (profile == null) {
+            throw new ResourceNotFoundException("Không tìm thấy hồ sơ người thân");
+        }
+
+        return RelativeProfileDetailResponse.builder()
+                .profileId(profile.getId())
+                .relativeId(relative.getId())
+                .relativeName(profile.getFullname())
+                .relationship(relative.getRelationship())
+                .avatarUrl(profile.getAvatarUrl())
+                .fullName(profile.getFullname())
+                .nickname(profile.getNickname())
+                .identityNumber(profile.getIdentityNumber())
+                .gender(profile.getGender())
+                .dateOfBirth(profile.getDateOfBirth())
+                .phoneNumber(profile.getPhoneNumber())
+                .address(profile.getAddress())
+                .allergy(profile.getAllergy())
+                .chronicDisease(profile.getChronicDisease())
+                .clinicalNotes(profile.getClinicalNotes())
+                .bloodGroup(profile.getBloodGroup())
+                .build();
+    }
+
     private String resolvePrimaryTag(RecordCreateRequest request) {
         if (request.getTags() != null && !request.getTags().isEmpty()) {
             return request.getTags().get(0);
@@ -114,6 +202,69 @@ public class RecordService {
 
     private String buildAuditField(User doctor) {
         return doctor.getEmail() != null ? "created-by:" + doctor.getEmail() : "created-by:unknown";
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeIdentity(String value) {
+        String trimmed = trimToNull(value);
+        if (trimmed == null) {
+            return null;
+        }
+        return trimmed.replaceAll("\\s+", "");
+    }
+
+    private String normalizePhone(String value) {
+        String trimmed = trimToNull(value);
+        if (trimmed == null) {
+            return null;
+        }
+
+        String normalized = trimmed.replaceAll("\\s+", "");
+        if (normalized.startsWith("+84")) {
+            normalized = "0" + normalized.substring(3);
+        }
+        return normalized;
+    }
+
+    private String normalizeGender(String value) {
+        String trimmed = trimToNull(value);
+        if (!StringUtils.hasText(trimmed)) {
+            return null;
+        }
+
+        String normalized = trimmed.toLowerCase();
+        return switch (normalized) {
+            case "male", "m", "nam" -> "Nam";
+            case "female", "f", "nu", "nữ" -> "Nữ";
+            default -> trimmed;
+        };
+    }
+
+    private String normalizeDate(String value) {
+        String trimmed = trimToNull(value);
+        if (!StringUtils.hasText(trimmed)) {
+            return null;
+        }
+
+        String isoPattern = "^\\d{4}-\\d{2}-\\d{2}$";
+        if (trimmed.matches(isoPattern)) {
+            return trimmed;
+        }
+
+        String slashPattern = "^\\d{2}/\\d{2}/\\d{4}$";
+        if (trimmed.matches(slashPattern)) {
+            String[] parts = trimmed.split("/");
+            return parts[2] + "-" + parts[1] + "-" + parts[0];
+        }
+
+        return trimmed;
     }
 
 }

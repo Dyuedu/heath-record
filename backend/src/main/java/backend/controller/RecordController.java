@@ -7,10 +7,13 @@ import java.util.UUID;
 import backend.model.dto.request.AddRelativeRequest;
 import backend.model.dto.response.AddRelativeResultResponse;
 import backend.model.dto.response.MedicalRecordResponse;
+import backend.model.dto.request.UpdateRelativeProfileRequest;
 import backend.model.dto.response.RelativeHealthHistoryResponse;
+import backend.model.dto.response.RelativeProfileDetailResponse;
 import backend.model.dto.response.RelativeResponse;
 import backend.service.RelativeService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -79,6 +82,53 @@ public class RecordController {
                 recordService.getRecordsByProfile(userPrincipal.getId(), profileId);
 
         return ResponseEntity.ok(records);
+    }
+
+    @GetMapping("/profiles/{profileId}")
+    public ResponseEntity<RelativeProfileDetailResponse> getRelativeProfileDetail(
+            @PathVariable("profileId") UUID profileId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        if (userPrincipal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        RelativeProfileDetailResponse response =
+                recordService.getRelativeProfileDetail(userPrincipal.getId(), profileId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/profiles/{profileId}")
+    public ResponseEntity<RelativeProfileDetailResponse> updateRelativeProfile(
+            @PathVariable("profileId") UUID profileId,
+            @RequestBody UpdateRelativeProfileRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        if (userPrincipal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        RelativeProfileDetailResponse response =
+                recordService.updateRelativeProfile(userPrincipal.getId(), profileId, request);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping(value = "/profiles/{profileId}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<RelativeProfileDetailResponse> updateRelativeAvatar(
+            @PathVariable("profileId") UUID profileId,
+            @RequestPart("avatar") MultipartFile avatar,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        if (userPrincipal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        RelativeProfileDetailResponse response =
+                recordService.updateRelativeAvatar(userPrincipal.getId(), profileId, avatar);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/records/{recordId}")
