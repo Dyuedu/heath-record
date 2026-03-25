@@ -3,6 +3,9 @@ import 'package:frontend/data/models/auth/register_request.dart';
 import 'package:frontend/data/models/auth/register_result_model.dart';
 
 abstract class AuthRepository {
+  String? get lastErrorMessage;
+  Map<String, String> get lastValidationErrors;
+
   Future<bool> login(LoginRequest request);
   Future<RegisterResultModel?> register(RegisterRequest request);
   Future<bool> verifyOtp(String email, String otp);

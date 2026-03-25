@@ -1,6 +1,7 @@
 package backend.service;
 
 import backend.exception.EmailDuplicateException;
+import backend.exception.IdentityDuplicateException;
 import backend.exception.MultipleResourceDuplicateException;
 import backend.exception.PhoneDuplicateException;
 import backend.exception.ResourceDuplicateException;
@@ -62,15 +63,38 @@ public class AuthService {
         String normalizedIdentity = normalizeIdentity(registerRequest.identityNumber());
         String normalizedPhone = normalizePhone(registerRequest.phone());
 
+        List<User> usersByEmail = userRepository.findAllByEmail(registerRequest.email());
+        List<User> usersByPhone = normalizedPhone != null
+                ? userRepository.findAllByPhoneNumber(normalizedPhone)
+                : List.of();
+        Profile existingByIdentity = normalizedIdentity != null
+                ? profileRepository.findFirstByIdentityNumber(normalizedIdentity).orElse(null)
+                : null;
+        User pendingUser = resolvePendingReRegistrationCandidate(usersByEmail, usersByPhone);
+
         List<ResourceDuplicateException> errors = new ArrayList<>();
-        if (isEmailExist(registerRequest.email())) {
+        if (hasDuplicateConflict(usersByEmail, pendingUser)) {
             errors.add(new EmailDuplicateException(registerRequest.email()));
         }
-        if (isPhoneNumberExist(normalizedPhone)) {
+        if (hasDuplicateConflict(usersByPhone, pendingUser)) {
             errors.add(new PhoneDuplicateException(registerRequest.phone()));
+        }
+        if (existingByIdentity != null && !isSameProfileOfUser(existingByIdentity, pendingUser)) {
+            errors.add(new IdentityDuplicateException(registerRequest.identityNumber()));
         }
         if (!errors.isEmpty()) {
             throw new MultipleResourceDuplicateException(errors);
+        }
+
+        Role role = resolveSignupRole(registerRequest.role());
+
+        if (pendingUser != null) {
+            refreshPendingUserRegistration(pendingUser, registerRequest, role, normalizedIdentity, normalizedPhone);
+            return RegisterResultResponse.builder()
+                    .status("REGISTERED")
+                    .requestId(null)
+                    .message("Tài khoản đang chờ xác thực đã được cập nhật. Vui lòng kiểm tra email để nhận mã OTP mới.")
+                    .build();
         }
 
         Profile duplicated = null;
@@ -90,7 +114,6 @@ public class AuthService {
                 .build();
         }
 
-        Role role = resolveSignupRole(registerRequest.role());
 
         User user = new User();
         user.setEmail(registerRequest.email());
@@ -98,7 +121,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(registerRequest.password()));
         user.setRole(role);
         
-        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        String otp = generateOtp();
         user.setOtpCode(otp);
         user.setOtpExpiryTime(java.time.LocalDateTime.now().plusMinutes(1));
         user.setStatus(UserStatus.PENDING);
@@ -199,7 +222,7 @@ public class AuthService {
             throw new IllegalStateException("Tài khoản đã được xác thực");
         }
         
-        String newOtp = String.format("%06d", new java.util.Random().nextInt(999999));
+        String newOtp = generateOtp();
         user.setOtpCode(newOtp);
         user.setOtpExpiryTime(java.time.LocalDateTime.now().plusMinutes(1));
         userRepository.save(user);
@@ -211,12 +234,89 @@ public class AuthService {
         }
     }
 
-    private Boolean isEmailExist(String email) {
-        return userRepository.findByEmail(email).isPresent();
+    private User resolvePendingReRegistrationCandidate(List<User> usersByEmail, List<User> usersByPhone) {
+        User pendingByEmail = singlePendingCandidate(usersByEmail);
+        User pendingByPhone = singlePendingCandidate(usersByPhone);
+
+        if (pendingByEmail != null && pendingByPhone != null && !isSameUser(pendingByEmail, pendingByPhone)) {
+            return null;
+        }
+
+        return pendingByEmail != null ? pendingByEmail : pendingByPhone;
     }
 
-    private Boolean isPhoneNumberExist(String normalizedPhone) {
-        return normalizedPhone != null && userRepository.findByPhoneNumber(normalizedPhone).isPresent();
+    private User singlePendingCandidate(List<User> users) {
+        User pending = null;
+        for (User user : users) {
+            if (!isPending(user)) {
+                continue;
+            }
+            if (pending != null && !isSameUser(pending, user)) {
+                return null;
+            }
+            pending = user;
+        }
+        return pending;
+    }
+
+    private boolean hasDuplicateConflict(List<User> users, User allowedPendingUser) {
+        for (User user : users) {
+            if (!isSameUser(user, allowedPendingUser)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void refreshPendingUserRegistration(User pendingUser,
+                                                RegisterRequest registerRequest,
+                                                Role role,
+                                                String normalizedIdentity,
+                                                String normalizedPhone) {
+        pendingUser.setEmail(registerRequest.email());
+        pendingUser.setPhoneNumber(normalizedPhone);
+        pendingUser.setPassword(passwordEncoder.encode(registerRequest.password()));
+        pendingUser.setRole(role);
+        pendingUser.setStatus(UserStatus.PENDING);
+
+        String otp = generateOtp();
+        pendingUser.setOtpCode(otp);
+        pendingUser.setOtpExpiryTime(java.time.LocalDateTime.now().plusMinutes(1));
+
+        Profile profile = pendingUser.getProfile();
+        if (profile != null) {
+            profile.setFullname(registerRequest.fullname());
+            profile.setIdentityNumber(normalizedIdentity);
+            profile.setPhoneNumber(normalizedPhone);
+            profileRepository.save(profile);
+        }
+
+        userRepository.save(pendingUser);
+
+        try {
+            emailService.sendRegistrationOtp(pendingUser.getEmail(), otp);
+        } catch (Exception e) {
+            System.err.println("Info: Could not send email OTP: " + e.getMessage());
+        }
+    }
+
+    private boolean isPending(User user) {
+        return user != null && user.getStatus() == UserStatus.PENDING;
+    }
+
+    private boolean isSameUser(User left, User right) {
+        return left != null && right != null && left.getId().equals(right.getId());
+    }
+
+    private boolean isSameProfileOfUser(Profile profile, User user) {
+        return profile != null
+                && user != null
+                && user.getProfile() != null
+                && profile.getId().equals(user.getProfile().getId());
+    }
+
+    private String generateOtp() {
+        return String.format("%06d", new java.util.Random().nextInt(999999));
     }
 
     private Role resolveSignupRole(String roleInput) {

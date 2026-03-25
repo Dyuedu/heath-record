@@ -39,7 +39,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     final profile = userVM.profile;
     final avatar = (profile?.avatarUrl ?? '').trim();
 
-    final isAdmin = profile?.role?.toUpperCase() == 'ADMIN';
+    final isAdmin = profile?.role.toUpperCase() == 'ADMIN';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA), // Nền xám nhạt như ảnh
@@ -241,8 +241,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
       final vm = context.read<UserViewModel>();
       final success = await vm.updateAvatar(File(pickedFile.path));
       if (!mounted) return;
-      if (success) AppNotifier.success(context, 'Ảnh đại diện đã được cập nhật.');
-      else AppNotifier.error(context, vm.avatarErrorMessage ?? 'Không thể cập nhật.');
+      if (success) {
+        AppNotifier.success(context, 'Ảnh đại diện đã được cập nhật.');
+      } else {
+        AppNotifier.error(context, vm.avatarErrorMessage ?? 'Không thể cập nhật.');
+      }
     } on PlatformException catch (error) {
       if (!mounted) return;
       AppNotifier.error(context, error.message ?? 'Lỗi truy cập thư viện.');

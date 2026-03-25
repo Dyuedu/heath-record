@@ -3,9 +3,15 @@ import 'package:provider/provider.dart';
 import 'package:frontend/views/admin/admin_bottom_nav.dart';
 import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_pending_list_page.dart';
-import 'package:frontend/views/user/user_profile_page.dart';
+import 'package:frontend/views/admin/admin_statistics_page.dart';
+import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/views/admin/admin_profile_page.dart';
+import 'package:frontend/views/authentication/login_page.dart';
+import 'package:frontend/viewmodels/auth_viewmodel.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:frontend/views/admin/admin_tag_management_page.dart';
+import 'package:frontend/views/admin/admin_hospital_management_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -19,7 +25,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AdminViewModel>().loadDashboardStats();
+      final vm = context.read<AdminViewModel>();
+      vm.loadDashboardStats();
+      vm.loadRecordStats();
     });
   }
 
@@ -31,7 +39,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         child: Consumer<AdminViewModel>(
           builder: (context, viewModel, child) {
             final stats = viewModel.dashboardStats;
-            final isStatsLoading = viewModel.isLoading; // Or just check if stats is null
             final pendingCount = stats?['pendingApprovals'] ?? 0;
             final userCount = stats?['totalUsers'] ?? 0;
             final recordsCount = stats?['newRecordsThisMonth'] ?? 0;
@@ -53,8 +60,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   _buildStatCardsRow(userCount, pendingCount),
                   const SizedBox(height: 16),
 
-                  // Monthly records stat
+                   // Monthly records stat
                   _buildMonthlyRecordCard(recordsCount),
+                  const SizedBox(height: 20),
+
+                  // Mini chart preview
+                  _buildMiniChartPreview(viewModel),
                   const SizedBox(height: 28),
 
                   // Quick shortcuts
@@ -98,6 +109,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const AdminProfilePage()),
+        );
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminStatisticsPage()),
         );
         break;
     }
@@ -368,6 +385,103 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
+  Widget _buildMiniChartPreview(AdminViewModel vm) {
+    final rawData = vm.recordStats?['chartData'];
+    final List<Map<String, dynamic>> chartData =
+        rawData != null ? (rawData as List).cast<Map<String, dynamic>>() : [];
+
+    final hasData = chartData.isNotEmpty;
+    final maxY = hasData
+        ? chartData.map((d) => (d['count'] as num).toDouble()).fold(0.0, (a, b) => a > b ? a : b)
+        : 1.0;
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminStatisticsPage()),
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF246BFF), Color(0xFF5B8DEF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF246BFF).withOpacity(0.25),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Thống kê bệnh án (12 tháng)',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 80,
+              child: !hasData
+                  ? Center(
+                      child: Text(
+                        'Chưa có dữ liệu',
+                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                      ),
+                    )
+                  : BarChart(
+                      BarChartData(
+                        maxY: maxY * 1.3 + 1,
+                        barGroups: chartData.asMap().entries.map((e) {
+                          return BarChartGroupData(
+                            x: e.key,
+                            barRods: [
+                              BarChartRodData(
+                                toY: (e.value['count'] as num).toDouble(),
+                                color: Colors.white.withOpacity(0.8),
+                                width: 8,
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                        gridData: const FlGridData(show: false),
+                        borderData: FlBorderData(show: false),
+                        titlesData: const FlTitlesData(
+                          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        ),
+                        barTouchData: BarTouchData(enabled: false),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildShortcutsSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,17 +529,62 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 },
               ),
             ),
-            const SizedBox(width: 12),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
             Expanded(
               child: _shortcutItem(
                 icon: Icons.bar_chart_rounded,
                 label: 'Thống kê',
-                subtitle: 'dữ liệu dữ liệu',
+                subtitle: 'bệnh án & biểu đồ',
                 bgColor: const Color(0xFFECFDF5),
                 iconColor: const Color(0xFF10B981),
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminStatisticsPage()),
+                  );
+                },
               ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+                          child: _shortcutItem(
+                            icon: Icons.local_hospital_rounded,
+                            label: 'Bệnh viện',
+                            subtitle: 'quản lý danh sách',
+                            bgColor: const Color(0xFFECFDF5),
+                            iconColor: const Color(0xFF10B981),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const AdminHospitalManagementPage()),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _shortcutItem(
+                            icon: Icons.local_offer_rounded,
+                            label: 'Từ khóa',
+                            subtitle: 'quản lý tags',
+                            bgColor: const Color(0xFFF0F9FF),
+                            iconColor: const Color(0xFF06B6D4),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const AdminTagManagementPage()),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+
+
           ],
         ),
       ],

@@ -192,7 +192,7 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
                         Switch(
                           value: _accountActive,
                           onChanged: (v) => setState(() => _accountActive = v),
-                          activeColor: const Color(0xFF246BFF),
+                          activeThumbColor: const Color(0xFF246BFF),
                         ),
                       ],
                     ),

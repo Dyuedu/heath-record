@@ -159,7 +159,7 @@ class DoctorViewModel extends ChangeNotifier {
     }
 
     _displayDoctors = working;
-    if (notify) this.notifyListeners();
+    if (notify) notifyListeners();
   }
 
   int _compareByName(DoctorModel a, DoctorModel b) {
