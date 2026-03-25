@@ -23,6 +23,18 @@ public class Profile {
     private String cccdBackUrl;
     private String diplomaUrl;
 
+    @Column(columnDefinition = "TEXT")
+    private String allergy;
+
+    @Column(columnDefinition = "TEXT")
+    private String chronicDisease;
+
+    @Column(columnDefinition = "TEXT")
+    private String clinicalNotes;
+
+    @Column(length = 10)
+    private String bloodGroup;
+
     @OneToOne(mappedBy = "profile")
     private User user;
 }

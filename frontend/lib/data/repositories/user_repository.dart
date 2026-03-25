@@ -15,6 +15,10 @@ abstract class UserRepository {
     required String gender,
     required String dateOfBirth,
     required String address,
+    required String allergy,
+    required String chronicDisease,
+    required String clinicalNotes,
+    required String bloodGroup,
   });
 
   Future<bool> requestPasswordOtp();

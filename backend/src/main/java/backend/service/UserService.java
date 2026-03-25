@@ -139,6 +139,10 @@ public class UserService {
         profile.setGender(normalizeGender(request.gender()));
         profile.setDateOfBirth(normalizeDate(request.dateOfBirth()));
         profile.setAddress(trimToNull(request.address()));
+        profile.setAllergy(trimToNull(request.allergy()));
+        profile.setChronicDisease(trimToNull(request.chronicDisease()));
+        profile.setClinicalNotes(trimToNull(request.clinicalNotes()));
+        profile.setBloodGroup(trimToNull(request.bloodGroup()));
 
         userRepository.save(user);
         return mapToUserResponse(user);
@@ -225,6 +229,10 @@ public class UserService {
                 .dateOfBirth(profile != null ? profile.getDateOfBirth() : null)
                 .address(profile != null ? profile.getAddress() : null)
                 .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
+                .allergy(profile != null ? profile.getAllergy() : null)
+                .chronicDisease(profile != null ? profile.getChronicDisease() : null)
+                .clinicalNotes(profile != null ? profile.getClinicalNotes() : null)
+                .bloodGroup(profile != null ? profile.getBloodGroup() : null)
                 .build();
     }
 

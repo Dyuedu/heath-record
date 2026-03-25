@@ -5,6 +5,10 @@ public record UpdateMyProfileRequest(
         String phoneNumber,
         String gender,
         String dateOfBirth,
-        String address
+        String address,
+        String allergy,
+        String chronicDisease,
+        String clinicalNotes,
+        String bloodGroup
 ) {
 }

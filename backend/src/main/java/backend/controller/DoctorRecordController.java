@@ -47,4 +47,10 @@ public class DoctorRecordController {
     public ResponseEntity<List<RelativeSearchResponse>> searchProfiles(@RequestParam("query") String query) {
         return ResponseEntity.ok(doctorRecordService.searchProfilesForDoctor(query));
     }
+
+    @GetMapping("/patients/{profileId}/detail")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<backend.model.dto.response.DoctorPatientDetailResponse> getPatientDetail(@PathVariable java.util.UUID profileId) {
+        return ResponseEntity.ok(doctorRecordService.getPatientDetail(profileId));
+    }
 }

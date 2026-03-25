@@ -234,4 +234,52 @@ public class DoctorRecordService {
                 })
                 .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    public backend.model.dto.response.DoctorPatientDetailResponse getPatientDetail(UUID profileId) {
+        backend.model.Profile profile = profileRepository.findById(profileId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ bệnh nhân"));
+        
+        backend.model.User user = profile.getUser();
+        String roleName = user != null && user.getRole() != null ? user.getRole().getName() : "USER";
+        
+        backend.model.dto.response.UserResponse patientResponse = backend.model.dto.response.UserResponse.builder()
+                .id(profile.getId())
+                .email(user != null ? user.getEmail() : "")
+                .phoneNumber(user != null ? user.getPhoneNumber() : "")
+                .identityNumber(profile.getIdentityNumber() != null ? profile.getIdentityNumber() : "")
+                .fullName(profile.getFullname() != null ? profile.getFullname() : "")
+                .role(roleName)
+                .gender(profile.getGender() != null ? profile.getGender() : "")
+                .dateOfBirth(profile.getDateOfBirth() != null ? profile.getDateOfBirth() : "")
+                .address(profile.getAddress() != null ? profile.getAddress() : "")
+                .avatarUrl(profile.getAvatarUrl() != null ? profile.getAvatarUrl() : "")
+                .allergy(profile.getAllergy() != null ? profile.getAllergy() : "")
+                .chronicDisease(profile.getChronicDisease() != null ? profile.getChronicDisease() : "")
+                .clinicalNotes(profile.getClinicalNotes() != null ? profile.getClinicalNotes() : "")
+                .bloodGroup(profile.getBloodGroup() != null ? profile.getBloodGroup() : "")
+                .status(user != null && user.getStatus() != null ? user.getStatus().name() : "")
+                .build();
+                
+        List<backend.model.dto.response.RelativeSearchResponse> relatives = relativeRepository.findAllByProfileId(profileId).stream()
+                .map(rel -> {
+                    backend.model.User relUser = rel.getUser();
+                    backend.model.Profile relProfile = relUser != null ? relUser.getProfile() : null;
+                    
+                    return backend.model.dto.response.RelativeSearchResponse.builder()
+                            .id(relProfile != null ? relProfile.getId() : (relUser != null ? relUser.getId() : UUID.randomUUID()))
+                            .fullName(relProfile != null && relProfile.getFullname() != null ? relProfile.getFullname() : (relUser != null ? relUser.getEmail() : "N/A"))
+                            .phoneNumber(relUser != null && relUser.getPhoneNumber() != null ? relUser.getPhoneNumber() : "")
+                            .dateOfBirth(relProfile != null && relProfile.getDateOfBirth() != null ? relProfile.getDateOfBirth() : "")
+                            .avatarUrl(relProfile != null && relProfile.getAvatarUrl() != null ? relProfile.getAvatarUrl() : "")
+                            .relationship(rel.getRelationship() != null ? rel.getRelationship() : "")
+                            .build();
+                })
+                .collect(Collectors.toList());
+                
+        return backend.model.dto.response.DoctorPatientDetailResponse.builder()
+                .patient(patientResponse)
+                .relatives(relatives)
+                .build();
+    }
 }

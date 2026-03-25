@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
-import 'package:frontend/views/user/doctor_patient_records_page.dart';
+import 'package:frontend/views/doctor/doctor_patient_detail_page.dart';
 import 'package:provider/provider.dart';
 
 class DoctorUserSearchPage extends StatefulWidget {
@@ -14,19 +14,21 @@ class DoctorUserSearchPage extends StatefulWidget {
 
 class _DoctorUserSearchPageState extends State<DoctorUserSearchPage> {
   final TextEditingController _searchController = TextEditingController();
-  Timer? _debounce;
+  bool _hasSearched = false;
 
-  void _onKeywordChanged(String value) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      context.read<ProfileViewModel>().searchPatientsForDoctor(value);
-    });
+  void _onSearch() {
+    FocusScope.of(context).unfocus(); // ẩn bàn phím khi submit
+    final query = _searchController.text.trim();
+    if (query.isEmpty) {
+      if (mounted) setState(() => _hasSearched = false);
+      return;
+    }
+    if (mounted) setState(() => _hasSearched = true);
+    context.read<ProfileViewModel>().searchPatientsForDoctor(query);
   }
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -39,7 +41,7 @@ class _DoctorUserSearchPageState extends State<DoctorUserSearchPage> {
       backgroundColor: const Color(0xFFF8F9FD),
       appBar: AppBar(
         title: const Text(
-          'Tìm người dùng',
+          'Tìm kiếm bệnh nhân',
           style: TextStyle(
             color: Color(0xFF246BFF),
             fontWeight: FontWeight.bold,
@@ -60,8 +62,7 @@ class _DoctorUserSearchPageState extends State<DoctorUserSearchPage> {
                   child: TextField(
                     controller: _searchController,
                     textInputAction: TextInputAction.search,
-                    onSubmitted: vm.searchPatientsForDoctor,
-                    onChanged: _onKeywordChanged,
+                    onSubmitted: (_) => _onSearch(),
                     decoration: InputDecoration(
                       hintText: 'Nhập CCCD hoặc SĐT...',
                       prefixIcon: const Icon(Icons.search),
@@ -76,9 +77,7 @@ class _DoctorUserSearchPageState extends State<DoctorUserSearchPage> {
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
-                  onPressed: () => vm.searchPatientsForDoctor(
-                    _searchController.text,
-                  ),
+                  onPressed: _onSearch,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF246BFF),
                     foregroundColor: Colors.white,
@@ -97,12 +96,21 @@ class _DoctorUserSearchPageState extends State<DoctorUserSearchPage> {
                   }
 
                   if (vm.doctorSearchResults.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Nhập CCCD/SĐT để tìm người dùng.',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    );
+                    if (!_hasSearched) {
+                      return const Center(
+                        child: Text(
+                          'Nhập CCCD/SĐT và nhấn Tìm để tìm bệnh nhân.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      );
+                    } else {
+                      return const Center(
+                        child: Text(
+                          'Không tìm thấy bệnh nhân.',
+                          style: TextStyle(color: Colors.redAccent, fontSize: 16),
+                        ),
+                      );
+                    }
                   }
 
                   return ListView.separated(
@@ -117,12 +125,17 @@ class _DoctorUserSearchPageState extends State<DoctorUserSearchPage> {
                           border: Border.all(color: const Color(0xFFE0E6FF)),
                         ),
                         child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: Color(0xFFE0E6FF),
-                            child: Icon(
-                              Icons.person,
-                              color: Color(0xFF246BFF),
-                            ),
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFFE0E6FF),
+                            backgroundImage: user.avatarUrl.isNotEmpty
+                                ? NetworkImage(user.avatarUrl)
+                                : null,
+                            child: user.avatarUrl.isEmpty
+                                ? const Icon(
+                                    Icons.person,
+                                    color: Color(0xFF246BFF),
+                                  )
+                                : null,
                           ),
                           title: Text(
                             user.fullName.isEmpty
@@ -147,14 +160,12 @@ class _DoctorUserSearchPageState extends State<DoctorUserSearchPage> {
                               ),
                             ],
                           ),
-                          trailing: const Icon(Icons.chevron_right),
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => DoctorPatientRecordsPage(
+                                builder: (_) => DoctorPatientDetailPage(
                                   patientId: user.id,
-                                  patientName: user.fullName,
                                 ),
                               ),
                             );

@@ -16,10 +16,10 @@ class DioClient {
         ? envBaseUrl
         : const String.fromEnvironment('API_BASE_URL');
     final fallbackBaseUrl = kIsWeb
-        ? 'http://192.168.0.147:8081'
+        ? 'http://192.168.0.132:8081'
         : defaultTargetPlatform == TargetPlatform.android
-        ? 'http://192.168.0.147:8081'
-        : 'http://192.168.0.147:8081';
+        ? 'http://192.168.0.132:8081'
+        : 'http://192.168.0.132:8081';
 
     final resolvedBaseUrl = configuredBaseUrl.isNotEmpty
         ? configuredBaseUrl
