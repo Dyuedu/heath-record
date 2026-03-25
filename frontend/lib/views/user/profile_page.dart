@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/utils/relationship_formatter.dart';
+import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/views/user/add_profile_page.dart';
 import 'package:frontend/views/user/relative_detail_page.dart';
@@ -16,8 +17,15 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  static const Color _primaryBlue = Color(0xFF246BFF);
+  static const Color _textMain = Color(0xFF1F2A44);
+  static const Color _textMuted = Color(0xFF6B7280);
+  static const Color _bgPage = Color(0xFFF7F9FC);
+  static const Color _onlineDot = Color(0xFF22C55E);
+
   String? _lastOverviewError;
   String? _lastFamilyError;
+  bool _sortAscending = true;
 
   @override
   void initState() {
@@ -31,10 +39,60 @@ class _ProfilePageState extends State<ProfilePage> {
     return context.read<ProfileViewModel>().loadOverview();
   }
 
+  // ── Helpers ──────────────────────────────────────────────
+
+  String _formatDateOfBirth(String? dob) {
+    final trimmed = (dob ?? '').trim();
+    if (trimmed.isEmpty) return 'Chưa cập nhật';
+    try {
+      if (trimmed.contains('-') && trimmed.length >= 10) {
+        final parts = trimmed.split('-');
+        if (parts.length >= 3) {
+          return '${parts[2].substring(0, 2)}/${parts[1]}/${parts[0]}';
+        }
+      }
+      return trimmed;
+    } catch (_) {
+      return trimmed;
+    }
+  }
+
+  int? _calculateAge(String? dob) {
+    if (dob == null || dob.trim().isEmpty) return null;
+    try {
+      DateTime? birth;
+      if (dob.contains('-') && dob.length >= 10) {
+        birth = DateTime.tryParse(dob);
+      }
+      if (birth == null) return null;
+      final now = DateTime.now();
+      int age = now.year - birth.year;
+      if (now.month < birth.month || (now.month == birth.month && now.day < birth.day)) {
+        age--;
+      }
+      return age >= 0 ? age : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<Relative> _sortedProfiles(List<Relative> profiles) {
+    final sorted = List<Relative>.from(profiles);
+    sorted.sort((a, b) {
+      final nameA = a.name.toLowerCase();
+      final nameB = b.name.toLowerCase();
+      return _sortAscending ? nameA.compareTo(nameB) : nameB.compareTo(nameA);
+    });
+    return sorted;
+  }
+
+  // ── Build ────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ProfileViewModel>();
 
+    // Error handling
     final overviewError = vm.errorMessage;
     if (overviewError != null && overviewError != _lastOverviewError) {
       _lastOverviewError = overviewError;
@@ -57,282 +115,387 @@ class _ProfilePageState extends State<ProfilePage> {
       _lastFamilyError = null;
     }
 
+    final List<Relative> allMembers = List.from(vm.familyProfiles);
+
+    final sortedMembers = _sortedProfiles(allMembers);
+    final memberCount = sortedMembers.length;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: _bgPage,
       bottomNavigationBar: const CustomBottomNav(),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        automaticallyImplyLeading: false,
+        title: const Text(
+          'Hồ sơ gia đình',
+          style: TextStyle(color: _textMain, fontWeight: FontWeight.w700, fontSize: 18),
+        ),
+        centerTitle: false,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: Colors.grey.shade200, height: 1),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAddProfile,
+        backgroundColor: _primaryBlue,
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
+      ),
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
           onRefresh: _handleRefresh,
-          color: const Color(0xFF246BFF),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              children: [
-                if (vm.isLoading) const LinearProgressIndicator(minHeight: 2),
-                _buildPrimaryHeader('Thông tin chung'),
-                _buildMenuItem(
-                  Icons.person_outline,
-                  'Thông tin cá nhân',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const UserProfilePage()),
-                  ),
+          color: _primaryBlue,
+          child: vm.isLoading && allMembers.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  children: [
+                    _buildSummaryCard(sortedMembers, memberCount),
+                    const SizedBox(height: 24),
+                    _buildSectionHeader(memberCount),
+                    const SizedBox(height: 12),
+                    if (memberCount == 0)
+                      _buildEmptyState()
+                    else
+                      ...sortedMembers.map((m) => _buildMemberCard(m)),
+                    const SizedBox(height: 32),
+                    _buildFooter(),
+                  ],
                 ),
-                // _buildMenuItem(
-                //   Icons.favorite_border,
-                //   'Thông tin sức khỏe',
-                //   onTap: () => Navigator.push(
-                //     context,
-                //     MaterialPageRoute(builder: (_) => const MedicalRecordPage()),
-                //   ),
-                // ),
-                const SizedBox(height: 8),
-                _buildSectionTitle('Hồ sơ người thân'),
-                _buildFamilySection(vm),
-              ],
-            ),
-          ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      color: Colors.white,
-      child: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-      ),
-    );
-  }
+  // ── Summary Card ─────────────────────────────────────────
 
-  Widget _buildPrimaryHeader(String title) {
+  Widget _buildSummaryCard(List<Relative> members, int count) {
     return Container(
-      width: double.infinity,
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFEEF2FF), Color(0xFFE0E7FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: _primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
         children: [
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.groups_outlined, color: _primaryBlue, size: 28),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'THÀNH VIÊN',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _textMuted,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$count người',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: _textMain,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          Divider(color: Colors.grey.shade200, height: 1),
+          _buildAvatarStack(members),
         ],
       ),
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title, {VoidCallback? onTap}) {
-    return Container(
-      color: Colors.white,
-      child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF246BFF), size: 22),
-        title: Text(title, style: const TextStyle(fontSize: 14)),
-        trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-        onTap: onTap,
-      ),
-    );
-  }
+  Widget _buildAvatarStack(List<Relative> members) {
+    const maxShow = 3;
+    final show = members.take(maxShow).toList();
+    final extra = members.length - maxShow;
 
-  Widget _buildFamilySection(ProfileViewModel vm) {
-    final profileCards = vm.familyProfiles;
-
-    if (vm.isFamilyLoading && vm.familyProfiles.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        color: Colors.white,
-        child: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (profileCards.isEmpty) {
-      return _buildEmptyFamilyState();
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-      color: Colors.white,
-      child: Column(
+    return SizedBox(
+      width: (show.length * 28.0) + (extra > 0 ? 32 : 0) + 4,
+      height: 40,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          for (final card in profileCards)
-            _buildFamilyCard(
-              card.name,
-              card.relationship,
-              card.avatarUrl ?? '',
-              card.dateOfBirth,
-              profileId: card.profileId,
-              canOpenDetail: true,
+          for (int i = 0; i < show.length; i++)
+            Positioned(
+              left: i * 28.0,
+              child: _buildSmallAvatar(show[i].avatarUrl, 18),
             ),
-          const SizedBox(height: 12),
-          _buildAddProfileButton(),
+          if (extra > 0)
+            Positioned(
+              left: show.length * 28.0,
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: _primaryBlue,
+                child: Text(
+                  '+$extra',
+                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildFamilyCard(
-    String name,
-    String relationship,
-    String avatarUrl,
-    String? dateOfBirth, {
-    required String? profileId,
-    required bool canOpenDetail,
-  }) {
-    final dobText = _formatValue(dateOfBirth);
+  Widget _buildSmallAvatar(String? url, double radius) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: CircleAvatar(
+        radius: radius,
+        backgroundColor: const Color(0xFFDDE3FF),
+        backgroundImage: (url != null && url.isNotEmpty) ? NetworkImage(url) : null,
+        child: (url == null || url.isEmpty) ? Icon(Icons.person, size: radius, color: _primaryBlue) : null,
+      ),
+    );
+  }
+
+  // ── Section Header ───────────────────────────────────────
+
+  Widget _buildSectionHeader(int count) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        RichText(
+          text: TextSpan(
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _textMain),
+            children: [
+              const TextSpan(text: 'Danh sách thành viên  '),
+              TextSpan(
+                text: '$count',
+                style: const TextStyle(color: _primaryBlue, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+        ),
+        GestureDetector(
+          onTap: () => setState(() => _sortAscending = !_sortAscending),
+          child: Row(
+            children: [
+              Text(
+                'Sắp xếp',
+                style: TextStyle(
+                  color: _primaryBlue,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(
+                _sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                size: 16,
+                color: _primaryBlue,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Member Card ──────────────────────────────────────────
+
+  Widget _buildMemberCard(Relative member) {
+    final dobFormatted = _formatDateOfBirth(member.dateOfBirth);
+    final age = _calculateAge(member.dateOfBirth);
+    final isSelf = member.relationship.toLowerCase() == 'me';
+    final relationLabel = formatRelationshipLabel(member.relationship);
 
     return GestureDetector(
       onTap: () {
-        if (!canOpenDetail) {
-          return;
-        }
-
-        if (profileId == null || profileId.isEmpty) {
+        final pid = member.profileId;
+        if (pid == null || pid.isEmpty) {
           AppNotifier.info(context, 'Hồ sơ này chưa có thông tin chi tiết.');
           return;
         }
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                RelativeDetailPage(relativeName: name, profileId: profileId),
+            builder: (_) => RelativeDetailPage(relativeName: member.name, profileId: pid),
           ),
         );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFF),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE0E6FF)),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            _buildAvatarThumb(avatarUrl),
+            // Avatar with online dot
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: const Color(0xFFDDE3FF),
+                  backgroundImage: (member.avatarUrl != null && member.avatarUrl!.isNotEmpty)
+                      ? NetworkImage(member.avatarUrl!)
+                      : null,
+                  child: (member.avatarUrl == null || member.avatarUrl!.isEmpty)
+                      ? const Icon(Icons.person, color: _primaryBlue, size: 24)
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: _onlineDot,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(width: 14),
+            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: Color(0xFF1F2D3D),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formatRelationshipLabel(relationship),
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          member.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: _textMain,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildRelationshipBadge(relationLabel, isSelf),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.cake_outlined,
-                        size: 15,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 6),
+                      const Icon(Icons.calendar_today_outlined, size: 13, color: _textMuted),
+                      const SizedBox(width: 5),
                       Text(
-                        dobText,
-                        style: const TextStyle(
-                          color: Color(0xFF5F6368),
-                          fontSize: 12.5,
-                        ),
+                        dobFormatted,
+                        style: const TextStyle(fontSize: 12.5, color: _textMuted),
                       ),
+                      if (age != null) ...[
+                        const SizedBox(width: 10),
+                        Text(
+                          '$age tuổi',
+                          style: const TextStyle(fontSize: 12.5, color: _textMuted, fontWeight: FontWeight.w600),
+                        ),
+                      ],
                     ],
                   ),
                 ],
               ),
             ),
-            Icon(
-              canOpenDetail ? Icons.chevron_right : Icons.person_outline,
-              color: Colors.grey,
-            ),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFFD1D5DB), size: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEmptyFamilyState() {
+  Widget _buildRelationshipBadge(String label, bool isSelf) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
-      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: isSelf ? _primaryBlue.withValues(alpha: 0.1) : const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: isSelf ? _primaryBlue : _textMuted,
+        ),
+      ),
+    );
+  }
+
+  // ── Empty & Footer ───────────────────────────────────────
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         children: [
-          const Icon(Icons.folder, size: 80, color: Color(0xFFFFD54F)),
+          Icon(Icons.family_restroom_outlined, size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 12),
           const Text(
-            'Chưa có hồ sơ người thân nào.',
-            style: TextStyle(color: Color(0xFF5F6368), fontSize: 13),
+            'Chưa có thành viên nào.\nHãy thêm người thân vào hồ sơ gia đình!',
             textAlign: TextAlign.center,
+            style: TextStyle(color: _textMuted, fontSize: 13, height: 1.5),
           ),
-          const SizedBox(height: 16),
-          _buildAddProfileButton(),
         ],
       ),
     );
   }
 
-  Widget _buildAddProfileButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _openAddProfile,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF246BFF),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  Widget _buildFooter() {
+    final now = DateTime.now();
+    final dateStr = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    return Column(
+      children: [
+        Icon(Icons.link_outlined, size: 28, color: Colors.grey.shade300),
+        const SizedBox(height: 6),
+        Text(
+          'Cập nhật lần cuối: $dateStr',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
         ),
-        child: const Text(
-          'THÊM HỒ SƠ',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
+      ],
     );
   }
 
-  Widget _buildAvatarThumb(String avatarUrl) {
-    return avatarUrl.isEmpty
-        ? const CircleAvatar(
-            radius: 26,
-            backgroundColor: Color(0xFFDDE3FF),
-            child: CircleAvatar(
-              radius: 24,
-              backgroundColor: Color(0xFFE0E0FF),
-              child: Icon(Icons.person, color: Color(0xFF246BFF), size: 22),
-            ),
-          )
-        : CircleAvatar(
-            radius: 26,
-            backgroundColor: Color(0xFFDDE3FF),
-            child: CircleAvatar(
-              radius: 24,
-              backgroundImage: NetworkImage(avatarUrl),
-              onBackgroundImageError: (exception, stackTrace) {},
-            ),
-          );
-  }
+  // ── Navigation ───────────────────────────────────────────
 
   Future<void> _openAddProfile() async {
     await Navigator.push(
@@ -343,10 +506,4 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!mounted) return;
     await context.read<ProfileViewModel>().reloadFamilyProfiles();
   }
-
-  String _formatValue(String? value) {
-    final trimmed = (value ?? '').trim();
-    return trimmed.isEmpty ? 'Chưa cập nhật' : trimmed;
-  }
-
 }
