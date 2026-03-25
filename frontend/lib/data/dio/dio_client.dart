@@ -1,14 +1,15 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/utils/app_routers.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
-import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/main.dart'; // Để lấy navigatorKey
 
 class DioClient {
   final SecureStorageRepository _storage;
   late final Dio _dio;
+  static bool _isNavigatingToLogin = false;
 
   DioClient(this._storage) {
     final envBaseUrl = (dotenv.env['API_BASE_URL'] ?? '').trim();
@@ -21,13 +22,18 @@ class DioClient {
         ? 'http://192.168.0.132:8081'
         : 'http://192.168.0.132:8081';
 
-    final resolvedBaseUrl = configuredBaseUrl.isNotEmpty
-        ? configuredBaseUrl
-        : fallbackBaseUrl;
+    if (configuredBaseUrl.isEmpty) {
+      throw StateError(
+        'API_BASE_URL is required. Please set API_BASE_URL in .env or via --dart-define.',
+      );
+    }
 
     _dio = Dio(
       BaseOptions(
-        baseUrl: _normalizeBaseUrl(resolvedBaseUrl),
+        baseUrl: _normalizeBaseUrl(configuredBaseUrl),
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 15),
+        sendTimeout: const Duration(seconds: 15),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -38,18 +44,41 @@ class DioClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          final path = options.path;
+          final isAuthEndpoint = path.startsWith('/api/auth/');
+          if (isAuthEndpoint) {
+            options.headers.remove('Authorization');
+            return handler.next(options);
+          }
+
           final token = await _storage.getToken();
 
-          if (token != null) {
+          if (token != null && token.trim().isNotEmpty) {
             // Kiểm tra hết hạn chủ động phía Client
-            if (JwtDecoder.isExpired(token)) {
+            try {
+              if (JwtDecoder.isExpired(token)) {
+                await _storage.deleteToken();
+                _redirectToLogin();
+                return handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    message: "Token expired",
+                    type: DioExceptionType.badResponse,
+                  ),
+                );
+              }
+              options.headers['Authorization'] = 'Bearer $token';
+            } catch (e) {
               await _storage.deleteToken();
               _redirectToLogin();
               return handler.reject(
-                DioException(requestOptions: options, message: "Token expired"),
+                DioException(
+                  requestOptions: options,
+                  message: "Invalid token format",
+                  type: DioExceptionType.badResponse,
+                ),
               );
             }
-            options.headers['Authorization'] = 'Bearer $token';
           }
           return handler.next(options);
         },
@@ -57,7 +86,8 @@ class DioClient {
           // Xử lý khi Server trả về 401 Unauthorized
           if (e.response?.statusCode == 401) {
             String? errorMessage;
-            if (e.response?.data is Map && e.response!.data['message'] != null) {
+            if (e.response?.data is Map &&
+                e.response!.data['message'] != null) {
               errorMessage = e.response!.data['message'];
             }
             await _storage.deleteToken();
@@ -69,18 +99,19 @@ class DioClient {
     );
   }
 
-  static bool _isNavigatingToLogin = false;
-
   // Hàm điều hướng tập trung
   void _redirectToLogin([String? message]) {
     if (_isNavigatingToLogin) return;
     _isNavigatingToLogin = true;
 
-    navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      AppRouter.login,
-      (route) => false,
-      arguments: message,
-    );
+    // Đảm bảo điều hướng được thực hiện sau khi frame được xây dựng
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        AppRouter.login,
+        (route) => false,
+        arguments: message,
+      );
+    });
 
     Future.delayed(const Duration(seconds: 2), () {
       _isNavigatingToLogin = false;

@@ -6,6 +6,7 @@ import 'package:frontend/views/doctor/create_medical_record_page.dart';
 import 'package:frontend/views/home/doctor_user_search_page.dart';
 import 'package:frontend/viewmodels/notification_viewmodel.dart';
 import 'package:frontend/views/home/notification_page.dart';
+import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:provider/provider.dart';
@@ -78,9 +79,10 @@ class _HomePageState extends State<HomePage> {
           setState(() {
             _userRole = decoded['role']?.toString();
           });
-          
+
           // Connect to real-time notification socket for all roles
-          final userId = decoded['id']?.toString() ?? decoded['sub']?.toString();
+          final userId =
+              decoded['id']?.toString() ?? decoded['sub']?.toString();
           if (userId != null) {
             context.read<NotificationViewModel>().connect(userId);
           }
@@ -95,7 +97,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  bool get _isDoctor => (_userRole?.toLowerCase() == 'role_doctor');
+  bool get _isDoctor {
+    final role = (_userRole ?? '').trim().toLowerCase();
+    return role == 'doctor' || role == 'role_doctor';
+  }
 
   List<_MockMedicalHistoryItem> get _filteredHistoryItems {
     final query = _recordSearchQuery.trim().toLowerCase();
@@ -210,7 +215,11 @@ class _UserHeaderSection extends StatelessWidget {
   final bool isLoading;
   final bool isDoctor;
 
-  const _UserHeaderSection({required this.profile, required this.isLoading, this.isDoctor = false});
+  const _UserHeaderSection({
+    required this.profile,
+    required this.isLoading,
+    this.isDoctor = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -357,7 +366,7 @@ class _DoctorSearchInput extends StatelessWidget {
             Expanded(
               child: Text(
                 isDoctor
-                  ? "Tìm người dùng theo CCCD hoặc SĐT"
+                    ? "Tìm người dùng theo CCCD hoặc SĐT"
                     : "Tìm bác sĩ, bệnh viện...",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -368,8 +377,7 @@ class _DoctorSearchInput extends StatelessWidget {
                 ),
               ),
             ),
-            if (isDoctor)
-              const SizedBox(width: 10),
+            if (isDoctor) const SizedBox(width: 10),
             if (isDoctor)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -389,7 +397,6 @@ class _DoctorSearchInput extends StatelessWidget {
                   ),
                 ),
               ),
-
           ],
         ),
       ),
@@ -517,6 +524,15 @@ class _QuickServicesGrid extends StatelessWidget {
         'color': const Color(0xFFE8FFF1),
         'onTap': () {},
       },
+      if (!isDoctor)
+        {
+          'icon': Icons.calendar_month_rounded,
+          'label': 'Đặt lịch',
+          'color': const Color(0xFFE8F1FF),
+          'onTap': () {
+            Navigator.pushNamed(context, AppRouter.patientBookAppointment);
+          },
+        },
       if (isDoctor)
         {
           'icon': Icons.add_circle_outline_rounded,
@@ -537,6 +553,15 @@ class _QuickServicesGrid extends StatelessWidget {
           'label': 'Bệnh nhân',
           'color': const Color(0xFFFFF8E1),
           'onTap': () {},
+        },
+      if (isDoctor)
+        {
+          'icon': Icons.calendar_month_rounded,
+          'label': 'Lịch khám',
+          'color': const Color(0xFFE8F1FF),
+          'onTap': () {
+            Navigator.pushNamed(context, '/doctor-schedule');
+          },
         },
     ];
 

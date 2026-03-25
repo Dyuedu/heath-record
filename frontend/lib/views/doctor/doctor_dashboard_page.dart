@@ -184,8 +184,10 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
       {
         'title': 'Create Record',
         'icon': Icons.note_add_rounded,
-        'onTap': (BuildContext context) =>
-            _showComingSoon(context, 'Vui lòng tạo hồ sơ từ trang Home > Hồ sơ mới.'),
+        'onTap': (BuildContext context) => _showComingSoon(
+          context,
+          'Vui lòng tạo hồ sơ từ trang Home > Hồ sơ mới.',
+        ),
       },
       {
         'title': 'View Patients',
@@ -197,7 +199,7 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
         'title': 'Schedule',
         'icon': Icons.calendar_month,
         'onTap': (BuildContext context) =>
-            _showComingSoon(context, 'Connected calendar coming soon.'),
+            Navigator.pushNamed(context, '/doctor-schedule'),
       },
       {
         'title': 'My Profile',
