@@ -21,6 +21,7 @@ import backend.service.JWTService;
 
 import java.io.IOException;
 import java.util.UUID;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -41,18 +42,30 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
-        String token = "";
-        UUID userId = null;
-        // nếu là google thì bỏ qua, không check jwt
-        if (request.getServletPath().contains("/api/auth/google")) {
+        String servletPath = request.getServletPath();
+        if (servletPath.startsWith("/api/auth/")) {
             filterChain.doFilter(request, response);
             return;
         }
+
+        String header = request.getHeader("Authorization");
+        String token = "";
+        UUID userId = null;
+
         if (header != null && header.startsWith("Bearer ")) {
             token = header.substring(7);
-            userId = UUID.fromString(jwtService.extractUserId(token));
+            try {
+                String extractedUserId = jwtService.extractUserId(token);
+                if (extractedUserId != null && !extractedUserId.isBlank()) {
+                    userId = UUID.fromString(extractedUserId);
+                }
+            } catch (Exception ex) {
+                SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
+                return;
+            }
         }
+
         Boolean isLogout = redisTemplate.hasKey(token);
         if (Boolean.TRUE.equals(isLogout)) {
             SecurityContextHolder.clearContext();
@@ -61,15 +74,18 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserById(userId);
-            if (jwtService.isTokenValid(token, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-                // Gắn thêm thông tin request (IP, Browser...)
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            try {
+                UserDetails userDetails = userDetailsService.loadUserById(userId);
+                if (jwtService.isTokenValid(token, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (UsernameNotFoundException ex) {
+                SecurityContextHolder.clearContext();
             }
         }
         filterChain.doFilter(request, response);

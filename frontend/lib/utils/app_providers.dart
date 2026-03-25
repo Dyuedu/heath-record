@@ -13,9 +13,12 @@ import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/data/repositories/user_repository.dart';
 import 'package:frontend/data/repositories/profile_repository.dart';
 import 'package:frontend/data/repositories/notification_repository.dart';
+import 'package:frontend/data/repositories/appointment_repository.dart';
+import 'package:frontend/data/repositories/impl/appointment_repository_imp.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
+import 'package:frontend/viewmodels/schedule_viewmodel.dart';
 import 'package:frontend/viewmodels/link_request_viewmodel.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
@@ -92,8 +95,11 @@ class AppProviders {
           repository: context.read<RecordRepository>(),
         ),
       ),
-      ChangeNotifierProvider<DoctorViewModel>(
-        create: (context) => DoctorViewModel(),
+      ChangeNotifierProxyProvider<UserRepository, DoctorViewModel>(
+        create: (context) =>
+            DoctorViewModel(repository: context.read<UserRepository>()),
+        update: (context, userRepository, previous) =>
+            previous ?? DoctorViewModel(repository: userRepository),
       ),
       ChangeNotifierProxyProvider<UserRepository, UserViewModel>(
         create: (context) =>
@@ -118,7 +124,8 @@ class AppProviders {
         update: (context, dioClient, previous) => AdminRepositoryImp(dioClient),
       ),
       ProxyProvider<DioClient, NotificationRepository>(
-        update: (context, dioClient, previous) => NotificationRepository(dioClient: dioClient),
+        update: (context, dioClient, previous) =>
+            NotificationRepository(dioClient: dioClient),
       ),
       ChangeNotifierProxyProvider<AdminRepository, AdminViewModel>(
         create: (context) =>
@@ -126,12 +133,25 @@ class AppProviders {
         update: (context, repository, previous) =>
             previous ?? AdminViewModel(repository: repository),
       ),
-      ChangeNotifierProxyProvider<NotificationRepository, NotificationViewModel>(
+      ChangeNotifierProxyProvider<
+        NotificationRepository,
+        NotificationViewModel
+      >(
         create: (context) => NotificationViewModel(
           repository: context.read<NotificationRepository>(),
         ),
         update: (context, repository, previous) =>
             previous ?? NotificationViewModel(repository: repository),
+      ),
+      ProxyProvider<DioClient, AppointmentRepository>(
+        update: (context, dioClient, previous) =>
+            AppointmentRepositoryImp(dioClient),
+      ),
+      ChangeNotifierProxyProvider<AppointmentRepository, ScheduleViewModel>(
+        create: (context) =>
+            ScheduleViewModel(context.read<AppointmentRepository>()),
+        update: (context, appointmentRepository, previous) =>
+            previous ?? ScheduleViewModel(appointmentRepository),
       ),
     ];
   }

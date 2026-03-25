@@ -4,6 +4,7 @@ import 'package:frontend/data/models/auth/register_request.dart';
 import 'package:frontend/data/models/auth/register_result_model.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
+import 'package:dio/dio.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
 class AuthRepositoryImp implements AuthRepository {
@@ -52,18 +53,43 @@ class AuthRepositoryImp implements AuthRepository {
         data: payload,
       );
 
-      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+      if (response.statusCode == 200 && response.data is Map) {
         return RegisterResultModel.fromMap(
-          response.data as Map<String, dynamic>,
+          Map<String, dynamic>.from(response.data as Map),
         );
       }
       if (response.statusCode == 200) {
         return RegisterResultModel.fallbackSuccess();
       }
-    } catch (error) {
-      print('Register error: $error');
+      throw Exception('Đăng ký thất bại. Vui lòng thử lại.');
+    } on DioException catch (error) {
+      final data = error.response?.data;
+      if (data is Map) {
+        final map = Map<String, dynamic>.from(data);
+        final message = map['message']?.toString();
+        if (message != null && message.trim().isNotEmpty) {
+          throw Exception(message);
+        }
+
+        final validation = map['validationErrors'];
+        if (validation is Map && validation.isNotEmpty) {
+          final firstError = validation.values.first?.toString();
+          if (firstError != null && firstError.trim().isNotEmpty) {
+            throw Exception(firstError);
+          }
+        }
+      }
+
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.sendTimeout) {
+        throw Exception('Kết nối tới máy chủ bị timeout. Vui lòng thử lại.');
+      }
+
+      throw Exception('Đăng ký thất bại. Vui lòng thử lại.');
+    } catch (_) {
+      throw Exception('Đăng ký thất bại. Vui lòng thử lại.');
     }
-    return null;
   }
 
   @override

@@ -12,16 +12,19 @@ class DioClient {
   DioClient(this._storage) {
     final configuredBaseUrl = const String.fromEnvironment('API_BASE_URL');
     final fallbackBaseUrl = kIsWeb
-        ? 'http://192.168.1.22:8081'
+        ? 'http://localhost:8081'
         : defaultTargetPlatform == TargetPlatform.android
-        ? 'http://192.168.1.22:8081'
-        : 'http://192.168.1.22:8081';
+        ? 'http://10.0.2.2:8081'
+        : 'http://localhost:8081';
 
     _dio = Dio(
       BaseOptions(
         baseUrl: configuredBaseUrl.isNotEmpty
             ? configuredBaseUrl
             : fallbackBaseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 15),
+        sendTimeout: const Duration(seconds: 15),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -32,9 +35,16 @@ class DioClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          final path = options.path;
+          final isAuthEndpoint = path.startsWith('/api/auth/');
+          if (isAuthEndpoint) {
+            options.headers.remove('Authorization');
+            return handler.next(options);
+          }
+
           final token = await _storage.getToken();
 
-          if (token != null) {
+          if (token != null && token.trim().isNotEmpty) {
             // Kiểm tra hết hạn chủ động phía Client
             if (JwtDecoder.isExpired(token)) {
               await _storage.deleteToken();

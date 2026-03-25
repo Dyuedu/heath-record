@@ -39,6 +39,20 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     long countByStatus(UserStatus status);
     long countByStatusNot(UserStatus status);
 
+    @Query("""
+            SELECT u
+            FROM User u
+            JOIN u.role r
+            LEFT JOIN FETCH u.profile p
+            WHERE LOWER(r.name) = 'doctor'
+              AND (:keyword IS NULL OR :keyword = ''
+                   OR LOWER(COALESCE(p.fullname, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(COALESCE(u.phoneNumber, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            ORDER BY COALESCE(p.fullname, u.email)
+            """)
+    List<User> findDoctors(@Param("keyword") String keyword);
+
     // For Admin User Management
     @org.springframework.data.jpa.repository.Query(
             value = "SELECT u.* FROM users u " +

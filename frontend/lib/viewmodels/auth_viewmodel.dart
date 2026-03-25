@@ -143,7 +143,12 @@ class AuthViewModel extends ChangeNotifier {
       _setLoading(false);
       return result;
     } catch (e) {
-      _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
+      final raw = e.toString();
+      if (raw.startsWith('Exception: ')) {
+        _errorMessage = raw.substring('Exception: '.length);
+      } else {
+        _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
+      }
       _setLoading(false);
       return null;
     }
