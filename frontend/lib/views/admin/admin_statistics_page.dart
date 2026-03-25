@@ -5,7 +5,7 @@ import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/views/admin/admin_bottom_nav.dart';
 import 'package:frontend/views/admin/admin_dashboard_page.dart';
 import 'package:frontend/views/admin/admin_user_management_page.dart';
-import 'package:frontend/views/admin/admin_pending_list_page.dart';
+import 'package:frontend/views/admin/admin_profile_page.dart';
 
 class AdminStatisticsPage extends StatefulWidget {
   const AdminStatisticsPage({super.key});
@@ -33,6 +33,7 @@ class _AdminStatisticsPageState extends State<AdminStatisticsPage> {
   }
 
   void _onNavTap(BuildContext context, int index) {
+    if (index == 2) return; // Already here
     switch (index) {
       case 0:
         Navigator.pushAndRemoveUntil(
@@ -47,14 +48,12 @@ class _AdminStatisticsPageState extends State<AdminStatisticsPage> {
           MaterialPageRoute(builder: (_) => const AdminUserManagementPage()),
         );
         break;
-      case 2:
+      case 3:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => AdminPendingListPage()),
+          MaterialPageRoute(builder: (_) => const AdminProfilePage()),
         );
         break;
-      case 3:
-        break; // Already here
     }
   }
 
@@ -131,7 +130,7 @@ class _AdminStatisticsPageState extends State<AdminStatisticsPage> {
         ),
       ),
       bottomNavigationBar: AdminBottomNav(
-        currentIndex: 3,
+        currentIndex: 2,
         onTap: (index) => _onNavTap(context, index),
       ),
     );
