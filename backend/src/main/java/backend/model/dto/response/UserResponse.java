@@ -23,9 +23,5 @@ public class UserResponse {
     String cccdFrontUrl;
     String cccdBackUrl;
     String diplomaUrl;
-    String allergy;
-    String chronicDisease;
-    String clinicalNotes;
-    String bloodGroup;
     LocalDateTime createdAt;
 }

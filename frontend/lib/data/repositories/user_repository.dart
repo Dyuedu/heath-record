@@ -40,5 +40,8 @@ abstract class UserRepository {
     required String patientId,
   });
 
-  Future<List<UserProfileModel>> fetchDoctors({String? keyword});
+  Future<List<UserProfileModel>> fetchDoctors({
+    String? keyword,
+    String? department,
+  });
 }

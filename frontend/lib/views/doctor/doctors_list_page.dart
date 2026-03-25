@@ -47,7 +47,7 @@ class _DoctorsListPageState extends State<DoctorsListPage> {
       appBar: _buildAppBar(context),
       body: Column(
         children: [
-          _buildSearchBar(),
+          _buildSearchBar(vm),
           _buildFilterBar(vm),
           Expanded(child: _buildDoctorList(vm)),
         ],
@@ -61,40 +61,86 @@ class _DoctorsListPageState extends State<DoctorsListPage> {
       backgroundColor: Colors.white,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, color: AppTheme.primaryColor),
+        icon: const Icon(
+          Icons.arrow_back_ios_new,
+          color: AppTheme.primaryColor,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
       title: const Text(
         'Doctors',
-        style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: AppTheme.primaryColor,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       centerTitle: true,
       actions: [
-        IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none, color: AppTheme.primaryColor)),
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(
+            Icons.notifications_none,
+            color: AppTheme.primaryColor,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(DoctorViewModel vm) {
+    final dropdownItems = [
+      const DropdownMenuItem(value: '', child: Text('Tất cả khoa')),
+      ...vm.departments.map(
+        (dept) => DropdownMenuItem(value: dept, child: Text(dept)),
+      ),
+    ];
+    final dropdownValue = vm.selectedDepartment ?? '';
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: ValueListenableBuilder<TextEditingValue>(
-        valueListenable: _searchController,
-        builder: (_, value, __) {
-          return TextField(
-            controller: _searchController,
+      child: Column(
+        children: [
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _searchController,
+            builder: (_, value, __) {
+              return TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Tìm kiếm theo tên bác sĩ',
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: AppTheme.primaryColor,
+                  ),
+                  suffixIcon: value.text.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(
+                            Icons.close,
+                            color: AppTheme.captionTextColor,
+                          ),
+                          onPressed: () => _searchController.clear(),
+                        ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: dropdownValue,
+            items: dropdownItems,
+            onChanged: vm.departments.isEmpty
+                ? null
+                : (value) => vm.setDepartmentFilter(
+                    value == null || value.isEmpty ? null : value,
+                  ),
             decoration: InputDecoration(
-              hintText: 'Search doctors or specialties',
-              prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
-              suffixIcon: value.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.captionTextColor),
-                      onPressed: () => _searchController.clear(),
-                    ),
+              labelText: 'Lọc theo khoa',
+              prefixIcon: const Icon(
+                Icons.local_hospital_outlined,
+                color: AppTheme.primaryColor,
+              ),
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -109,7 +155,10 @@ class _DoctorsListPageState extends State<DoctorsListPage> {
           Center(
             child: Text(
               'Sort',
-              style: TextStyle(color: AppTheme.captionTextColor.withValues(alpha: 0.9), fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: AppTheme.captionTextColor.withValues(alpha: 0.9),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -147,7 +196,11 @@ class _DoctorsListPageState extends State<DoctorsListPage> {
     );
   }
 
-  Widget _filterChip({required String label, required bool isActive, required ValueChanged<bool> onSelected}) {
+  Widget _filterChip({
+    required String label,
+    required bool isActive,
+    required ValueChanged<bool> onSelected,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(right: 10),
       child: ChoiceChip(
@@ -156,7 +209,10 @@ class _DoctorsListPageState extends State<DoctorsListPage> {
         onSelected: onSelected,
         selectedColor: AppTheme.primaryColor,
         backgroundColor: AppTheme.primaryLight,
-        labelStyle: TextStyle(color: isActive ? Colors.white : AppTheme.primaryColor, fontWeight: FontWeight.w600),
+        labelStyle: TextStyle(
+          color: isActive ? Colors.white : AppTheme.primaryColor,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -180,7 +236,11 @@ class _DoctorsListPageState extends State<DoctorsListPage> {
               shape: BoxShape.circle,
               boxShadow: isActive ? DoctorUIHelpers.softShadow(blur: 12) : null,
             ),
-            child: Icon(icon, color: isActive ? Colors.white : AppTheme.primaryColor, size: 20),
+            child: Icon(
+              icon,
+              color: isActive ? Colors.white : AppTheme.primaryColor,
+              size: 20,
+            ),
           ),
         ),
       ),
@@ -227,7 +287,11 @@ class _DoctorsListPageState extends State<DoctorsListPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            Icon(Icons.search_off_rounded, size: 64, color: AppTheme.captionTextColor),
+            Icon(
+              Icons.search_off_rounded,
+              size: 64,
+              color: AppTheme.captionTextColor,
+            ),
             SizedBox(height: 12),
             Text(
               'No doctors match your filters right now.',
@@ -263,7 +327,10 @@ class _DoctorCard extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppTheme.primaryLight, width: 3),
             ),
-            child: CircleAvatar(radius: 42, backgroundImage: NetworkImage(doctor.imageUrl)),
+            child: CircleAvatar(
+              radius: 42,
+              backgroundImage: NetworkImage(doctor.imageUrl),
+            ),
           ),
           const SizedBox(width: 18),
           Expanded(
@@ -272,18 +339,28 @@ class _DoctorCard extends StatelessWidget {
               children: [
                 Text(
                   doctor.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.bodyTextColor),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: AppTheme.bodyTextColor,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.primaryLight,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     doctor.specialty,
-                    style: const TextStyle(fontSize: 12, color: AppTheme.primaryColor),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.primaryColor,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -291,19 +368,23 @@ class _DoctorCard extends StatelessWidget {
                   children: [
                     ...List.generate(5, (index) {
                       final filled = doctor.rating >= index + 1;
-                      final halfFilled = doctor.rating > index && doctor.rating < index + 1;
+                      final halfFilled =
+                          doctor.rating > index && doctor.rating < index + 1;
                       return Icon(
                         filled
                             ? Icons.star_rounded
                             : halfFilled
-                                ? Icons.star_half_rounded
-                                : Icons.star_outline_rounded,
+                            ? Icons.star_half_rounded
+                            : Icons.star_outline_rounded,
                         size: 18,
                         color: AppTheme.primaryColor,
                       );
                     }),
                     const SizedBox(width: 6),
-                    Text('${doctor.rating.toStringAsFixed(1)} • ${doctor.reviewCount}+ reviews', style: const TextStyle(color: AppTheme.captionTextColor)),
+                    Text(
+                      '${doctor.rating.toStringAsFixed(1)} • ${doctor.reviewCount}+ reviews',
+                      style: const TextStyle(color: AppTheme.captionTextColor),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -314,7 +395,9 @@ class _DoctorCard extends StatelessWidget {
                         onPressed: onViewProfile,
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: AppTheme.primaryColor),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
                         ),
                         child: const Text('View Profile'),
                       ),
@@ -322,13 +405,16 @@ class _DoctorCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     IconButton(
                       onPressed: () {},
-                      icon: const Icon(Icons.favorite_border, color: AppTheme.primaryColor),
+                      icon: const Icon(
+                        Icons.favorite_border,
+                        color: AppTheme.primaryColor,
+                      ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -342,14 +428,17 @@ class _ShimmerCard extends StatefulWidget {
   State<_ShimmerCard> createState() => _ShimmerCardState();
 }
 
-class _ShimmerCardState extends State<_ShimmerCard> with SingleTickerProviderStateMixin {
+class _ShimmerCardState extends State<_ShimmerCard>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -375,21 +464,32 @@ class _ShimmerCardState extends State<_ShimmerCard> with SingleTickerProviderSta
             Container(
               width: 60,
               height: 60,
-              decoration: BoxDecoration(color: AppTheme.primaryLight, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryLight,
+                shape: BoxShape.circle,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(height: 14, width: double.infinity, decoration: _placeholderDecoration()),
+                  Container(
+                    height: 14,
+                    width: double.infinity,
+                    decoration: _placeholderDecoration(),
+                  ),
                   const SizedBox(height: 10),
-                  Container(height: 12, width: MediaQuery.of(context).size.width * 0.4, decoration: _placeholderDecoration()),
+                  Container(
+                    height: 12,
+                    width: MediaQuery.of(context).size.width * 0.4,
+                    decoration: _placeholderDecoration(),
+                  ),
                   const SizedBox(height: 16),
                   Container(height: 36, decoration: _placeholderDecoration()),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

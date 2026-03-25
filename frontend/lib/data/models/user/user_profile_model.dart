@@ -8,6 +8,7 @@ class UserProfileModel {
   final String gender;
   final String dateOfBirth;
   final String address;
+  final String department;
   final String avatarUrl;
   final String status;
   final String? cccdFrontUrl;
@@ -29,6 +30,7 @@ class UserProfileModel {
     required this.gender,
     required this.dateOfBirth,
     required this.address,
+    this.department = '',
     required this.avatarUrl,
     required this.status,
     this.cccdFrontUrl,
@@ -52,6 +54,7 @@ class UserProfileModel {
       gender: (map['gender'] ?? '').toString(),
       dateOfBirth: (map['dateOfBirth'] ?? '').toString(),
       address: (map['address'] ?? '').toString(),
+      department: (map['department'] ?? '').toString(),
       avatarUrl: (map['avatarUrl'] ?? '').toString(),
       status: (map['status'] ?? 'ACTIVE').toString(), // Default to ACTIVE
       cccdFrontUrl: map['cccdFrontUrl']?.toString(),
