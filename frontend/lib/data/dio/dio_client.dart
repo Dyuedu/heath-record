@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/utils/app_routers.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
@@ -10,18 +11,23 @@ class DioClient {
   late final Dio _dio;
 
   DioClient(this._storage) {
-    final configuredBaseUrl = const String.fromEnvironment('API_BASE_URL');
+    final envBaseUrl = (dotenv.env['API_BASE_URL'] ?? '').trim();
+    final configuredBaseUrl = envBaseUrl.isNotEmpty
+        ? envBaseUrl
+        : const String.fromEnvironment('API_BASE_URL');
     final fallbackBaseUrl = kIsWeb
-        ? 'http://192.168.0.132:8081'
+        ? 'http://192.168.0.147:8081'
         : defaultTargetPlatform == TargetPlatform.android
-        ? 'http://192.168.0.132:8081'
-        : 'http://192.168.0.132:8081';
+        ? 'http://192.168.0.147:8081'
+        : 'http://192.168.0.147:8081';
+
+    final resolvedBaseUrl = configuredBaseUrl.isNotEmpty
+        ? configuredBaseUrl
+        : fallbackBaseUrl;
 
     _dio = Dio(
       BaseOptions(
-        baseUrl: configuredBaseUrl.isNotEmpty
-            ? configuredBaseUrl
-            : fallbackBaseUrl,
+        baseUrl: _normalizeBaseUrl(resolvedBaseUrl),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -79,6 +85,14 @@ class DioClient {
     Future.delayed(const Duration(seconds: 2), () {
       _isNavigatingToLogin = false;
     });
+  }
+
+  String _normalizeBaseUrl(String baseUrl) {
+    String value = baseUrl.trim();
+    while (value.endsWith('/')) {
+      value = value.substring(0, value.length - 1);
+    }
+    return value;
   }
 
   Dio get dio => _dio;

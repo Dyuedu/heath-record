@@ -7,9 +7,6 @@ import 'package:frontend/views/admin/admin_dashboard_page.dart';
 import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_account_approval_page.dart';
 import 'package:frontend/views/admin/admin_profile_page.dart';
-import 'package:frontend/views/admin/admin_account_approval_page.dart';
-import 'package:frontend/views/user/user_profile_page.dart';
-import 'package:frontend/views/admin/admin_tag_management_page.dart';
 
 class AdminPendingListPage extends StatefulWidget {
   const AdminPendingListPage({super.key});

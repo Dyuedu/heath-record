@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/utils/app_notifier.dart';
-import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/views/user/add_profile_page.dart';
 import 'package:frontend/views/user/relative_detail_page.dart';
@@ -77,12 +76,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   context,
                   MaterialPageRoute(builder: (_) => const UserProfilePage()),
                 ),
-              ),
-              _buildMenuItem(
-                Icons.mark_email_unread_outlined,
-                'Yêu cầu liên kết hồ sơ',
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRouter.linkRequestsInbox),
               ),
               // _buildMenuItem(
               //   Icons.favorite_border,

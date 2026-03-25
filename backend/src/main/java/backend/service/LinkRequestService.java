@@ -5,10 +5,13 @@ import backend.exception.ResourceNotFoundException;
 import backend.model.*;
 import backend.model.dto.response.LinkRequestActionResponse;
 import backend.model.dto.response.LinkRequestResponse;
+import backend.model.dto.response.NotificationMessageDTO;
+import backend.repository.NotificationRepository;
 import backend.repository.ProfileLinkRequestRepository;
 import backend.repository.ProfileRepository;
 import backend.repository.RelativeRepository;
 import backend.repository.UserRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +27,8 @@ public class LinkRequestService {
     private final RelativeRepository relativeRepository;
     private final ProfileLinkRequestRepository profileLinkRequestRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${app.profile-link.expire-days:7}")
     private int expireDays;
@@ -31,11 +36,15 @@ public class LinkRequestService {
     public LinkRequestService(ProfileRepository profileRepository,
                               RelativeRepository relativeRepository,
                               ProfileLinkRequestRepository profileLinkRequestRepository,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              NotificationRepository notificationRepository,
+                              SimpMessagingTemplate messagingTemplate) {
         this.profileRepository = profileRepository;
         this.relativeRepository = relativeRepository;
         this.profileLinkRequestRepository = profileLinkRequestRepository;
         this.userRepository = userRepository;
+        this.notificationRepository = notificationRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -64,12 +73,15 @@ public class LinkRequestService {
                                                 String note) {
         expireOldPendingRequests();
 
-        if (profileLinkRequestRepository.existsByRequesterUserIdAndTargetProfileIdAndStatus(
+        List<ProfileLinkRequest> existingPending =
+            profileLinkRequestRepository.findByRequesterUserIdAndTargetProfileIdAndStatus(
                 requester.getId(),
                 targetProfile.getId(),
                 RequestStatus.PENDING
-        )) {
-            throw new InvalidRequestException("LINK_REQUEST_ALREADY_EXISTS", "Yêu cầu liên kết đang chờ xử lý");
+            );
+        if (!existingPending.isEmpty()) {
+            // Idempotent behavior: avoid breaking caller flow when the same request already exists.
+            return existingPending.get(0);
         }
 
         User owner = resolveOwnerUser(targetProfile);
@@ -84,7 +96,15 @@ public class LinkRequestService {
         request.setStatus(RequestStatus.PENDING);
         request.setExpiresAt(LocalDateTime.now().plusDays(expireDays));
 
-        return profileLinkRequestRepository.save(request);
+        ProfileLinkRequest saved = profileLinkRequestRepository.save(request);
+
+        notifyUser(
+            owner,
+            "Yêu cầu liên kết hồ sơ mới",
+            requesterDisplayName(requester) + " đã gửi yêu cầu liên kết hồ sơ của bạn."
+        );
+
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -148,6 +168,12 @@ public class LinkRequestService {
         request.setRespondedAt(LocalDateTime.now());
         profileLinkRequestRepository.save(request);
 
+        notifyUser(
+            request.getRequesterUser(),
+            "Yêu cầu liên kết được phê duyệt",
+            "Yêu cầu liên kết hồ sơ của bạn đã được chấp thuận."
+        );
+
         return LinkRequestActionResponse.builder()
                 .status(RequestStatus.APPROVED.name())
                 .requestId(request.getId())
@@ -168,6 +194,12 @@ public class LinkRequestService {
         request.setStatus(RequestStatus.REJECTED);
         request.setRespondedAt(LocalDateTime.now());
         profileLinkRequestRepository.save(request);
+
+        notifyUser(
+            request.getRequesterUser(),
+            "Yêu cầu liên kết bị từ chối",
+            "Yêu cầu liên kết hồ sơ của bạn đã bị từ chối."
+        );
 
         return LinkRequestActionResponse.builder()
                 .status(RequestStatus.REJECTED.name())
@@ -253,6 +285,53 @@ public class LinkRequestService {
                         "PROFILE_OWNER_NOT_FOUND",
                         "Không tìm thấy người quản lý hồ sơ đích"
                 ));
+    }
+
+    private String requesterDisplayName(User user) {
+        if (user == null) {
+            return "Người dùng";
+        }
+        Profile profile = user.getProfile();
+        if (profile != null && profile.getFullname() != null && !profile.getFullname().isBlank()) {
+            return profile.getFullname().trim();
+        }
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            return user.getEmail().trim();
+        }
+        return "Người dùng";
+    }
+
+    private void notifyUser(User recipient, String title, String message) {
+        if (recipient == null || recipient.getId() == null) {
+            return;
+        }
+
+        Notification notificationEntity = Notification.builder()
+                .user(recipient)
+                .title(title)
+                .message(message)
+                .doctorName(null)
+                .hospitalName(null)
+                .recordId("")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Notification saved = notificationRepository.save(notificationEntity);
+
+        NotificationMessageDTO payload = NotificationMessageDTO.builder()
+                .id(saved.getId())
+                .title(saved.getTitle())
+                .message(saved.getMessage())
+                .patientName(null)
+                .doctorName(null)
+                .hospitalName(null)
+                .recordId("")
+                .isRead(false)
+                .timestamp(saved.getCreatedAt())
+                .build();
+
+        messagingTemplate.convertAndSend("/topic/notifications/" + recipient.getId(), payload);
     }
 
     private LinkRequestResponse toResponse(ProfileLinkRequest request) {

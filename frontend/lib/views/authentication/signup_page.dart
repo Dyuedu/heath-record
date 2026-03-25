@@ -69,7 +69,7 @@ class _SignupPageState extends State<SignupPage> {
 
   String? _validateIdentityNumber(String? value) {
     final raw = value?.trim() ?? '';
-    if (raw.isEmpty) return null;
+    if (raw.isEmpty) return 'Vui lòng nhập CCCD/CMND';
     final compact = raw.replaceAll(RegExp(r'\s+'), '');
     final identityRegExp = RegExp(r'^\d{9,12}$');
     if (!identityRegExp.hasMatch(compact)) {
@@ -160,7 +160,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  _buildInputLabel("Họ và tên"),
+                  _buildInputLabel("Họ và tên", isRequired: true),
                   _buildTextFormField(
                     controller: _nameController,
                     hint: "Nguyễn Văn A",
@@ -172,7 +172,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  _buildInputLabel("Email"),
+                  _buildInputLabel("Email", isRequired: true),
                   _buildTextFormField(
                     controller: _emailController,
                     hint: "vidu@email.com",
@@ -186,7 +186,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  _buildInputLabel("Số điện thoại", isOptional: true),
+                  _buildInputLabel("Số điện thoại", isRequired: true),
                   _buildTextFormField(
                     controller: _phoneController,
                     hint: "0987 654 321",
@@ -200,7 +200,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  _buildInputLabel("Số CCCD/CMND", isOptional: true),
+                  _buildInputLabel("Số CCCD/CMND", isRequired: true),
                   _buildTextFormField(
                     controller: _identityNumberController,
                     hint: "Nhập số định danh của bạn",
@@ -214,7 +214,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  _buildInputLabel("Mật khẩu"),
+                  _buildInputLabel("Mật khẩu", isRequired: true),
                   _buildPasswordField(
                     controller: _passwordController,
                     hint: "••••••••",
@@ -227,7 +227,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  _buildInputLabel("Xác nhận mật khẩu"),
+                  _buildInputLabel("Xác nhận mật khẩu", isRequired: true),
                   _buildPasswordField(
                     controller: _confirmPasswordController,
                     hint: "••••••••",
@@ -264,17 +264,26 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   // --- Input Widgets Refactored ---
-  Widget _buildInputLabel(String label, {bool isOptional = false}) => Padding(
+  Widget _buildInputLabel(String label, {bool isOptional = false, bool isRequired = false}) => Padding(
     padding: const EdgeInsets.only(bottom: 8.0),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-            fontSize: 14,
+        RichText(
+          text: TextSpan(
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+              fontSize: 14,
+            ),
+            children: [
+              TextSpan(text: label),
+              if (isRequired)
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+            ],
           ),
         ),
         if (isOptional)
@@ -428,9 +437,7 @@ class _SignupPageState extends State<SignupPage> {
               if (_formKey.currentState!.validate()) {
                 final result = await vm.registerWithResult(
                   _nameController.text.trim(),
-                  _identityNumberController.text.trim().isEmpty
-                      ? null
-                      : _identityNumberController.text.trim(),
+                  _identityNumberController.text.trim(),
                   _emailController.text.trim(),
                   _phoneController.text.trim(),
                   _passwordController.text,
@@ -444,9 +451,7 @@ class _SignupPageState extends State<SignupPage> {
                     if (!context.mounted || !shouldCreateLinkRequest) return;
                     final confirmResult = await vm.registerWithResult(
                       _nameController.text.trim(),
-                      _identityNumberController.text.trim().isEmpty
-                          ? null
-                          : _identityNumberController.text.trim(),
+                      _identityNumberController.text.trim(),
                       _emailController.text.trim(),
                       _phoneController.text.trim(),
                       _passwordController.text,

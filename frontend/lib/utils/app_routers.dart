@@ -5,6 +5,7 @@ import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_pending_list_page.dart';
 import 'package:frontend/views/admin/admin_create_account_page.dart';
 import 'package:frontend/views/admin/admin_profile_page.dart';
+import 'package:frontend/views/authentication/activation_result_page.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/views/authentication/signup_page.dart';
 import 'package:frontend/views/home/home_page.dart';
@@ -30,6 +31,7 @@ class AppRouter {
   static const String adminCreateAccount = '/admin-create-account';
   static const String linkRequestsInbox = '/link-requests-inbox';
   static const String adminProfile = '/admin-profile';
+  static const String activationResult = '/activation-result';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -92,6 +94,19 @@ class AppRouter {
       case adminProfile:
         return MaterialPageRoute(
           builder: (_) => const AdminProfilePage(),
+          settings: settings,
+        );
+      case activationResult:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final success = args?['success'] == true;
+        final message = (args?['message']?.toString() ?? '').trim();
+        return MaterialPageRoute(
+          builder: (_) => ActivationResultPage(
+            success: success,
+            message: message.isEmpty
+                ? (success ? 'Tai khoan da duoc kich hoat.' : 'Khong the kich hoat tai khoan.')
+                : message,
+          ),
           settings: settings,
         );
       case medicalRecords:

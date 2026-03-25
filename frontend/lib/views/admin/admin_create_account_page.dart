@@ -49,6 +49,7 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
       return;
     }
 
+    final bool isDoctor = _selectedRole == 'doctor';
     final vm = context.read<AdminViewModel>();
     final payload = AdminUserPayload(
       fullName: _nameController.text.trim(),
@@ -57,7 +58,7 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
       phoneNumber: _phoneController.text.trim(),
       password: _passwordController.text,
       role: _selectedRole,
-      status: _accountActive ? 'ACTIVE' : 'LOCKED',
+      status: isDoctor ? 'PENDING' : (_accountActive ? 'ACTIVE' : 'LOCKED'),
     );
 
     final success = await vm.createUser(payload);
@@ -142,7 +143,7 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Account status toggle
+                  // Account status
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
@@ -170,30 +171,37 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: _accountActive
-                                      ? const Color(0xFF10B981).withOpacity(0.1)
-                                      : const Color(0xFFEF4444).withOpacity(0.1),
+                                  color: isAdmin
+                                      ? (_accountActive
+                                          ? const Color(0xFF10B981).withOpacity(0.1)
+                                          : const Color(0xFFEF4444).withOpacity(0.1))
+                                      : const Color(0xFFF59E0B).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  _accountActive ? 'Sẵn sàng hoạt động' : 'Đã khóa',
+                                  isAdmin
+                                      ? (_accountActive ? 'Sẵn sàng hoạt động' : 'Đã khóa')
+                                      : 'Chờ kích hoạt qua email',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: _accountActive
-                                        ? const Color(0xFF10B981)
-                                        : const Color(0xFFEF4444),
+                                    color: isAdmin
+                                        ? (_accountActive
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFFEF4444))
+                                        : const Color(0xFFF59E0B),
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        Switch(
-                          value: _accountActive,
-                          onChanged: (v) => setState(() => _accountActive = v),
-                          activeThumbColor: const Color(0xFF246BFF),
-                        ),
+                        if (isAdmin)
+                          Switch(
+                            value: _accountActive,
+                            onChanged: (v) => setState(() => _accountActive = v),
+                            activeThumbColor: const Color(0xFF246BFF),
+                          ),
                       ],
                     ),
                   ),
@@ -203,32 +211,35 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
                   _buildSectionHeader(Icons.person_outline_rounded, 'THÔNG TIN BẮT BUỘC'),
                   const SizedBox(height: 16),
 
-                  _buildLabeledField(
-                    label: 'Họ và tên',
-                    child: _buildTextField(
-                      controller: _nameController,
-                      hintText: 'VD: Nguyễn Văn An',
-                      prefixIcon: Icons.person_outline_rounded,
-                      validator: (v) => v!.isEmpty ? 'Vui lòng nhập họ tên' : null,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildLabeledField(
-                    label: 'Số điện thoại',
-                    child: _buildTextField(
-                      controller: _phoneController,
-                      hintText: '09XX XXX XXX',
-                      prefixIcon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                      validator: (v) => v!.isEmpty ? 'Vui lòng nhập số điện thoại' : null,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
                   if (!isAdmin) ...[
                     _buildLabeledField(
+                      label: 'Họ và tên',
+                      isRequired: true,
+                      child: _buildTextField(
+                        controller: _nameController,
+                        hintText: 'VD: Nguyễn Văn An',
+                        prefixIcon: Icons.person_outline_rounded,
+                        validator: (v) => v!.isEmpty ? 'Vui lòng nhập họ tên' : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildLabeledField(
+                      label: 'Số điện thoại',
+                      isRequired: true,
+                      child: _buildTextField(
+                        controller: _phoneController,
+                        hintText: '09XX XXX XXX',
+                        prefixIcon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                        validator: (v) => v!.isEmpty ? 'Vui lòng nhập số điện thoại' : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildLabeledField(
                       label: 'CCCD/CMND',
+                      isRequired: true,
                       child: _buildTextField(
                         controller: _identityController,
                         hintText: 'Số CCCD/CMND',
@@ -242,6 +253,7 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
 
                   _buildLabeledField(
                     label: 'Email',
+                    isRequired: true,
                     child: _buildTextField(
                       controller: _emailController,
                       hintText: 'email@example.com',
@@ -254,6 +266,7 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
 
                   _buildLabeledField(
                     label: 'Mật khẩu',
+                    isRequired: true,
                     child: _buildTextField(
                       controller: _passwordController,
                       hintText: 'Ít nhất 6 ký tự',
@@ -273,6 +286,7 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
 
                   _buildLabeledField(
                     label: 'Xác nhận mật khẩu',
+                    isRequired: true,
                     child: _buildTextField(
                       controller: _confirmPasswordController,
                       hintText: 'Nhập lại mật khẩu',
@@ -358,16 +372,25 @@ class _AdminCreateAccountPageState extends State<AdminCreateAccountPage> {
     );
   }
 
-  Widget _buildLabeledField({required String label, required Widget child}) {
+  Widget _buildLabeledField({required String label, required Widget child, bool isRequired = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey.shade600,
+        RichText(
+          text: TextSpan(
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade600,
+            ),
+            children: [
+              TextSpan(text: label),
+              if (isRequired)
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 8),

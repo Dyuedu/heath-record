@@ -6,7 +6,6 @@ import 'package:frontend/data/repositories/auth_repository.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
-import 'package:dio/dio.dart';
 
 class AuthRepositoryImp implements AuthRepository {
   final DioClient _dioClient;

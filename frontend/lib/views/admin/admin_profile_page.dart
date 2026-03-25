@@ -260,8 +260,11 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
       final vm = context.read<UserViewModel>();
       final success = await vm.updateAvatar(File(pickedFile.path));
       if (!mounted) return;
-      if (success) AppNotifier.success(context, 'Ảnh đại diện đã được cập nhật.');
-      else AppNotifier.error(context, vm.avatarErrorMessage ?? 'Không thể cập nhật.');
+      if (success) {
+        AppNotifier.success(context, 'Ảnh đại diện đã được cập nhật.');
+      } else {
+        AppNotifier.error(context, vm.avatarErrorMessage ?? 'Không thể cập nhật.');
+      }
     } on PlatformException catch (error) {
       if (!mounted) return;
       AppNotifier.error(context, error.message ?? 'Lỗi truy cập thư viện.');

@@ -8,8 +8,6 @@ import 'package:frontend/views/admin/admin_dashboard_page.dart';
 import 'package:frontend/views/admin/admin_statistics_page.dart';
 import 'package:frontend/views/admin/admin_user_detail_page.dart';
 import 'package:frontend/views/admin/admin_profile_page.dart';
-import 'package:frontend/views/user/user_profile_page.dart';
-import 'package:frontend/views/admin/admin_tag_management_page.dart';
 class AdminUserManagementPage extends StatefulWidget {
   const AdminUserManagementPage({super.key});
 
@@ -30,9 +28,10 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
   };
 
   int _selectedStatus = 0;
-  static const List<String> _statusFilters = ['Tất cả', 'ACTIVE', 'LOCKED'];
+  static const List<String> _statusFilters = ['Tất cả', 'PENDING', 'ACTIVE', 'LOCKED'];
   static const Map<String, String> _statusLabels = {
     'Tất cả': 'Tất cả',
+    'PENDING': 'Chờ kích hoạt',
     'ACTIVE': 'Hoạt động',
     'LOCKED': 'Khóa',
   };
@@ -245,6 +244,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                 }).toList();
 
                 final activeCount = users.where((u) => u.status == 'ACTIVE').length;
+                final pendingCount = users.where((u) => u.status == 'PENDING').length;
                 final lockedCount = users.where((u) => u.status == 'LOCKED').length;
 
                 return Column(
@@ -264,6 +264,8 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                           ),
                           const Spacer(),
                           _statusBadge('$activeCount Hoạt động', const Color(0xFF10B981)),
+                          const SizedBox(width: 8),
+                          _statusBadge('$pendingCount Chờ kích hoạt', const Color(0xFFF59E0B)),
                           const SizedBox(width: 8),
                           _statusBadge('$lockedCount Khóa', const Color(0xFFEF4444)),
                         ],
@@ -326,6 +328,19 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
 
   Widget _buildUserCard(UserProfileModel user) {
     final isActive = user.status == 'ACTIVE';
+    final isPending = user.status == 'PENDING';
+    final String nextStatus = isActive ? 'LOCKED' : 'ACTIVE';
+    final String actionText = isPending
+      ? 'kích hoạt'
+      : (isActive ? 'khóa' : 'mở khóa');
+
+    final Color buttonColor = isPending
+      ? const Color(0xFFF59E0B)
+      : (isActive ? const Color(0xFF10B981) : const Color(0xFFEF4444));
+
+    final String buttonLabel = isPending
+      ? 'Chờ kích hoạt'
+      : (isActive ? 'Hoạt động' : 'Khóa');
     return GestureDetector(
       onTap: () async {
         await Navigator.push(
@@ -408,15 +423,12 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
               const SizedBox(height: 6),
               GestureDetector(
                 onTap: () async {
-                  final newStatus = isActive ? 'LOCKED' : 'ACTIVE';
-                  final statusText = isActive ? 'khóa' : 'mở khóa';
-
                   final bool? confirm = await showDialog<bool>(
                     context: context,
                     builder: (BuildContext context) {
                       return AlertDialog(
                         title: const Text('Xác nhận', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        content: Text('Bạn có chắc chắn muốn $statusText tài khoản của ${user.fullName} không?',
+                        content: Text('Bạn có chắc chắn muốn $actionText tài khoản của ${user.fullName} không?',
                           style: const TextStyle(fontSize: 15),
                         ),
                         actions: [
@@ -426,7 +438,9 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                           ),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isActive ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                              backgroundColor: isPending
+                                  ? const Color(0xFFF59E0B)
+                                  : (isActive ? const Color(0xFFEF4444) : const Color(0xFF10B981)),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
@@ -442,18 +456,18 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
 
                   if (context.mounted) {
                     _showLoadingOverlay(context);
-                    await context.read<AdminViewModel>().updateUserStatus(user.id, newStatus);
+                    await context.read<AdminViewModel>().updateUserStatus(user.id, nextStatus);
                     if (context.mounted) Navigator.pop(context); // close overlay
                   }
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isActive ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                    color: buttonColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    isActive ? 'Hoạt động' : 'Khóa',
+                    buttonLabel,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,

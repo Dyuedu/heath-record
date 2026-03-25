@@ -20,7 +20,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,17 +38,30 @@ public class AdminUserService {
     private final RoleRepository roleRepository;
     private final MedicalRecordRepository medicalRecordRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final String doctorActivationLinkTemplate;
+
+    private static final String DOCTOR_ACTIVATION_KEY_PREFIX = "doctor:activation:";
+    private static final Duration DOCTOR_ACTIVATION_TTL = Duration.ofHours(24);
 
     public AdminUserService(UserRepository userRepository,
                             ProfileRepository profileRepository,
                             RoleRepository roleRepository,
                             MedicalRecordRepository medicalRecordRepository,
-                            PasswordEncoder passwordEncoder) {
+                            PasswordEncoder passwordEncoder,
+                            EmailService emailService,
+                            @Qualifier("redisTemplate") RedisTemplate<String, String> redisTemplate,
+                            @Value("${app.doctor.activation-link-template:http://localhost:8081/api/auth/activate-doctor?token={token}}")
+                            String doctorActivationLinkTemplate) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.roleRepository = roleRepository;
         this.medicalRecordRepository = medicalRecordRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+        this.redisTemplate = redisTemplate;
+        this.doctorActivationLinkTemplate = doctorActivationLinkTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -142,7 +159,8 @@ public class AdminUserService {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setRole(role);
-        user.setStatus(StringUtils.hasText(request.status()) ? UserStatus.valueOf(request.status()) : UserStatus.ACTIVE);
+        boolean doctorRole = isDoctorRole(role);
+        user.setStatus(resolveInitialStatus(request.status(), doctorRole));
         user.setCreatedAt(LocalDateTime.now());
 
         if (!role.getName().equalsIgnoreCase("ROLE_ADMIN") && !role.getName().equalsIgnoreCase("ADMIN")) {
@@ -157,7 +175,43 @@ public class AdminUserService {
         }
 
         User saved = userRepository.save(user);
+        if (doctorRole) {
+            sendDoctorActivationEmail(saved);
+        }
         return mapToUserResponse(saved);
+    }
+
+    @Transactional
+    public void activateDoctorAccount(String token) {
+        String normalizedToken = trimToNull(token);
+        if (!StringUtils.hasText(normalizedToken)) {
+            throw new InvalidRequestException("ACTIVATION_TOKEN_REQUIRED", "Thiếu token kích hoạt");
+        }
+
+        String key = buildDoctorActivationKey(normalizedToken);
+        String userIdRaw = redisTemplate.opsForValue().get(key);
+        if (!StringUtils.hasText(userIdRaw)) {
+            throw new InvalidRequestException("ACTIVATION_TOKEN_INVALID", "Liên kết kích hoạt không hợp lệ hoặc đã hết hạn");
+        }
+
+        UUID userId;
+        try {
+            userId = UUID.fromString(userIdRaw);
+        } catch (IllegalArgumentException ex) {
+            redisTemplate.delete(key);
+            throw new InvalidRequestException("ACTIVATION_TOKEN_INVALID", "Liên kết kích hoạt không hợp lệ");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản cần kích hoạt"));
+
+        if (!isDoctorRole(user.getRole())) {
+            throw new InvalidRequestException("ACTIVATION_NOT_ALLOWED", "Chỉ tài khoản bác sĩ mới dùng liên kết kích hoạt này");
+        }
+
+        user.setStatus(UserStatus.ACTIVE);
+        userRepository.save(user);
+        redisTemplate.delete(key);
     }
 
     @Transactional
@@ -288,6 +342,32 @@ public class AdminUserService {
             return role;
         }
         return roleRepository.findByName(("role_" + candidate.toLowerCase(Locale.ROOT)));
+    }
+
+    private UserStatus resolveInitialStatus(String statusInput, boolean doctorRole) {
+        if (doctorRole) {
+            return UserStatus.PENDING;
+        }
+        return StringUtils.hasText(statusInput) ? UserStatus.valueOf(statusInput) : UserStatus.ACTIVE;
+    }
+
+    private boolean isDoctorRole(Role role) {
+        if (role == null || !StringUtils.hasText(role.getName())) {
+            return false;
+        }
+        String normalizedRole = role.getName().trim().toUpperCase(Locale.ROOT);
+        return normalizedRole.equals("DOCTOR") || normalizedRole.equals("ROLE_DOCTOR");
+    }
+
+    private void sendDoctorActivationEmail(User user) {
+        String token = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set(buildDoctorActivationKey(token), user.getId().toString(), DOCTOR_ACTIVATION_TTL);
+        String activationLink = doctorActivationLinkTemplate.replace("{token}", token);
+        emailService.sendDoctorActivationEmail(user.getEmail(), activationLink);
+    }
+
+    private String buildDoctorActivationKey(String token) {
+        return DOCTOR_ACTIVATION_KEY_PREFIX + token;
     }
 
     private UserResponse mapToUserResponse(User user) {

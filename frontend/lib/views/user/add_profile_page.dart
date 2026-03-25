@@ -115,29 +115,34 @@ class _AddProfilePageState extends State<AddProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 30),
+                  _buildFieldLabel('Họ tên đầy đủ', isRequired: true),
                   _buildTextField(
                     icon: Icons.edit,
-                    hint: "Họ tên đầy đủ *",
+                    hint: "Họ tên đầy đủ",
                     controller: _nameCtrl,
                   ),
+                  _buildFieldLabel('Tên thân mật', isRequired: true),
                   _buildTextField(
                     icon: Icons.badge_outlined,
-                    hint: "Tên thân mật *",
+                    hint: "Tên thân mật",
                     controller: _nicknameCtrl,
                   ),
+                  _buildFieldLabel('Số CCCD/CMND', isRequired: true),
                   _buildTextField(
                     icon: Icons.credit_card,
-                    hint: "Số CCCD/CMND *",
+                    hint: "Số CCCD/CMND",
                     controller: _identityCtrl,
                   ),
+                  _buildFieldLabel('Ngày sinh', isRequired: true),
                   _buildTextField(
                     icon: Icons.cake_outlined,
-                    hint: "Ngày sinh *",
+                    hint: "Ngày sinh",
                     controller: _dobCtrl,
                     keyboardType: TextInputType.datetime,
                     readOnly: true,
                     onTap: _pickDob,
                   ),
+                  _buildFieldLabel('Số điện thoại'),
                   _buildTextField(
                     icon: Icons.phone_iphone,
                     hint: "Số điện thoại",
@@ -145,10 +150,7 @@ class _AddProfilePageState extends State<AddProfilePage> {
                     keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    "Giới tính *",
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                  _buildRequiredLabel("Giới tính"),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -172,10 +174,7 @@ class _AddProfilePageState extends State<AddProfilePage> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    "Đây là hồ sơ của *",
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                  _buildRequiredLabel("Đây là hồ sơ của"),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -330,6 +329,38 @@ class _AddProfilePageState extends State<AddProfilePage> {
                 )
               : null,
         ),
+      ),
+    );
+  }
+
+  Widget _buildRequiredLabel(String text) {
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(color: Colors.grey, fontSize: 14),
+        children: [
+          TextSpan(text: text),
+          const TextSpan(
+            text: ' *',
+            style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFieldLabel(String text, {bool isRequired = false}) {
+    if (isRequired) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _buildRequiredLabel(text),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.grey, fontSize: 14),
       ),
     );
   }
