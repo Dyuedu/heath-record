@@ -185,10 +185,10 @@ public class AuthService {
             User user = userRepository.findById(userPrincipal.getId()).orElse(null);
             
             if (user != null && user.getStatus() == UserStatus.PENDING) {
-                throw new IllegalStateException("Tài khoản chưa được xác thực OTP. Vui lòng kiểm tra email.");
+                throw new IllegalStateException("Tài khoản của bạn chưa xác thực, vui lòng xác thực tài khoản");
             }
             if (user != null && user.getStatus() == UserStatus.LOCKED) {
-                throw new IllegalStateException("Tài khoản đã bị khóa.");
+                throw new IllegalStateException("Tài khoản đã bị khoá, vui lòng liên hệ ban quản lý");
             }
             return jwtService.generateToken(userPrincipal);
         }
