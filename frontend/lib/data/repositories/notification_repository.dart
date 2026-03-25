@@ -1,6 +1,5 @@
 import 'package:frontend/data/dio/dio_client.dart';
 import 'package:frontend/data/models/notification_model.dart';
-import 'package:dio/dio.dart';
 
 class NotificationRepository {
   final DioClient _dioClient;

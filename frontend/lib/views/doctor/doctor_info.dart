@@ -118,7 +118,7 @@ class _DoctorInfoPageState extends State<DoctorInfoPage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _whiteStatItem(Icons.star, '${doctor.rating.toStringAsFixed(1)}', 'Rating')),
+              Expanded(child: _whiteStatItem(Icons.star, doctor.rating.toStringAsFixed(1), 'Rating')),
               const SizedBox(width: 10),
               Expanded(child: _whiteStatItem(Icons.chat_bubble_outline, '${doctor.reviewCount}', 'Reviews')),
               const SizedBox(width: 10),
