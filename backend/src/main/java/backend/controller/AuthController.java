@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 
 import java.util.HashMap;
@@ -57,6 +58,10 @@ public class AuthController {
             Map<String, String> response = new HashMap<>();
             response.put("token", token);
             return ResponseEntity.ok().body(response);
+        } catch (BadCredentialsException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Email hoặc mật khẩu không chính xác");
+            return ResponseEntity.badRequest().body(error);
         } catch (LockedException e) {
             Map<String, String> error = new HashMap<>();
             error.put("message", "Tài khoản đã bị khoá, vui lòng liên hệ ban quản lý");
