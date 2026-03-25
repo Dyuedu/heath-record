@@ -31,6 +31,10 @@ public class Tag {
 
     private String description;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isActive = true;
+
     @ManyToMany(mappedBy = "tags")
     @Builder.Default
     private List<MedicalRecord> encounters = new ArrayList<>();

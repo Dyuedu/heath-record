@@ -6,7 +6,9 @@ import 'package:frontend/views/admin/admin_bottom_nav.dart';
 import 'package:frontend/views/admin/admin_dashboard_page.dart';
 import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_account_approval_page.dart';
+import 'package:frontend/views/admin/admin_account_approval_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
+import 'package:frontend/views/admin/admin_tag_management_page.dart';
 
 class AdminPendingListPage extends StatefulWidget {
   const AdminPendingListPage({super.key});
@@ -513,12 +515,6 @@ class _AdminPendingListPageState extends State<AdminPendingListPage> {
         break;
       case 2:
         break; // Already here
-      case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => UserProfilePage()),
-        );
-        break;
     }
   }
   Future<void> _onApproveTapped(String id) async {
