@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface HospitalRepository extends JpaRepository<Hospital, Long> {
+    java.util.Optional<Hospital> findByName(String name);
 }

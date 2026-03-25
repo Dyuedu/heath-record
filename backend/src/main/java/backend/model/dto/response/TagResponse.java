@@ -5,8 +5,9 @@ import lombok.Value;
 
 @Value
 @Builder
-public class HospitalResponse {
+public class TagResponse {
     Long id;
     String name;
+    String description;
     boolean isActive;
 }

@@ -8,6 +8,7 @@ import 'package:frontend/views/admin/admin_dashboard_page.dart';
 import 'package:frontend/views/admin/admin_pending_list_page.dart';
 import 'package:frontend/views/admin/admin_user_detail_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
+import 'package:frontend/views/admin/admin_tag_management_page.dart';
 class AdminUserManagementPage extends StatefulWidget {
   const AdminUserManagementPage({super.key});
 
@@ -450,12 +451,6 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const AdminPendingListPage()),
-        );
-        break;
-      case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => UserProfilePage()),
         );
         break;
     }
