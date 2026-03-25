@@ -261,25 +261,68 @@ public class DoctorRecordService {
                 .status(user != null && user.getStatus() != null ? user.getStatus().name() : "")
                 .build();
                 
-        List<backend.model.dto.response.RelativeSearchResponse> relatives = relativeRepository.findAllByProfileId(profileId).stream()
+        // Patient's own history
+        List<backend.model.dto.response.MedicalRecordResponse> patientHistory = medicalRecordRepository.findByProfileId(profile.getId()).stream()
+                .map(medicalRecordMapper::toMedicalRecordResponse)
+                .collect(Collectors.toList());
+
+        List<backend.model.dto.response.RelativeHealthHistoryResponse> relativesList = new java.util.ArrayList<>();
+        
+        relativesList.add(backend.model.dto.response.RelativeHealthHistoryResponse.builder()
+                .relativeId(profile.getId()) // fake ID
+                .profileId(profile.getId())
+                .relativeName(profile.getFullname() != null ? profile.getFullname() : "")
+                .relationship("Me")
+                .dateOfBirth(profile.getDateOfBirth() != null ? profile.getDateOfBirth() : "")
+                .avatarUrl(profile.getAvatarUrl() != null ? profile.getAvatarUrl() : "")
+                .history(patientHistory)
+                .build());
+
+        if (user != null) {
+            // patient is a primary profile, load their sub-profiles
+            List<backend.model.dto.response.RelativeHealthHistoryResponse> subs = relativeRepository.findByUserId(user.getId()).stream()
+                .map(rel -> {
+                    backend.model.Profile relProfile = rel.getProfile();
+                    List<backend.model.dto.response.MedicalRecordResponse> reqHistory = medicalRecordRepository.findByRelativeId(rel.getId()).stream()
+                            .map(medicalRecordMapper::toMedicalRecordResponse)
+                            .collect(Collectors.toList());
+
+                    return backend.model.dto.response.RelativeHealthHistoryResponse.builder()
+                            .relativeId(rel.getId())
+                            .profileId(relProfile.getId())
+                            .relativeName(relProfile.getFullname() != null ? relProfile.getFullname() : "")
+                            .relationship(rel.getRelationship() != null ? rel.getRelationship() : "")
+                            .dateOfBirth(relProfile.getDateOfBirth() != null ? relProfile.getDateOfBirth() : "")
+                            .avatarUrl(relProfile.getAvatarUrl() != null ? relProfile.getAvatarUrl() : "")
+                            .history(reqHistory)
+                            .build();
+                })
+                .collect(Collectors.toList());
+            relativesList.addAll(subs);
+        } else {
+            // patient is a sub-profile, load their owner(s)
+            List<backend.model.dto.response.RelativeHealthHistoryResponse> owners = relativeRepository.findAllByProfileId(profile.getId()).stream()
                 .map(rel -> {
                     backend.model.User relUser = rel.getUser();
                     backend.model.Profile relProfile = relUser != null ? relUser.getProfile() : null;
                     
-                    return backend.model.dto.response.RelativeSearchResponse.builder()
-                            .id(relProfile != null ? relProfile.getId() : (relUser != null ? relUser.getId() : UUID.randomUUID()))
-                            .fullName(relProfile != null && relProfile.getFullname() != null ? relProfile.getFullname() : (relUser != null ? relUser.getEmail() : "N/A"))
-                            .phoneNumber(relUser != null && relUser.getPhoneNumber() != null ? relUser.getPhoneNumber() : "")
+                    return backend.model.dto.response.RelativeHealthHistoryResponse.builder()
+                            .relativeId(rel.getId())
+                            .profileId(relProfile != null ? relProfile.getId() : (relUser != null ? relUser.getId() : UUID.randomUUID()))
+                            .relativeName(relProfile != null && relProfile.getFullname() != null ? relProfile.getFullname() : (relUser != null ? relUser.getEmail() : "N/A"))
+                            .relationship("Người quản lý")
                             .dateOfBirth(relProfile != null && relProfile.getDateOfBirth() != null ? relProfile.getDateOfBirth() : "")
                             .avatarUrl(relProfile != null && relProfile.getAvatarUrl() != null ? relProfile.getAvatarUrl() : "")
-                            .relationship(rel.getRelationship() != null ? rel.getRelationship() : "")
+                            .history(new java.util.ArrayList<>()) // Owner history is generally not relevant to the patient's context.
                             .build();
                 })
                 .collect(Collectors.toList());
+            relativesList.addAll(owners);
+        }
                 
         return backend.model.dto.response.DoctorPatientDetailResponse.builder()
                 .patient(patientResponse)
-                .relatives(relatives)
+                .relatives(relativesList)
                 .build();
     }
 }
