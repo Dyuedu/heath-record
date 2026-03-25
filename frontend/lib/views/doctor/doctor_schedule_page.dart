@@ -9,6 +9,8 @@ import 'package:frontend/viewmodels/user_viewmodel.dart';
 import 'package:frontend/utils/app_theme.dart';
 import 'doctor_schedule_widgets.dart';
 
+enum _SlotFilter { all, pending, booked, available }
+
 class DoctorSchedulePage extends StatefulWidget {
   const DoctorSchedulePage({super.key});
 
@@ -19,6 +21,7 @@ class DoctorSchedulePage extends StatefulWidget {
 class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
   late DateTime _selectedDate;
   int _currentWeekOffset = 0;
+  _SlotFilter _slotFilter = _SlotFilter.all;
 
   DateTime _normalizeDate(DateTime date) =>
       DateTime(date.year, date.month, date.day);
@@ -65,11 +68,13 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
   }
 
   void _loadSchedule() {
-    context.read<ScheduleViewModel>().fetchSchedule(
+    final scheduleVM = context.read<ScheduleViewModel>();
+    scheduleVM.fetchSchedule(
       daysOffset: _currentWeekOffset,
       doctorId: null,
       overrideDoctor: true,
     );
+    scheduleVM.refreshPendingCount();
   }
 
   void _goToPreviousWeek() {
@@ -104,6 +109,20 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
     setState(() {
       _selectedDate = _normalizeDate(date);
     });
+  }
+
+  List<AppointmentSlotModel> _filterSlots(List<AppointmentSlotModel> slots) {
+    switch (_slotFilter) {
+      case _SlotFilter.pending:
+        return slots.where((slot) => slot.isPending).toList();
+      case _SlotFilter.booked:
+        return slots.where((slot) => slot.isBooked).toList();
+      case _SlotFilter.available:
+        return slots.where((slot) => slot.isAvailable).toList();
+      case _SlotFilter.all:
+      default:
+        return slots;
+    }
   }
 
   Future<void> _pickDate() async {
@@ -164,14 +183,16 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
   }
 
   void _openManualAppointmentSheet(
-      DoctorScheduleDayModel day, {
-        AppointmentSlotModel? initialSlot,
-      }) {
+    DoctorScheduleDayModel day, {
+    AppointmentSlotModel? initialSlot,
+  }) {
     final doctorId = context.read<UserViewModel>().profile?.id;
     if (doctorId == null || doctorId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Không tìm thấy thông tin bác sĩ. Vui lòng thử lại.'),
+          content: const Text(
+            'Không tìm thấy thông tin bác sĩ. Vui lòng thử lại.',
+          ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: Colors.red.shade400,
         ),
@@ -217,7 +238,11 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF1A2C3E)),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            size: 20,
+            color: Color(0xFF1A2C3E),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -226,7 +251,9 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
           if (viewModel.isLoading) {
             return const Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  AppTheme.primaryColor,
+                ),
               ),
             );
           }
@@ -236,7 +263,11 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red.shade300,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Lỗi: ${viewModel.errorMessage}',
@@ -253,7 +284,7 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
           }
 
           final selectedDaySchedule = viewModel.schedule.firstWhere(
-                (day) => _isSameDay(day.date, _selectedDate),
+            (day) => _isSameDay(day.date, _selectedDate),
             orElse: () => DoctorScheduleDayModel(
               date: _selectedDate,
               dayOfWeek: _weekdayKey(_selectedDate),
@@ -262,6 +293,13 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
               bookedCount: 0,
             ),
           );
+          final daySlots = selectedDaySchedule.slots;
+          final filteredSlots = _filterSlots(daySlots);
+          final dayPending = daySlots.where((slot) => slot.isPending).length;
+          final dayBooked = daySlots.where((slot) => slot.isBooked).length;
+          final dayAvailable = daySlots
+              .where((slot) => slot.isAvailable)
+              .length;
 
           return Column(
             children: [
@@ -351,7 +389,10 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
                             Duration(days: _currentWeekOffset + index),
                           );
                           final isSelected = _isSameDay(date, _selectedDate);
-                          final isToday = _isSameDay(date, _normalizeDate(DateTime.now()));
+                          final isToday = _isSameDay(
+                            date,
+                            _normalizeDate(DateTime.now()),
+                          );
 
                           return GestureDetector(
                             onTap: () => _selectDate(date),
@@ -391,7 +432,9 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
                                     height: 32,
                                     decoration: BoxDecoration(
                                       color: isToday && !isSelected
-                                          ? AppTheme.primaryColor.withOpacity(0.1)
+                                          ? AppTheme.primaryColor.withOpacity(
+                                              0.1,
+                                            )
                                           : null,
                                       shape: BoxShape.circle,
                                     ),
@@ -421,6 +464,15 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
                 ),
               ),
 
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                child: _PendingOverviewCard(
+                  totalPending: viewModel.pendingApprovalCount,
+                  todayPending: dayPending,
+                  onRefresh: viewModel.refreshPendingCount,
+                ),
+              ),
+
               // Action Button
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -429,7 +481,8 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
                   child: MaterialButton(
                     onPressed: selectedDaySchedule.slots.isEmpty
                         ? null
-                        : () => _openManualAppointmentSheet(selectedDaySchedule),
+                        : () =>
+                              _openManualAppointmentSheet(selectedDaySchedule),
                     elevation: 0,
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     shape: RoundedRectangleBorder(
@@ -462,48 +515,246 @@ class _DoctorSchedulePageState extends State<DoctorSchedulePage> {
                 ),
               ),
 
+              if (daySlots.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _StatusFilterChip(
+                          label: 'Tất cả',
+                          count: daySlots.length,
+                          selected: _slotFilter == _SlotFilter.all,
+                          onTap: () =>
+                              setState(() => _slotFilter = _SlotFilter.all),
+                        ),
+                        _StatusFilterChip(
+                          label: 'Chờ duyệt',
+                          count: dayPending,
+                          selected: _slotFilter == _SlotFilter.pending,
+                          onTap: () =>
+                              setState(() => _slotFilter = _SlotFilter.pending),
+                        ),
+                        _StatusFilterChip(
+                          label: 'Đã duyệt',
+                          count: dayBooked,
+                          selected: _slotFilter == _SlotFilter.booked,
+                          onTap: () =>
+                              setState(() => _slotFilter = _SlotFilter.booked),
+                        ),
+                        _StatusFilterChip(
+                          label: 'Trống',
+                          count: dayAvailable,
+                          selected: _slotFilter == _SlotFilter.available,
+                          onTap: () => setState(
+                            () => _slotFilter = _SlotFilter.available,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
               // Appointments List
               Expanded(
-                child: selectedDaySchedule.slots.isEmpty
+                child: daySlots.isEmpty
                     ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 64,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Không có lịch khám trong ngày này',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: 64,
+                              color: Colors.grey.shade300,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Không có lịch khám trong ngày này',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                )
+                      )
+                    : filteredSlots.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Không có lịch với bộ lọc này',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      )
                     : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: selectedDaySchedule.slots.length,
-                  itemBuilder: (context, index) {
-                    final slot = selectedDaySchedule.slots[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: AppointmentSlotWidget(
-                        slot: slot,
-                        onTap: () => _handleSlotTap(slot, selectedDaySchedule),
-                        showActions: true,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredSlots.length,
+                        itemBuilder: (context, index) {
+                          final slot = filteredSlots[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: AppointmentSlotWidget(
+                              slot: slot,
+                              onTap: () =>
+                                  _handleSlotTap(slot, selectedDaySchedule),
+                              showActions: true,
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _PendingOverviewCard extends StatelessWidget {
+  final int totalPending;
+  final int todayPending;
+  final Future<void> Function() onRefresh;
+
+  const _PendingOverviewCard({
+    required this.totalPending,
+    required this.todayPending,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.hourglass_bottom,
+              color: AppTheme.primaryColor,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Lịch đang chờ duyệt',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$totalPending lịch toàn hệ thống',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A2C3E),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$todayPending lịch trong ngày này',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF4A6074),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              onRefresh();
+            },
+            icon: const Icon(Icons.refresh, color: AppTheme.primaryColor),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusFilterChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _StatusFilterChip({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: selected
+                    ? Colors.white.withOpacity(0.2)
+                    : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                count.toString(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? Colors.white : AppTheme.primaryColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+        selected: selected,
+        onSelected: (_) => onTap(),
+        selectedColor: AppTheme.primaryColor,
+        backgroundColor: Colors.white,
+        labelStyle: TextStyle(
+          color: selected ? Colors.white : const Color(0xFF1A2C3E),
+          fontWeight: FontWeight.w600,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
+          side: BorderSide(
+            color: selected ? AppTheme.primaryColor : Colors.grey.shade300,
+          ),
+        ),
       ),
     );
   }

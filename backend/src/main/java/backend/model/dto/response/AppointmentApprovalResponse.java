@@ -17,4 +17,5 @@ public class AppointmentApprovalResponse {
     private String message;
     private LocalDateTime respondedAt;
     private AppointmentSlotResponse slotDetails;
+    private String decisionReason;
 }

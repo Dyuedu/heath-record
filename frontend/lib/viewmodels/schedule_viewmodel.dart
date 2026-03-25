@@ -11,6 +11,7 @@ class ScheduleViewModel extends ChangeNotifier {
   String? _errorMessage;
   int _currentDaysOffset = 0;
   String? _currentDoctorId;
+  int _pendingApprovalCount = 0;
 
   ScheduleViewModel(this._appointmentRepository);
 
@@ -19,6 +20,7 @@ class ScheduleViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   int get currentDaysOffset => _currentDaysOffset;
+  int get pendingApprovalCount => _pendingApprovalCount;
 
   /// Tải lịch khám cho 7 ngày từ hôm nay + offset
   Future<void> fetchSchedule({
@@ -134,13 +136,13 @@ class ScheduleViewModel extends ChangeNotifier {
   /// Bác sĩ từ chối lịch khám
   Future<bool> rejectAppointment({
     required int appointmentId,
-    String? notes,
+    required String reason,
   }) async {
     try {
       final result = await _appointmentRepository.approveOrRejectAppointment(
         appointmentId: appointmentId,
         approve: false,
-        notes: notes,
+        notes: reason,
       );
 
       if (result != null) {
@@ -166,5 +168,15 @@ class ScheduleViewModel extends ChangeNotifier {
   /// Lấy số lượng lịch đã đặt toàn bộ tuần
   int getTotalBookedCount() {
     return _schedule.fold(0, (sum, day) => sum + day.bookedCount);
+  }
+
+  Future<void> refreshPendingCount() async {
+    try {
+      final count = await _appointmentRepository.getPendingAppointmentCount();
+      _pendingApprovalCount = count;
+      notifyListeners();
+    } catch (e) {
+      // silent fail, keep previous count
+    }
   }
 }

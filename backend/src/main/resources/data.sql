@@ -81,6 +81,203 @@ AND NOT EXISTS (
       AND LOWER(r.relationship) = 'me'
 );
 
+    -- Seed thêm tài khoản bệnh nhân phục vụ kiểm thử thông báo hủy lịch
+
+    -- Patient 1: vutrggiang@gmail.com
+    INSERT INTO profile (
+        id,
+        fullname,
+        gender,
+        date_of_birth,
+        phone_number,
+        address,
+        identity_number
+    )
+    SELECT
+        gen_random_uuid(),
+        'Vũ Trí Giang',
+        'Male',
+        '1992-04-15',
+        '0901112223',
+        'Da Nang',
+        'PATIENT-GIANG-001'
+    WHERE NOT EXISTS (
+        SELECT 1 FROM profile p WHERE p.identity_number = 'PATIENT-GIANG-001'
+    );
+
+    INSERT INTO users (
+        id,
+        phone_number,
+        password,
+        email,
+        created_at,
+        status,
+        profile_id,
+        role_id
+    )
+    SELECT
+        gen_random_uuid(),
+        '0901112223',
+        crypt('password123', gen_salt('bf', 10)),
+        'vutrggiang@gmail.com',
+        NOW(),
+        'ACTIVE',
+        (SELECT p.id FROM profile p WHERE p.identity_number = 'PATIENT-GIANG-001' LIMIT 1),
+        (SELECT r.id FROM roles r WHERE LOWER(r.name) = 'user' LIMIT 1)
+    WHERE NOT EXISTS (
+        SELECT 1 FROM users u WHERE LOWER(u.email) = 'vutrggiang@gmail.com'
+    );
+
+    UPDATE users
+    SET password = crypt('password123', gen_salt('bf', 10)),
+        status = 'ACTIVE'
+    WHERE LOWER(email) = 'vutrggiang@gmail.com';
+
+    INSERT INTO relatives (id, relationship, user_id, profile_id)
+    SELECT
+        gen_random_uuid(),
+        'Me',
+        u.id,
+        p.id
+    FROM users u
+    JOIN profile p ON p.id = u.profile_id
+    WHERE LOWER(u.email) = 'vutrggiang@gmail.com'
+    AND NOT EXISTS (
+        SELECT 1 FROM relatives r
+        WHERE r.user_id = u.id
+          AND r.profile_id = p.id
+    );
+
+    -- Patient 2: vugiangtruong04@gmail.com
+    INSERT INTO profile (
+        id,
+        fullname,
+        gender,
+        date_of_birth,
+        phone_number,
+        address,
+        identity_number
+    )
+    SELECT
+        gen_random_uuid(),
+        'Vũ Giang Trường',
+        'Male',
+        '1995-09-21',
+        '0903334445',
+        'Ho Chi Minh City',
+        'PATIENT-TRUONG-002'
+    WHERE NOT EXISTS (
+        SELECT 1 FROM profile p WHERE p.identity_number = 'PATIENT-TRUONG-002'
+    );
+
+    INSERT INTO users (
+        id,
+        phone_number,
+        password,
+        email,
+        created_at,
+        status,
+        profile_id,
+        role_id
+    )
+    SELECT
+        gen_random_uuid(),
+        '0903334445',
+        crypt('password123', gen_salt('bf', 10)),
+        'vugiangtruong04@gmail.com',
+        NOW(),
+        'ACTIVE',
+        (SELECT p.id FROM profile p WHERE p.identity_number = 'PATIENT-TRUONG-002' LIMIT 1),
+        (SELECT r.id FROM roles r WHERE LOWER(r.name) = 'user' LIMIT 1)
+    WHERE NOT EXISTS (
+        SELECT 1 FROM users u WHERE LOWER(u.email) = 'vugiangtruong04@gmail.com'
+    );
+
+    UPDATE users
+    SET password = crypt('password123', gen_salt('bf', 10)),
+        status = 'ACTIVE'
+    WHERE LOWER(email) = 'vugiangtruong04@gmail.com';
+
+    INSERT INTO relatives (id, relationship, user_id, profile_id)
+    SELECT
+        gen_random_uuid(),
+        'Me',
+        u.id,
+        p.id
+    FROM users u
+    JOIN profile p ON p.id = u.profile_id
+    WHERE LOWER(u.email) = 'vugiangtruong04@gmail.com'
+    AND NOT EXISTS (
+        SELECT 1 FROM relatives r
+        WHERE r.user_id = u.id
+          AND r.profile_id = p.id
+    );
+
+    -- Patient 3: thgmatngu@gmail.com
+    INSERT INTO profile (
+        id,
+        fullname,
+        gender,
+        date_of_birth,
+        phone_number,
+        address,
+        identity_number
+    )
+    SELECT
+        gen_random_uuid(),
+        'Thắng Mặt Ngủ',
+        'Male',
+        '1998-12-05',
+        '0917778889',
+        'Hai Phong',
+        'PATIENT-THANG-003'
+    WHERE NOT EXISTS (
+        SELECT 1 FROM profile p WHERE p.identity_number = 'PATIENT-THANG-003'
+    );
+
+    INSERT INTO users (
+        id,
+        phone_number,
+        password,
+        email,
+        created_at,
+        status,
+        profile_id,
+        role_id
+    )
+    SELECT
+        gen_random_uuid(),
+        '0917778889',
+        crypt('password123', gen_salt('bf', 10)),
+        'thgmatngu@gmail.com',
+        NOW(),
+        'ACTIVE',
+        (SELECT p.id FROM profile p WHERE p.identity_number = 'PATIENT-THANG-003' LIMIT 1),
+        (SELECT r.id FROM roles r WHERE LOWER(r.name) = 'user' LIMIT 1)
+    WHERE NOT EXISTS (
+        SELECT 1 FROM users u WHERE LOWER(u.email) = 'thgmatngu@gmail.com'
+    );
+
+    UPDATE users
+    SET password = crypt('password123', gen_salt('bf', 10)),
+        status = 'ACTIVE'
+    WHERE LOWER(email) = 'thgmatngu@gmail.com';
+
+    INSERT INTO relatives (id, relationship, user_id, profile_id)
+    SELECT
+        gen_random_uuid(),
+        'Me',
+        u.id,
+        p.id
+    FROM users u
+    JOIN profile p ON p.id = u.profile_id
+    WHERE LOWER(u.email) = 'thgmatngu@gmail.com'
+    AND NOT EXISTS (
+        SELECT 1 FROM relatives r
+        WHERE r.user_id = u.id
+          AND r.profile_id = p.id
+    );
+
 -- INSERT INTO relatives (id, name, relationship, user_id)
 -- VALUES
 --     (gen_random_uuid(), 'Nguyễn Văn A', 'Dad', (SELECT id FROM users LIMIT 1)),

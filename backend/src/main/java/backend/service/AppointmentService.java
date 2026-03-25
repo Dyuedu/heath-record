@@ -23,20 +23,28 @@ import java.util.stream.Collectors;
 @Transactional
 @Slf4j
 public class AppointmentService {
-    
+
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
-    
+    private final EmailService emailService;
+
     // Định nghĩa các time slot (8h - 21h)
     private static final int[] SLOT_START_HOURS = {8, 9, 11, 14, 15, 16, 17, 18};
     private static final int[] SLOT_START_MINUTES = {0, 30, 0, 0, 30, 0, 30, 0};
     private static final int SLOT_DURATION_MINUTES = 90;  // 1.5 giờ
-    
+        private static final List<AppointmentStatus> ACTIVE_SLOT_STATUSES = List.of(
+            AppointmentStatus.AVAILABLE,
+            AppointmentStatus.PENDING,
+            AppointmentStatus.BOOKED
+        );
+
     public AppointmentService(
             AppointmentRepository appointmentRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            EmailService emailService) {
         this.appointmentRepository = appointmentRepository;
         this.userRepository = userRepository;
+        this.emailService = emailService;
     }
 
     private String normalizeRole(User user) {
@@ -79,7 +87,86 @@ public class AppointmentService {
         }
         return StringUtils.hasText(fallback) ? fallback.trim() : "";
     }
-    
+
+    private LocalTime resolveSlotStartTime(int slotNumber) {
+        return LocalTime.of(
+                SLOT_START_HOURS[slotNumber - 1],
+                SLOT_START_MINUTES[slotNumber - 1]
+        );
+    }
+
+    private LocalTime resolveSlotEndTime(int slotNumber) {
+        return resolveSlotStartTime(slotNumber).plusMinutes(SLOT_DURATION_MINUTES);
+    }
+
+    private Appointment buildAvailableSlot(User doctor, LocalDate date, int slotNumber) {
+        return Appointment.builder()
+                .doctor(doctor)
+                .appointmentDate(date)
+                .slotNumber(slotNumber)
+                .slotStartTime(resolveSlotStartTime(slotNumber))
+                .slotEndTime(resolveSlotEndTime(slotNumber))
+                .status(AppointmentStatus.AVAILABLE)
+                .build();
+    }
+
+    /**
+     * Mở lại slot cho bác sĩ - KIỂM TRA TRÙNG LẶP TRƯỚC KHI TẠO MỚI
+     */
+    private void reopenSlot(Appointment source) {
+        boolean activeSlotExists = appointmentRepository
+            .existsByDoctorIdAndAppointmentDateAndSlotNumberAndStatusIn(
+                source.getDoctor().getId(),
+                source.getAppointmentDate(),
+                source.getSlotNumber(),
+                ACTIVE_SLOT_STATUSES
+            );
+
+        if (activeSlotExists) {
+            log.info("Active slot already exists for doctor: {}, date: {}, slot: {}",
+                source.getDoctor().getId(),
+                source.getAppointmentDate(),
+                source.getSlotNumber());
+            return;
+        }
+
+        Appointment freshSlot = buildAvailableSlot(
+            source.getDoctor(),
+            source.getAppointmentDate(),
+            source.getSlotNumber()
+        );
+        appointmentRepository.save(freshSlot);
+        log.info("Created replacement available slot for doctor: {}, date: {}, slot: {}",
+            source.getDoctor().getId(),
+            source.getAppointmentDate(),
+            source.getSlotNumber());
+    }
+
+    private void sendDecisionEmail(Appointment appointment, boolean approved, String reason) {
+        try {
+            if (appointment.getPatient() == null
+                    || !StringUtils.hasText(appointment.getPatient().getEmail())) {
+                log.warn("Cannot send email: Patient email is missing for appointment #{}", appointment.getId());
+                return;
+            }
+            emailService.sendAppointmentDecisionEmail(
+                    appointment.getPatient().getEmail(),
+                    resolvePatientName(appointment.getPatient(), appointment.getPatientName()),
+                    appointment.getDoctor().getProfile() != null
+                            ? appointment.getDoctor().getProfile().getFullname()
+                            : appointment.getDoctor().getEmail(),
+                    appointment.getAppointmentDate(),
+                    appointment.getSlotStartTime(),
+                    appointment.getSlotEndTime(),
+                    approved,
+                    reason
+            );
+        } catch (Exception emailError) {
+            log.warn("Không thể gửi email thông báo lịch khám #{}: {}",
+                    appointment.getId(), emailError.getMessage());
+        }
+    }
+
     /**
      * Lấy lịch của bác sĩ cho khoảng ngày
      */
@@ -87,38 +174,38 @@ public class AppointmentService {
     public List<DoctorScheduleDayResponse> getDoctorSchedule(UUID doctorId, Integer daysOffset) {
         User doctor = userRepository.findById(doctorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bác sĩ không tồn tại"));
-        
+
         if (doctor.getRole() == null || !doctor.getRole().getName().equalsIgnoreCase("DOCTOR")) {
             throw new AccessDeniedException("Chỉ bác sĩ mới có quyền truy cập lịch khám");
         }
-        
+
         // Lấy 7 ngày từ ngày hôm nay + daysOffset
         LocalDate startDate = LocalDate.now().plusDays(daysOffset);
         LocalDate endDate = startDate.plusDays(6);
-        
+
         List<Appointment> appointments = appointmentRepository
                 .findDoctorScheduleByDateRange(doctorId, startDate, endDate);
-        
+
         Map<LocalDate, List<Appointment>> appointmentsByDate = appointments.stream()
                 .collect(Collectors.groupingBy(Appointment::getAppointmentDate));
-        
+
         List<DoctorScheduleDayResponse> schedules = new ArrayList<>();
-        
+
         for (int i = 0; i < 7; i++) {
             LocalDate date = startDate.plusDays(i);
             List<AppointmentSlotResponse> slots = generateSlots(
-                date,
-                appointmentsByDate.getOrDefault(date, new ArrayList<>())
+                    date,
+                    appointmentsByDate.getOrDefault(date, new ArrayList<>())
             );
-            
+
             long pendingCount = slots.stream()
                     .filter(s -> "PENDING".equals(s.getStatus()))
                     .count();
-            
+
             long bookedCount = slots.stream()
                     .filter(s -> "BOOKED".equals(s.getStatus()))
                     .count();
-            
+
             schedules.add(DoctorScheduleDayResponse.builder()
                     .date(date)
                     .dayOfWeek(date.getDayOfWeek().toString())
@@ -127,16 +214,16 @@ public class AppointmentService {
                     .bookedCount((int) bookedCount)
                     .build());
         }
-        
+
         return schedules;
     }
-    
+
     /**
      * Sinh ra danh sách 8 slot cố định cho một ngày
      */
     private List<AppointmentSlotResponse> generateSlots(LocalDate date, List<Appointment> existingAppointments) {
         List<AppointmentSlotResponse> slots = new ArrayList<>();
-        
+
         Map<Integer, Appointment> appointmentMap = existingAppointments.stream()
                 .collect(Collectors.toMap(
                         Appointment::getSlotNumber,
@@ -149,13 +236,13 @@ public class AppointmentService {
                             return u2.isAfter(u1) ? a2 : a1;
                         }
                 ));
-        
+
         for (int slotNum = 1; slotNum <= 8; slotNum++) {
             LocalTime startTime = LocalTime.of(SLOT_START_HOURS[slotNum - 1], SLOT_START_MINUTES[slotNum - 1]);
             LocalTime endTime = startTime.plusMinutes(SLOT_DURATION_MINUTES);
-            
+
             Appointment existing = appointmentMap.get(slotNum);
-            
+
             if (existing != null) {
                 slots.add(AppointmentSlotResponse.builder()
                         .appointmentId(existing.getId())
@@ -180,10 +267,10 @@ public class AppointmentService {
                         .build());
             }
         }
-        
+
         return slots;
     }
-    
+
     /**
      * Bệnh nhân yêu cầu lịch khám
      */
@@ -197,7 +284,7 @@ public class AppointmentService {
 
         User doctor = userRepository.findById(doctorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bác sĩ không tồn tại"));
-        
+
         if (doctor.getRole() == null || !doctor.getRole().getName().equalsIgnoreCase("DOCTOR")) {
             throw new AccessDeniedException("ID không hợp lệ");
         }
@@ -209,105 +296,129 @@ public class AppointmentService {
         if (isDoctor(actor) && !doctor.getId().equals(actor.getId())) {
             throw new AccessDeniedException("Bác sĩ chỉ có thể tạo lịch cho chính mình");
         }
-        
-        // Slot mặc định luôn là AVAILABLE trên UI; DB chỉ lưu khi có request/booked
+        if (request.getSlotNumber() < 1 || request.getSlotNumber() > 8) {
+            throw new IllegalArgumentException("Slot không hợp lệ");
+        }
+
         Optional<Appointment> existing = appointmentRepository
-                .findByDoctorIdAndAppointmentDateAndSlotNumber(
-                    doctorId,
-                    request.getAppointmentDate(),
-                    request.getSlotNumber()
+                .findTopByDoctorIdAndAppointmentDateAndSlotNumberOrderByUpdatedAtDesc(
+                        doctorId,
+                        request.getAppointmentDate(),
+                        request.getSlotNumber()
                 );
 
-        Appointment appointment;
-        if (existing.isPresent()) {
-            appointment = existing.get();
-            if (!appointment.getStatus().equals(AppointmentStatus.AVAILABLE)) {
+        Appointment slotRecord = existing.orElse(null);
+        if (slotRecord != null) {
+            if (slotRecord.getStatus() == AppointmentStatus.PENDING
+                    || slotRecord.getStatus() == AppointmentStatus.BOOKED) {
                 throw new IllegalArgumentException("Slot này không còn trống hoặc đã được đặt");
             }
-        } else {
-            if (request.getSlotNumber() < 1 || request.getSlotNumber() > 8) {
-                throw new IllegalArgumentException("Slot không hợp lệ");
+            if (slotRecord.getStatus() != AppointmentStatus.AVAILABLE) {
+                // Các trạng thái REJECTED / CANCELLED -> tạo slot mới để tái sử dụng
+                slotRecord = buildAvailableSlot(
+                        doctor,
+                        request.getAppointmentDate(),
+                        request.getSlotNumber()
+                );
+                slotRecord = appointmentRepository.save(slotRecord);
             }
-            LocalTime startTime = LocalTime.of(
-                    SLOT_START_HOURS[request.getSlotNumber() - 1],
-                    SLOT_START_MINUTES[request.getSlotNumber() - 1]
-            );
-            LocalTime endTime = startTime.plusMinutes(SLOT_DURATION_MINUTES);
-
-            appointment = Appointment.builder()
-                    .doctor(doctor)
-                    .appointmentDate(request.getAppointmentDate())
-                    .slotNumber(request.getSlotNumber())
-                    .slotStartTime(startTime)
-                    .slotEndTime(endTime)
-                    .status(AppointmentStatus.AVAILABLE)
-                    .build();
-        }
-
-        appointment.setStatus(AppointmentStatus.PENDING);
-        if (isPatient(actor)) {
-            appointment.setPatient(actor);
-            appointment.setPatientName(resolvePatientName(actor, request.getPatientName()));
-            appointment.setPatientPhone(resolvePatientPhone(actor, request.getPatientPhone()));
         } else {
-            appointment.setPatient(null);
-            appointment.setPatientName(request.getPatientName());
-            appointment.setPatientPhone(request.getPatientPhone());
+            slotRecord = appointmentRepository.save(
+                    buildAvailableSlot(
+                            doctor,
+                            request.getAppointmentDate(),
+                            request.getSlotNumber()
+                    )
+            );
         }
-        appointment.setNotes(request.getNotes());
-        appointment.setUpdatedAt(LocalDateTime.now());
 
-        Appointment saved = appointmentRepository.save(appointment);
-        
+        slotRecord.setStatus(AppointmentStatus.PENDING);
+        slotRecord.setDecisionReason(null);
+        slotRecord.setRespondedAt(null);
+        if (isPatient(actor)) {
+            slotRecord.setPatient(actor);
+            slotRecord.setPatientName(resolvePatientName(actor, request.getPatientName()));
+            slotRecord.setPatientPhone(resolvePatientPhone(actor, request.getPatientPhone()));
+        } else {
+            slotRecord.setPatient(null);
+            slotRecord.setPatientName(request.getPatientName());
+            slotRecord.setPatientPhone(request.getPatientPhone());
+        }
+        slotRecord.setNotes(StringUtils.hasText(request.getNotes()) ? request.getNotes().trim() : null);
+        slotRecord.setUpdatedAt(LocalDateTime.now());
+
+        Appointment saved = appointmentRepository.save(slotRecord);
+
         return toSlotResponse(saved);
     }
-    
+
     /**
      * Bác sĩ chấp thuận hoặc từ chối lịch khám
      */
     public AppointmentApprovalResponse approveOrRejectAppointment(
             UUID doctorId,
             AppointmentApprovalRequestDTO request) {
-        
+
         User doctor = userRepository.findById(doctorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bác sĩ không tồn tại"));
-        
+
         Appointment appointment = appointmentRepository.findById(request.getAppointmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lịch khám không tồn tại"));
-        
+
         // Kiểm tra quyền sở hữu
         if (!appointment.getDoctor().getId().equals(doctorId)) {
             throw new AccessDeniedException("Bạn không có quyền duyệt lịch này");
         }
-        
-        // Chỉ có thể duyệt nếu là PENDING
-        if (!appointment.getStatus().equals(AppointmentStatus.PENDING)) {
-            throw new IllegalArgumentException("Chỉ có thể duyệt lịch ở trạng thái chờ duyệt");
-        }
-        
-        if (request.getApprove()) {
+
+        AppointmentStatus currentStatus = appointment.getStatus();
+        boolean approve = Boolean.TRUE.equals(request.getApprove());
+
+        if (approve) {
+            if (!AppointmentStatus.PENDING.equals(currentStatus)) {
+                throw new IllegalArgumentException("Chỉ có thể duyệt lịch ở trạng thái chờ duyệt");
+            }
             appointment.setStatus(AppointmentStatus.BOOKED);
-            appointment.setNotes(request.getNotes() != null ? request.getNotes() : appointment.getNotes());
+            if (StringUtils.hasText(request.getNotes())) {
+                appointment.setNotes(request.getNotes().trim());
+            }
+            appointment.setDecisionReason(null);
         } else {
-            // Từ chối: quay lại AVAILABLE
-            appointment.setStatus(AppointmentStatus.AVAILABLE);
-            appointment.setPatientName(null);
-            appointment.setPatientPhone(null);
-            appointment.setNotes(null);
-            appointment.setPatient(null);
+            String reason = StringUtils.hasText(request.getNotes())
+                    ? request.getNotes().trim()
+                    : null;
+            if (!StringUtils.hasText(reason)) {
+                throw new IllegalArgumentException("Vui lòng nhập lý do từ chối hoặc hủy lịch");
+            }
+
+            if (AppointmentStatus.PENDING.equals(currentStatus)) {
+                appointment.setStatus(AppointmentStatus.REJECTED);
+            } else if (AppointmentStatus.BOOKED.equals(currentStatus)) {
+                appointment.setStatus(AppointmentStatus.CANCELLED);
+            } else {
+                throw new IllegalArgumentException("Không thể từ chối/hủy lịch ở trạng thái hiện tại");
+            }
+            appointment.setDecisionReason(reason);
         }
-        
+
         appointment.setRespondedAt(LocalDateTime.now());
         appointment.setUpdatedAt(LocalDateTime.now());
-        
+
         Appointment saved = appointmentRepository.save(appointment);
-        
+
+        // Chỉ gọi reopenSlot khi từ chối (không approve)
+        if (!approve) {
+            reopenSlot(saved);
+        }
+
+        sendDecisionEmail(saved, approve, saved.getDecisionReason());
+
         return AppointmentApprovalResponse.builder()
                 .appointmentId(saved.getId())
                 .status(saved.getStatus().toString())
-                .message(request.getApprove() ? "Đã chấp thuận lịch khám" : "Đã từ chối lịch khám")
+                .message(approve ? "Đã chấp thuận lịch khám" : "Đã cập nhật lịch khám")
                 .respondedAt(saved.getRespondedAt())
                 .slotDetails(toSlotResponse(saved))
+                .decisionReason(saved.getDecisionReason())
                 .build();
     }
 
@@ -329,6 +440,11 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly = true)
+    public int getPendingAppointmentCount(UUID doctorId) {
+        return appointmentRepository.countPendingAppointments(doctorId);
+    }
+
+    @Transactional(readOnly = true)
     public List<AppointmentDetailResponse> getPatientAppointments(UUID patientId, String statusFilter) {
         AppointmentStatus filter = null;
         if (StringUtils.hasText(statusFilter)) {
@@ -347,7 +463,7 @@ public class AppointmentService {
                 .map(this::toDetailResponse)
                 .toList();
     }
-    
+
     /**
      * Convert Appointment entity → AppointmentSlotResponse
      */
@@ -364,39 +480,40 @@ public class AppointmentService {
                 .build();
     }
 
-        private BasicUserInfo toBasicUser(User user) {
+    private BasicUserInfo toBasicUser(User user) {
         if (user == null) {
             return null;
         }
         return BasicUserInfo.builder()
-            .id(user.getId())
-            .fullName(user.getProfile() != null && StringUtils.hasText(user.getProfile().getFullname())
-                ? user.getProfile().getFullname()
-                : user.getEmail())
-            .phoneNumber(user.getProfile() != null && StringUtils.hasText(user.getProfile().getPhoneNumber())
-                ? user.getProfile().getPhoneNumber()
-                : user.getPhoneNumber())
-            .email(user.getEmail())
-            .avatarUrl(user.getProfile() != null ? user.getProfile().getAvatarUrl() : null)
-            .build();
-        }
+                .id(user.getId())
+                .fullName(user.getProfile() != null && StringUtils.hasText(user.getProfile().getFullname())
+                        ? user.getProfile().getFullname()
+                        : user.getEmail())
+                .phoneNumber(user.getProfile() != null && StringUtils.hasText(user.getProfile().getPhoneNumber())
+                        ? user.getProfile().getPhoneNumber()
+                        : user.getPhoneNumber())
+                .email(user.getEmail())
+                .avatarUrl(user.getProfile() != null ? user.getProfile().getAvatarUrl() : null)
+                .build();
+    }
 
-        private AppointmentDetailResponse toDetailResponse(Appointment appointment) {
+    private AppointmentDetailResponse toDetailResponse(Appointment appointment) {
         return AppointmentDetailResponse.builder()
-            .appointmentId(appointment.getId())
-            .appointmentDate(appointment.getAppointmentDate())
-            .slotNumber(appointment.getSlotNumber())
-            .slotStartTime(appointment.getSlotStartTime())
-            .slotEndTime(appointment.getSlotEndTime())
-            .status(appointment.getStatus().toString())
-            .doctor(toBasicUser(appointment.getDoctor()))
-            .patient(toBasicUser(appointment.getPatient()))
-            .patientName(appointment.getPatientName())
-            .patientPhone(appointment.getPatientPhone())
-            .notes(appointment.getNotes())
-            .createdAt(appointment.getCreatedAt())
-            .updatedAt(appointment.getUpdatedAt())
-            .respondedAt(appointment.getRespondedAt())
-            .build();
-        }
+                .appointmentId(appointment.getId())
+                .appointmentDate(appointment.getAppointmentDate())
+                .slotNumber(appointment.getSlotNumber())
+                .slotStartTime(appointment.getSlotStartTime())
+                .slotEndTime(appointment.getSlotEndTime())
+                .status(appointment.getStatus().toString())
+                .doctor(toBasicUser(appointment.getDoctor()))
+                .patient(toBasicUser(appointment.getPatient()))
+                .patientName(appointment.getPatientName())
+                .patientPhone(appointment.getPatientPhone())
+                .notes(appointment.getNotes())
+                .decisionReason(appointment.getDecisionReason())
+                .createdAt(appointment.getCreatedAt())
+                .updatedAt(appointment.getUpdatedAt())
+                .respondedAt(appointment.getRespondedAt())
+                .build();
+    }
 }

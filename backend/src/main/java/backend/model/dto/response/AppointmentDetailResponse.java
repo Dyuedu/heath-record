@@ -25,6 +25,7 @@ public class AppointmentDetailResponse {
     private String patientName;
     private String patientPhone;
     private String notes;
+    private String decisionReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime respondedAt;
