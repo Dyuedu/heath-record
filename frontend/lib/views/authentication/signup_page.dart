@@ -27,9 +27,6 @@ class _SignupPageState extends State<SignupPage> {
   bool _isConfirmPasswordVisible = false;
   String? _lastNotifiedError;
 
-  // State cho Role Selection (Mặc định là 'user')
-  String _selectedRole = 'user';
-
   @override
   void dispose() {
     _nameController.dispose();
@@ -150,10 +147,6 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  _buildInputLabel("Bạn đăng ký với vai trò:"),
-                  _buildRoleSelector(),
-                  const SizedBox(height: 32),
-
                   _buildInputLabel("Họ và tên"),
                   _buildTextFormField(
                     controller: _nameController,
@@ -244,98 +237,6 @@ class _SignupPageState extends State<SignupPage> {
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  // --- Role Selection Widgets ---
-  Widget _buildRoleSelector() {
-    return Row(
-      children: [
-        Expanded(
-          child: _roleCard(
-            "Người dùng",
-            "Quản lý hồ sơ cá nhân và gia đình",
-            "user",
-            Icons.person_rounded,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _roleCard(
-            "Bác sĩ",
-            "Theo dõi bệnh nhân và bệnh án",
-            "doctor",
-            Icons.medical_services_outlined,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _roleCard(String title, String desc, String role, IconData icon) {
-    bool isSelected = _selectedRole == role;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedRole = role),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF0F5FF) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF007BFF) : Colors.grey.shade200,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF007BFF)
-                        : Colors.grey.shade100,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    icon,
-                    color: isSelected ? Colors.white : Colors.grey,
-                    size: 20,
-                  ),
-                ),
-                if (isSelected)
-                  const Icon(
-                    Icons.check_circle,
-                    color: Color(0xFF007BFF),
-                    size: 18,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isSelected ? const Color(0xFF007BFF) : Colors.black87,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              desc,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.black45,
-                height: 1.3,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -508,7 +409,6 @@ class _SignupPageState extends State<SignupPage> {
                   _identityNumberController.text.trim().isEmpty
                       ? null
                       : _identityNumberController.text.trim(),
-                  _selectedRole,
                   _emailController.text.trim(),
                   _phoneController.text.trim(),
                   _passwordController.text,
@@ -526,7 +426,6 @@ class _SignupPageState extends State<SignupPage> {
                       _identityNumberController.text.trim().isEmpty
                           ? null
                           : _identityNumberController.text.trim(),
-                      _selectedRole,
                       _emailController.text.trim(),
                       _phoneController.text.trim(),
                       _passwordController.text,

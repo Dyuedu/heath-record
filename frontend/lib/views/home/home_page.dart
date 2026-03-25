@@ -389,6 +389,7 @@ class _DoctorSearchInput extends StatelessWidget {
                   ),
                 ),
               ),
+
           ],
         ),
       ),
@@ -435,6 +436,7 @@ class _MedicalRecordSearchInput extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
               decoration: const InputDecoration(
+                fillColor: Colors.white,
                 isDense: true,
                 border: InputBorder.none,
               ),

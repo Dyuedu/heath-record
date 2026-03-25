@@ -98,7 +98,6 @@ class AuthViewModel extends ChangeNotifier {
   Future<bool> register(
     String fullname,
     String? identityNumber,
-    String role,
     String email,
     String phone,
     String password, {
@@ -107,7 +106,6 @@ class AuthViewModel extends ChangeNotifier {
     final result = await registerWithResult(
       fullname,
       identityNumber,
-      role,
       email,
       phone,
       password,
@@ -119,7 +117,6 @@ class AuthViewModel extends ChangeNotifier {
   Future<RegisterResultModel?> registerWithResult(
     String fullname,
     String? identityNumber,
-    String role,
     String email,
     String phone,
     String password, {
@@ -133,7 +130,6 @@ class AuthViewModel extends ChangeNotifier {
         fullname: fullname,
         identityNumber: identityNumber,
         confirmLinkRequest: confirmLinkRequest,
-        role: role,
         email: email,
         phone: phone,
         password: password,

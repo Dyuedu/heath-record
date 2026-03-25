@@ -5,6 +5,8 @@ import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_pending_list_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
+import 'package:frontend/views/authentication/login_page.dart';
+import 'package:frontend/viewmodels/auth_viewmodel.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -93,12 +95,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           MaterialPageRoute(builder: (_) => AdminPendingListPage()),
         );
         break;
-      case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const UserProfilePage()),
-        );
-        break;
     }
   }
 
@@ -124,7 +120,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
         ),
         const Spacer(),
-        _iconCircle(Icons.notifications_none_rounded, badge: true),
+        GestureDetector(
+          onTap: () {
+            _showLogoutDialog(context, context.read<AuthViewModel>());
+          },
+          child: _iconCircle(Icons.logout_rounded, badge: false),
+        ),
       ],
     );
   }
@@ -659,6 +660,34 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context, AuthViewModel vm) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Đăng xuất'),
+        content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext), 
+            child: const Text('Hủy')
+          ),
+          TextButton(
+            onPressed: () async {
+              await vm.logout();
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context, 
+                MaterialPageRoute(builder: (_) => const LoginPage()), 
+                (route) => false
+              );
+            },
+            child: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
