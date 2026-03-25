@@ -5,8 +5,11 @@ import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_pending_list_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
+import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
+import 'package:frontend/views/admin/admin_tag_management_page.dart';
+import 'package:frontend/views/admin/admin_hospital_management_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -417,15 +420,40 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 },
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _shortcutItem(
+                icon: Icons.local_hospital_rounded,
+                label: 'Bệnh viện',
+                subtitle: 'quản lý danh sách',
+                bgColor: const Color(0xFFECFDF5),
+                iconColor: const Color(0xFF10B981),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminHospitalManagementPage()),
+                  );
+                },
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: _shortcutItem(
-                icon: Icons.bar_chart_rounded,
-                label: 'Thống kê',
-                subtitle: 'dữ liệu dữ liệu',
-                bgColor: const Color(0xFFECFDF5),
-                iconColor: const Color(0xFF10B981),
-                onTap: () {},
+                icon: Icons.local_offer_rounded,
+                label: 'Từ khóa',
+                subtitle: 'quản lý tags',
+                bgColor: const Color(0xFFF0F9FF),
+                iconColor: const Color(0xFF06B6D4),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminTagManagementPage()),
+                  );
+                },
               ),
             ),
           ],
