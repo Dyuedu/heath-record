@@ -89,7 +89,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
                   _buildSectionTitle('THÔNG TIN LIÊN HỆ'),
                   _buildInfoCard([
                     _buildInfoTile(Icons.email_outlined, 'Email', profile?.email ?? '-', Colors.blue),
-                    _buildInfoTile(Icons.phone_outlined, 'Số điện thoại', profile?.phoneNumber ?? '-', Colors.green),
+                    _buildInfoTile(Icons.phone_outlined, 'Số điện thoại', profile?.phoneNumber ?? '-', Colors.green, isLast: true),
                   ]),
 
                   // --- Section: TÀI KHOẢN & BẢO MẬT ---

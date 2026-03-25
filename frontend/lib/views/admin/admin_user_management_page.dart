@@ -251,7 +251,8 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'DANH SÁCH (${users.length})',
@@ -262,12 +263,19 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                               letterSpacing: 0.5,
                             ),
                           ),
-                          const Spacer(),
-                          _statusBadge('$activeCount Hoạt động', const Color(0xFF10B981)),
-                          const SizedBox(width: 8),
-                          _statusBadge('$pendingCount Chờ kích hoạt', const Color(0xFFF59E0B)),
-                          const SizedBox(width: 8),
-                          _statusBadge('$lockedCount Khóa', const Color(0xFFEF4444)),
+                          const SizedBox(height: 10),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _statusBadge('$activeCount Hoạt động', const Color(0xFF10B981)),
+                                const SizedBox(width: 8),
+                                _statusBadge('$pendingCount Chờ kích hoạt', const Color(0xFFF59E0B)),
+                                const SizedBox(width: 8),
+                                _statusBadge('$lockedCount Khóa', const Color(0xFFEF4444)),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
