@@ -114,6 +114,7 @@ public class AuthService {
                 .build();
         }
 
+
         User user = new User();
         user.setEmail(registerRequest.email());
         user.setPhoneNumber(normalizedPhone);

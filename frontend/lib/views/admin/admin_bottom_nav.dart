@@ -47,6 +47,12 @@ class AdminBottomNav extends StatelessWidget {
               activeIcon: Icons.verified_user_rounded,
               label: 'Duyệt',
             ),
+            _navItem(
+              index: 3,
+              icon: Icons.bar_chart_outlined,
+              activeIcon: Icons.bar_chart_rounded,
+              label: 'Thống kê',
+            ),
           ],
         ),
       ),

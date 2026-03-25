@@ -30,6 +30,42 @@ class AdminRepositoryImp implements AdminRepository {
   }
 
   @override
+  Future<Map<String, dynamic>?> getRecordStats(String period) async {
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/admin/records/stats',
+        queryParameters: {'period': period},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data as Map<String, dynamic>;
+      }
+    } on DioException catch (error) {
+      print('Get record stats failed: ${error.message}');
+    } catch (error) {
+      print('Unexpected error when fetching record stats: $error');
+    }
+    return null;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getStats(String period, String type) async {
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/admin/records/stats',
+        queryParameters: {'period': period, 'type': type},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data as Map<String, dynamic>;
+      }
+    } on DioException catch (error) {
+      print('Get stats failed: ${error.message}');
+    } catch (error) {
+      print('Unexpected error when fetching stats: $error');
+    }
+    return null;
+  }
+
+  @override
   Future<List<UserProfileModel>> searchUsers({
     String? search,
     String? role,
