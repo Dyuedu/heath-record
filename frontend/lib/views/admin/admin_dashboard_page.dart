@@ -27,6 +27,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final vm = context.read<AdminViewModel>();
       vm.loadDashboardStats();
       vm.loadRecordStats();
+      vm.loadUserStats();
     });
   }
 
@@ -60,6 +61,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
                   // Mini chart preview
                   _buildMiniChartPreview(viewModel),
+                  const SizedBox(height: 20),
+
+                  // Mini user chart preview
+                  _buildMiniUserChartPreview(viewModel),
                   const SizedBox(height: 28),
 
                   // Quick shortcuts
@@ -187,7 +192,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Chào buổi sáng, Bác sĩ Minh!',
+            'Chào buổi sáng, Admin!',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -361,6 +366,103 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 const Expanded(
                   child: Text(
                     'Thống kê bệnh án (12 tháng)',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 80,
+              child: !hasData
+                  ? Center(
+                      child: Text(
+                        'Chưa có dữ liệu',
+                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                      ),
+                    )
+                  : BarChart(
+                      BarChartData(
+                        maxY: maxY * 1.3 + 1,
+                        barGroups: chartData.asMap().entries.map((e) {
+                          return BarChartGroupData(
+                            x: e.key,
+                            barRods: [
+                              BarChartRodData(
+                                toY: (e.value['count'] as num).toDouble(),
+                                color: Colors.white.withOpacity(0.8),
+                                width: 8,
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                        gridData: const FlGridData(show: false),
+                        borderData: FlBorderData(show: false),
+                        titlesData: const FlTitlesData(
+                          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        ),
+                        barTouchData: BarTouchData(enabled: false),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniUserChartPreview(AdminViewModel vm) {
+    final rawData = vm.userStats?['userChartData'];
+    final List<Map<String, dynamic>> chartData =
+        rawData != null ? (rawData as List).cast<Map<String, dynamic>>() : [];
+
+    final hasData = chartData.isNotEmpty;
+    final maxY = hasData
+        ? chartData.map((d) => (d['count'] as num).toDouble()).fold(0.0, (a, b) => a > b ? a : b)
+        : 1.0;
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminStatisticsPage()),
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF10B981), Color(0xFF34D399)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF10B981).withOpacity(0.25),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.people_alt_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Biểu đồ người dùng mới (1 tháng)',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
