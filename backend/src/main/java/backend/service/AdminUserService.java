@@ -14,6 +14,7 @@ import backend.repository.MedicalRecordRepository;
 import backend.repository.ProfileRepository;
 import backend.repository.RoleRepository;
 import backend.repository.UserRepository;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -67,6 +68,50 @@ public class AdminUserService {
         stats.put("pendingApprovals", pendingApprovals);
         stats.put("newRecordsThisMonth", newRecordsThisMonth);
         return stats;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getRecordStats(String period) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start;
+
+        String normalizedPeriod = (period == null || period.isBlank()) ? "month" : period.trim().toLowerCase();
+
+        switch (normalizedPeriod) {
+            case "day"  -> start = now.minusDays(13).toLocalDate().atStartOfDay();  // 14 days
+            case "week" -> start = now.minusWeeks(7).toLocalDate().atStartOfDay();  // 8 weeks
+            case "year" -> start = now.minusYears(4).withMonth(1).withDayOfMonth(1).toLocalDate().atStartOfDay(); // 5 years
+            default     -> { normalizedPeriod = "month"; start = now.minusMonths(11).withDayOfMonth(1).toLocalDate().atStartOfDay(); } // 12 months
+        }
+
+        long totalRecords = medicalRecordRepository.countByDatetimeStartBetween(start, now);
+        long totalUsers   = userRepository.count();
+
+        List<Object[]> recordRows = medicalRecordRepository.countGroupedByPeriod(normalizedPeriod, start, now);
+        List<Map<String, Object>> recordChartData = new ArrayList<>();
+        for (Object[] row : recordRows) {
+            Map<String, Object> point = new HashMap<>();
+            point.put("label", row[0] != null ? row[0].toString() : "");
+            point.put("count", ((Number) row[1]).longValue());
+            recordChartData.add(point);
+        }
+
+        List<Object[]> userRows = userRepository.countUsersGroupedByPeriod(normalizedPeriod, start, now);
+        List<Map<String, Object>> userChartData = new ArrayList<>();
+        for (Object[] row : userRows) {
+            Map<String, Object> point = new HashMap<>();
+            point.put("label", row[0] != null ? row[0].toString() : "");
+            point.put("count", ((Number) row[1]).longValue());
+            userChartData.add(point);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalRecords", totalRecords);
+        result.put("totalUsers", totalUsers);
+        result.put("chartData", recordChartData); // Keep for backwards compatibility/dashboard
+        result.put("recordChartData", recordChartData);
+        result.put("userChartData", userChartData);
+        return result;
     }
 
     @Transactional(readOnly = true)

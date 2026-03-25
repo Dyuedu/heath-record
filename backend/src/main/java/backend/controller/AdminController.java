@@ -37,6 +37,12 @@ public class AdminController {
         return ResponseEntity.ok(adminUserService.getDashboardStats());
     }
 
+    @GetMapping("/records/stats")
+    public ResponseEntity<Map<String, Object>> getRecordStats(
+            @RequestParam(required = false, defaultValue = "month") String period) {
+        return ResponseEntity.ok(adminUserService.getRecordStats(period));
+    }
+
     @GetMapping("/users")
     public ResponseEntity<List<UserResponse>> searchUsers(
             @RequestParam(required = false) String search,
