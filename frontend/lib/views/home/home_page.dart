@@ -23,8 +23,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String? _userRole;
   bool _isRoleLoading = true;
-  final TextEditingController _recordSearchController = TextEditingController();
-  String _recordSearchQuery = '';
 
   static const List<_MockMedicalHistoryItem> _mockHistoryItems = [
     _MockMedicalHistoryItem(
@@ -63,12 +61,6 @@ class _HomePageState extends State<HomePage> {
         profileVM.loadOverview();
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _recordSearchController.dispose();
-    super.dispose();
   }
 
   Future<void> _resolveUserRole() async {
@@ -111,21 +103,6 @@ class _HomePageState extends State<HomePage> {
   bool _isDoctorRole(String? role) {
     final normalized = (role ?? '').trim().toLowerCase();
     return normalized == 'doctor' || normalized == 'role_doctor';
-  }
-
-  List<_MockMedicalHistoryItem> get _filteredHistoryItems {
-    final query = _recordSearchQuery.trim().toLowerCase();
-    if (query.isEmpty) {
-      return _mockHistoryItems;
-    }
-
-    return _mockHistoryItems
-        .where(
-          (item) =>
-              item.title.toLowerCase().contains(query) ||
-              item.facility.toLowerCase().contains(query),
-        )
-        .toList();
   }
 
   @override
@@ -173,7 +150,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 20),
                 Consumer<ScheduleViewModel>(
-                  builder: (_, scheduleVM, __) => _DoctorPendingOverviewCard(
+                  builder: (_, scheduleVM, child) => _DoctorPendingOverviewCard(
                     pendingCount: scheduleVM.pendingApprovalCount,
                     onRefresh: scheduleVM.refreshPendingCount,
                     onViewSchedule: () {
@@ -191,24 +168,6 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 20),
 
               if (!_isDoctor) ...[
-                const Text(
-                  "Tìm kiếm bệnh án",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1F2A44),
-                  ),
-                ),
-                const SizedBox(height: 15),
-                _MedicalRecordSearchInput(
-                  controller: _recordSearchController,
-                  onChanged: (value) {
-                    setState(() {
-                      _recordSearchQuery = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 20),
                 _PatientAppointmentShortcut(
                   onTap: () {
                     Navigator.pushNamed(
@@ -230,7 +189,7 @@ class _HomePageState extends State<HomePage> {
               if (!_isDoctor) ...[
                 const _SectionHeader(title: "Lịch sử khám", showViewAll: false),
                 const SizedBox(height: 15),
-                _MockMedicalHistorySection(items: _filteredHistoryItems),
+                _MockMedicalHistorySection(items: _mockHistoryItems),
               ],
 
               const SizedBox(height: 100), // Padding cho BottomNav
@@ -636,73 +595,6 @@ class _PatientAppointmentShortcut extends StatelessWidget {
               label: const Text(
                 'Bắt đầu đặt lịch',
                 style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MedicalRecordSearchInput extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  const _MedicalRecordSearchInput({
-    required this.controller,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.search_rounded, color: Color(0xFF246BFF), size: 28),
-          const SizedBox(width: 15),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              style: const TextStyle(
-                color: Color(0xFF1F2A44),
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: const InputDecoration(
-                fillColor: Colors.white,
-                isDense: true,
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF246BFF),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Text(
-              'Bệnh án',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
               ),
             ),
           ),
