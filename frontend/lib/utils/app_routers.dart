@@ -103,11 +103,11 @@ class AppRouter {
           builder: (_) => const DoctorSchedulePage(),
           settings: settings,
         );
-      case patientBookAppointment:
-        return MaterialPageRoute(
-          builder: (_) => const PatientBookAppointmentPage(),
-          settings: settings,
-        );
+      // case patientBookAppointment:
+      //   return MaterialPageRoute(
+      //     builder: (_) => const PatientBookAppointmentPage(),
+      //     settings: settings,
+      //   );
       case medicalRecords:
       // return MaterialPageRoute(
       //   builder: (_) => const MedicalRecordsPage(),

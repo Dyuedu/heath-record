@@ -133,6 +133,16 @@ class AppProviders {
         update: (context, dioClient, previous) =>
             NotificationRepository(dioClient: dioClient),
       ),
+      ProxyProvider<DioClient, AppointmentRepository>(
+        update: (context, dioClient, previous) =>
+            AppointmentRepositoryImp(dioClient),
+      ),
+      ChangeNotifierProxyProvider<AppointmentRepository, ScheduleViewModel>(
+        create: (context) =>
+            ScheduleViewModel(context.read<AppointmentRepository>()),
+        update: (context, appointmentRepository, previous) =>
+            previous ?? ScheduleViewModel(appointmentRepository),
+      ),
       ChangeNotifierProxyProvider<AdminRepository, AdminViewModel>(
         create: (context) =>
             AdminViewModel(repository: context.read<AdminRepository>()),
