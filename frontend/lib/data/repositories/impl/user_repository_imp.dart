@@ -195,7 +195,9 @@ class UserRepositoryImp implements UserRepository {
     }
 
     try {
-      final response = await _dioClient.dio.get('/api/v1/doctor/records/patients/$id/detail');
+      final response = await _dioClient.dio.get(
+        '/api/v1/doctor/records/patients/$id/detail',
+      );
       if (response.statusCode == 200 && response.data != null) {
         return DoctorPatientDetailModel.fromMap(
           Map<String, dynamic>.from(response.data as Map),
@@ -208,14 +210,23 @@ class UserRepositoryImp implements UserRepository {
   }
 
   @override
-  Future<List<UserProfileModel>> fetchDoctors({String? keyword}) async {
+  Future<List<UserProfileModel>> fetchDoctors({
+    String? keyword,
+    String? department,
+  }) async {
     final cleanKeyword = keyword?.trim() ?? '';
+    final cleanDepartment = department?.trim() ?? '';
+    final query = <String, String>{};
+    if (cleanKeyword.isNotEmpty) {
+      query['keyword'] = cleanKeyword;
+    }
+    if (cleanDepartment.isNotEmpty) {
+      query['department'] = cleanDepartment;
+    }
     try {
       final response = await _dioClient.dio.get(
         '/api/doctors',
-        queryParameters: cleanKeyword.isEmpty
-            ? null
-            : {'keyword': cleanKeyword},
+        queryParameters: query.isEmpty ? null : query,
       );
 
       if (response.statusCode == 200 && response.data is List) {

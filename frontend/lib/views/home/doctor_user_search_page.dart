@@ -14,21 +14,64 @@ class DoctorUserSearchPage extends StatefulWidget {
 
 class _DoctorUserSearchPageState extends State<DoctorUserSearchPage> {
   final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
   bool _hasSearched = false;
+  String _lastSubmittedQuery = '';
 
   void _onSearch() {
     FocusScope.of(context).unfocus(); // ẩn bàn phím khi submit
     final query = _searchController.text.trim();
     if (query.isEmpty) {
-      if (mounted) setState(() => _hasSearched = false);
+      if (mounted) {
+        setState(() {
+          _hasSearched = false;
+          _lastSubmittedQuery = '';
+        });
+      }
+      context.read<ProfileViewModel>().searchPatientsForDoctor('');
       return;
     }
-    if (mounted) setState(() => _hasSearched = true);
+    if (mounted) {
+      setState(() {
+        _hasSearched = true;
+        _lastSubmittedQuery = query;
+      });
+    }
     context.read<ProfileViewModel>().searchPatientsForDoctor(query);
+  }
+
+  void _onQueryChanged(String rawValue) {
+    final query = rawValue.trim();
+    _searchDebounce?.cancel();
+
+    if (query.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _hasSearched = false;
+          _lastSubmittedQuery = '';
+        });
+      }
+      context.read<ProfileViewModel>().searchPatientsForDoctor('');
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _hasSearched = true;
+      });
+    }
+
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      if (_lastSubmittedQuery == query) return;
+      _lastSubmittedQuery = query;
+      context.read<ProfileViewModel>().searchPatientsForDoctor(query);
+    });
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -62,6 +105,7 @@ class _DoctorUserSearchPageState extends State<DoctorUserSearchPage> {
                   child: TextField(
                     controller: _searchController,
                     textInputAction: TextInputAction.search,
+                    onChanged: _onQueryChanged,
                     onSubmitted: (_) => _onSearch(),
                     decoration: InputDecoration(
                       hintText: 'Nhập CCCD hoặc SĐT...',

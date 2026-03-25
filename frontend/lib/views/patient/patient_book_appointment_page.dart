@@ -27,10 +27,12 @@ class _PatientBookAppointmentPageState
   late final TextEditingController _notesController;
   late final TextEditingController _doctorSearchController;
 
-  List<DoctorModel> _doctors = const <DoctorModel>[];
+  List<DoctorModel> _doctors = [];
+  List<String> _availableDepartments = [];
   bool _isLoadingDoctors = false;
   String? _doctorErrorMessage;
   DoctorModel? _selectedDoctor;
+  String? _selectedDepartmentFilter;
 
   DateTime _selectedDate = _normalize(DateTime.now());
   int _currentWeekOffset = 0;
@@ -46,6 +48,7 @@ class _PatientBookAppointmentPageState
     _phoneController = TextEditingController();
     _notesController = TextEditingController();
     _doctorSearchController = TextEditingController();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ensureProfilePrefilled();
       _loadDoctors();
@@ -78,6 +81,7 @@ class _PatientBookAppointmentPageState
   void _prefillPatientFields() {
     final profile = context.read<UserViewModel>().profile;
     if (profile == null) return;
+
     final fallbackName = profile.fullName.trim().isEmpty
         ? profile.email.trim()
         : profile.fullName.trim();
@@ -99,11 +103,25 @@ class _PatientBookAppointmentPageState
       final repo = context.read<UserRepository>();
       final profiles = await repo.fetchDoctors();
       final doctors = profiles.map(DoctorModel.fromUserProfile).toList();
+      final departments =
+          doctors
+              .map((doc) => doc.specialty.trim())
+              .where((dept) => dept.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
+
       if (!mounted) return;
       setState(() {
         _doctors = doctors;
+        _availableDepartments = departments;
+        if (_selectedDepartmentFilter != null &&
+            !_availableDepartments.contains(_selectedDepartmentFilter)) {
+          _selectedDepartmentFilter = null;
+        }
       });
-      if (doctors.isNotEmpty) {
+
+      if (doctors.isNotEmpty && _selectedDoctor == null) {
         _selectDoctor(doctors.first);
       }
     } catch (error) {
@@ -143,6 +161,7 @@ class _PatientBookAppointmentPageState
       _showSnack('Vui lòng chọn bác sĩ trước', false);
       return;
     }
+
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -159,6 +178,7 @@ class _PatientBookAppointmentPageState
         );
       },
     );
+
     if (picked == null) return;
     final normalized = _normalize(picked);
     final today = _normalize(DateTime.now());
@@ -190,13 +210,23 @@ class _PatientBookAppointmentPageState
   }
 
   List<DoctorModel> get _filteredDoctors {
+    List<DoctorModel> doctors = _doctors;
+    if (_selectedDepartmentFilter != null &&
+        _selectedDepartmentFilter!.isNotEmpty) {
+      final target = _selectedDepartmentFilter!.toLowerCase();
+      doctors = doctors
+          .where((doc) => doc.specialty.trim().toLowerCase() == target)
+          .toList();
+    }
+
     final query = _doctorSearchController.text.trim().toLowerCase();
-    if (query.isEmpty) return _doctors;
-    return _doctors
+    if (query.isEmpty) return doctors;
+
+    return doctors
         .where(
           (doc) =>
               doc.name.toLowerCase().contains(query) ||
-              doc.specialty.toLowerCase().contains(query),
+              doc.contactEmail.toLowerCase().contains(query),
         )
         .toList();
   }
@@ -229,6 +259,7 @@ class _PatientBookAppointmentPageState
           ? null
           : _notesController.text.trim(),
     );
+
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
@@ -253,31 +284,45 @@ class _PatientBookAppointmentPageState
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Xác nhận đặt lịch'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Xác nhận đặt lịch',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _confirmRow('Bác sĩ', doctor.name),
-                _confirmRow(
+                _buildConfirmRow('Bác sĩ', doctor.name),
+                _buildConfirmRow(
                   'Ngày khám',
                   DateFormat('dd/MM/yyyy').format(day.date),
                 ),
-                _confirmRow(
+                _buildConfirmRow(
                   'Khung giờ',
                   '${slot.slotStartTime} - ${slot.slotEndTime}',
                 ),
-                _confirmRow('Bệnh nhân', name),
-                _confirmRow('SĐT', phone),
+                _buildConfirmRow('Bệnh nhân', name),
+                _buildConfirmRow('SĐT', phone),
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
+                style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
                 child: const Text('Hủy'),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 child: const Text('Xác nhận'),
               ),
             ],
@@ -286,26 +331,27 @@ class _PatientBookAppointmentPageState
         false;
   }
 
-  Widget _confirmRow(String label, String value) {
+  Widget _buildConfirmRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 90,
+            width: 80,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: AppTheme.captionTextColor,
+                color: Colors.grey[600],
+                fontSize: 14,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
             ),
           ),
         ],
@@ -319,6 +365,8 @@ class _PatientBookAppointmentPageState
       SnackBar(
         content: Text(message),
         backgroundColor: success ? Colors.green.shade600 : Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -352,17 +400,17 @@ class _PatientBookAppointmentPageState
 
   @override
   Widget build(BuildContext context) {
-    final userVM = context.watch<UserViewModel>();
     return ChangeNotifierProvider<ScheduleViewModel>.value(
       value: _scheduleViewModel,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FD),
+        backgroundColor: const Color(0xFFF5F7FA),
         appBar: AppBar(
           title: const Text(
             'Đặt lịch khám',
             style: TextStyle(
               color: Color(0xFF1A2C3E),
               fontWeight: FontWeight.w600,
+              fontSize: 20,
             ),
           ),
           backgroundColor: Colors.white,
@@ -371,56 +419,68 @@ class _PatientBookAppointmentPageState
             icon: const Icon(
               Icons.arrow_back_ios_new,
               color: Color(0xFF1A2C3E),
+              size: 20,
             ),
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: SafeArea(
-          child: Consumer<ScheduleViewModel>(
-            builder: (context, scheduleVM, _) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionTitle('Thông tin bệnh nhân'),
+        body: Consumer<ScheduleViewModel>(
+          builder: (context, scheduleVM, _) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader('Thông tin bệnh nhân'),
+                  const SizedBox(height: 12),
+                  _buildPatientInfoCard(),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('Chọn bác sĩ'),
+                  const SizedBox(height: 12),
+                  _buildDoctorPicker(),
+                  const SizedBox(height: 24),
+                  if (_selectedDoctor != null) ...[
+                    _buildSectionHeader('Lịch khả dụng'),
                     const SizedBox(height: 12),
-                    _buildPatientInfoCard(userVM),
-                    const SizedBox(height: 24),
-                    _sectionTitle('Chọn bác sĩ'),
-                    const SizedBox(height: 12),
-                    _buildDoctorPicker(),
-                    const SizedBox(height: 24),
-                    if (_selectedDoctor != null) ...[
-                      _sectionTitle('Lịch khả dụng'),
-                      const SizedBox(height: 12),
-                      _buildDateNavigator(scheduleVM),
-                      const SizedBox(height: 16),
-                      _buildSlotList(scheduleVM),
-                    ] else ...[
-                      _emptyState('Chọn bác sĩ để xem lịch khả dụng.'),
-                    ],
+                    _buildDateNavigator(scheduleVM),
+                    const SizedBox(height: 20),
+                    _buildSlotList(scheduleVM),
+                  ] else ...[
+                    _buildEmptyState('Chọn bác sĩ để xem lịch khả dụng'),
                   ],
-                ),
-              );
-            },
-          ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildPatientInfoCard(UserViewModel userVM) {
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF1A2C3E),
+        letterSpacing: -0.3,
+      ),
+    );
+  }
+
+  Widget _buildPatientInfoCard() {
+    final userVM = context.watch<UserViewModel>();
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -429,33 +489,94 @@ class _PatientBookAppointmentPageState
           TextField(
             controller: _nameController,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Họ và tên',
-              prefixIcon: Icon(Icons.person_outline),
+              labelStyle: TextStyle(color: Colors.grey[600]),
+              prefixIcon: Icon(Icons.person_outline, color: Colors.grey[500]),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.grey[200]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.grey[200]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppTheme.primaryColor),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _phoneController,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Số điện thoại liên hệ',
-              prefixIcon: Icon(Icons.phone_outlined),
+              labelStyle: TextStyle(color: Colors.grey[600]),
+              prefixIcon: Icon(Icons.phone_outlined, color: Colors.grey[500]),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.grey[200]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.grey[200]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppTheme.primaryColor),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _notesController,
             maxLines: 3,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Ghi chú (tuỳ chọn)',
-              prefixIcon: Icon(Icons.description_outlined),
+              labelStyle: TextStyle(color: Colors.grey[600]),
+              prefixIcon: Icon(
+                Icons.description_outlined,
+                color: Colors.grey[500],
+              ),
+              alignLabelWithHint: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.grey[200]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.grey[200]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppTheme.primaryColor),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
           ),
           if (userVM.isLoading)
             const Padding(
               padding: EdgeInsets.only(top: 12),
-              child: LinearProgressIndicator(minHeight: 2),
+              child: LinearProgressIndicator(
+                minHeight: 2,
+                backgroundColor: Colors.grey,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  AppTheme.primaryColor,
+                ),
+              ),
             ),
         ],
       ),
@@ -466,78 +587,233 @@ class _PatientBookAppointmentPageState
     if (_isLoadingDoctors) {
       return const Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(32),
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
           ),
         ),
       );
     }
+
     if (_doctorErrorMessage != null) {
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _errorBanner(_doctorErrorMessage!),
-          const SizedBox(height: 10),
+          _buildErrorBanner(_doctorErrorMessage!),
+          const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _loadDoctors,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Thử tải lại danh sách bác sĩ'),
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Thử lại'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryColor,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
           ),
         ],
       );
     }
+
     if (_doctors.isEmpty) {
-      return _emptyState('Chưa có bác sĩ nào khả dụng.');
+      return _buildEmptyState('Chưa có bác sĩ nào khả dụng.');
     }
 
     final doctors = _filteredDoctors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        DropdownButtonFormField<String>(
+          value: _selectedDepartmentFilter ?? '',
+          items: [
+            const DropdownMenuItem(value: '', child: Text('Tất cả khoa')),
+            ..._availableDepartments.map(
+              (dept) => DropdownMenuItem(value: dept, child: Text(dept)),
+            ),
+          ],
+          onChanged: _availableDepartments.isEmpty
+              ? null
+              : (value) {
+                  setState(() {
+                    final resolved = value == null || value.isEmpty
+                        ? null
+                        : value;
+                    _selectedDepartmentFilter = resolved;
+                    if (_selectedDoctor != null &&
+                        _filteredDoctors.every(
+                          (doc) => doc.id != _selectedDoctor!.id,
+                        )) {
+                      _selectedDoctor = null;
+                    }
+                  });
+                },
+          decoration: InputDecoration(
+            labelText: 'Chọn khoa',
+            labelStyle: TextStyle(color: Colors.grey[600]),
+            prefixIcon: Icon(
+              Icons.local_hospital_outlined,
+              color: Colors.grey[500],
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppTheme.primaryColor),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         TextField(
           controller: _doctorSearchController,
           decoration: InputDecoration(
-            labelText: 'Tìm bác sĩ theo tên hoặc chuyên môn',
-            prefixIcon: const Icon(Icons.search),
+            labelText: 'Tìm bác sĩ theo tên',
+            labelStyle: TextStyle(color: Colors.grey[600]),
+            prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
             suffixIcon: _doctorSearchController.text.isEmpty
                 ? null
                 : IconButton(
-                    icon: const Icon(Icons.clear),
+                    icon: const Icon(Icons.clear, size: 18),
                     onPressed: () {
                       _doctorSearchController.clear();
                       setState(() {});
                     },
                   ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppTheme.primaryColor),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
           onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         if (doctors.isEmpty)
-          _emptyState('Không tìm thấy bác sĩ phù hợp với từ khóa.')
+          _buildEmptyState('Không tìm thấy bác sĩ phù hợp.')
         else
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: doctors
-                  .map(
-                    (doctor) => Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: _DoctorChip(
-                        doctor: doctor,
-                        selected: _selectedDoctor?.id == doctor.id,
-                        onTap: () => _selectDoctor(doctor),
-                      ),
-                    ),
-                  )
-                  .toList(),
+          SizedBox(
+            height: 110,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: doctors.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final doctor = doctors[index];
+                return _DoctorCard(
+                  doctor: doctor,
+                  isSelected: _selectedDoctor?.id == doctor.id,
+                  onTap: () => _selectDoctor(doctor),
+                );
+              },
             ),
           ),
         if (_selectedDoctor != null) ...[
           const SizedBox(height: 16),
-          _SelectedDoctorCard(doctor: _selectedDoctor!),
+          _buildSelectedDoctorCard(),
         ],
       ],
+    );
+  }
+
+  Widget _buildSelectedDoctorCard() {
+    final doctor = _selectedDoctor!;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.primaryColor, width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 28,
+              backgroundImage: NetworkImage(doctor.imageUrl),
+              backgroundColor: Colors.grey[200],
+              child: doctor.imageUrl.isEmpty
+                  ? const Icon(Icons.person, size: 28, color: Colors.grey)
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  doctor.name,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A2C3E),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  doctor.specialty,
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.star, size: 14, color: Colors.amber[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${doctor.rating.toStringAsFixed(1)}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Icon(Icons.work_outline, size: 14, color: Colors.grey[500]),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${doctor.experienceYears}+ năm',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -549,6 +825,7 @@ class _PatientBookAppointmentPageState
       7,
       (index) => startDate.add(Duration(days: index)),
     );
+
     return Column(
       children: [
         Row(
@@ -558,8 +835,9 @@ class _PatientBookAppointmentPageState
               icon: Icon(
                 Icons.chevron_left,
                 color: _currentWeekOffset == 0
-                    ? Colors.grey.shade400
+                    ? Colors.grey.shade300
                     : AppTheme.primaryColor,
+                size: 28,
               ),
             ),
             Expanded(
@@ -568,7 +846,7 @@ class _PatientBookAppointmentPageState
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     vertical: 12,
-                    horizontal: 18,
+                    horizontal: 16,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -578,18 +856,19 @@ class _PatientBookAppointmentPageState
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        DateFormat('EEE, dd MMM yyyy').format(_selectedDate),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A2C3E),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(
+                      Icon(
                         Icons.calendar_today,
                         size: 18,
                         color: AppTheme.primaryColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        DateFormat('EEEE, dd MMM yyyy').format(_selectedDate),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A2C3E),
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -598,16 +877,17 @@ class _PatientBookAppointmentPageState
             ),
             IconButton(
               onPressed: _goToNextWeek,
-              icon: const Icon(
+              icon: Icon(
                 Icons.chevron_right,
                 color: AppTheme.primaryColor,
+                size: 28,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         SizedBox(
-          height: 78,
+          height: 85,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: weekDates.length,
@@ -615,28 +895,40 @@ class _PatientBookAppointmentPageState
               final date = weekDates[index];
               final isSelected = _isSameDay(date, _selectedDate);
               final isToday = _isSameDay(date, _normalize(DateTime.now()));
+
               return GestureDetector(
                 onTap: () {
                   setState(() => _selectedDate = date);
                 },
                 child: Container(
-                  width: 70,
-                  margin: const EdgeInsets.only(right: 10),
+                  width: 65,
+                  margin: const EdgeInsets.only(right: 12),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.primaryColor : Colors.white,
-                    borderRadius: BorderRadius.circular(18),
+                    gradient: isSelected
+                        ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppTheme.primaryColor,
+                              AppTheme.primaryColor.withOpacity(0.8),
+                            ],
+                          )
+                        : null,
+                    color: isSelected ? null : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
                           ? AppTheme.primaryColor
                           : Colors.grey.shade200,
+                      width: 1.5,
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
                               color: AppTheme.primaryColor.withOpacity(0.2),
-                              blurRadius: 10,
-                              offset: const Offset(0, 6),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
                             ),
                           ]
                         : null,
@@ -653,23 +945,35 @@ class _PatientBookAppointmentPageState
                               ? AppTheme.primaryColor
                               : Colors.grey.shade600,
                           fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          height: 1.2,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: isSelected
-                            ? Colors.white
-                            : isToday
-                            ? AppTheme.primaryColor.withOpacity(0.15)
-                            : Colors.grey.shade100,
-                        child: Text(
-                          '${date.day}',
-                          style: TextStyle(
-                            color: isSelected
-                                ? AppTheme.primaryColor
-                                : Colors.black87,
-                            fontWeight: FontWeight.w600,
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? Colors.white.withOpacity(0.2)
+                              : isToday
+                              ? AppTheme.primaryColor.withOpacity(0.1)
+                              : Colors.grey.shade100,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${date.day}',
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : isToday
+                                  ? AppTheme.primaryColor
+                                  : Colors.grey.shade700,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              height: 1.1,
+                            ),
                           ),
                         ),
                       ),
@@ -686,20 +990,22 @@ class _PatientBookAppointmentPageState
 
   Widget _buildSlotList(ScheduleViewModel scheduleVM) {
     if (_selectedDoctor == null) {
-      return _emptyState('Chọn bác sĩ trước khi xem lịch.');
+      return _buildEmptyState('Chọn bác sĩ trước khi xem lịch.');
     }
+
     if (scheduleVM.isLoading) {
       return const Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(32),
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
           ),
         ),
       );
     }
+
     if (scheduleVM.errorMessage != null) {
-      return _errorBanner(scheduleVM.errorMessage!);
+      return _buildErrorBanner(scheduleVM.errorMessage!);
     }
 
     final selectedDay = scheduleVM.schedule.firstWhere(
@@ -707,15 +1013,16 @@ class _PatientBookAppointmentPageState
       orElse: () => DoctorScheduleDayModel(
         date: _selectedDate,
         dayOfWeek: _weekdayKey(_selectedDate),
-        slots: const <AppointmentSlotModel>[],
+        slots: [],
       ),
     );
 
     final availableSlots = selectedDay.slots
         .where((slot) => slot.isAvailable)
         .toList();
+
     if (availableSlots.isEmpty) {
-      return _emptyState(
+      return _buildEmptyState(
         'Ngày này không còn khung giờ trống. Vui lòng chọn ngày khác.',
       );
     }
@@ -738,25 +1045,25 @@ class _PatientBookAppointmentPageState
     );
   }
 
-  Widget _errorBanner(String message) {
+  Widget _buildErrorBanner(String message) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.red.shade100),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: Colors.red),
-          const SizedBox(width: 8),
+          Icon(Icons.error_outline, color: Colors.red.shade400, size: 20),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.w600,
+              style: TextStyle(
+                color: Colors.red.shade700,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -765,155 +1072,114 @@ class _PatientBookAppointmentPageState
     );
   }
 
-  Widget _emptyState(String message) {
+  Widget _buildEmptyState(String message) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         children: [
-          Icon(Icons.event_busy, size: 36, color: Colors.grey.shade400),
-          const SizedBox(height: 8),
+          Icon(Icons.event_busy, size: 48, color: Colors.grey.shade400),
+          const SizedBox(height: 12),
           Text(
             message,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.grey.shade600,
               fontWeight: FontWeight.w500,
+              fontSize: 14,
             ),
           ),
         ],
       ),
     );
   }
-
-  Widget _sectionTitle(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: Color(0xFF1A2C3E),
-      ),
-    );
-  }
 }
 
-class _DoctorChip extends StatelessWidget {
+class _DoctorCard extends StatelessWidget {
   final DoctorModel doctor;
-  final bool selected;
+  final bool isSelected;
   final VoidCallback onTap;
 
-  const _DoctorChip({
+  const _DoctorCard({
     required this.doctor,
-    required this.selected,
+    required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ChoiceChip(
-      label: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            doctor.name,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: selected ? Colors.white : const Color(0xFF1A2C3E),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Text(
-            doctor.specialty,
-            style: TextStyle(
-              color: selected ? Colors.white70 : Colors.grey.shade600,
-              fontSize: 11,
-            ),
-          ),
-        ],
-      ),
-      selected: selected,
-      onSelected: (_) => onTap(),
-      selectedColor: AppTheme.primaryColor,
-      backgroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      shape: RoundedRectangleBorder(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: selected ? AppTheme.primaryColor : Colors.grey.shade300,
-        ),
-      ),
-    );
-  }
-}
-
-class _SelectedDoctorCard extends StatelessWidget {
-  final DoctorModel doctor;
-
-  const _SelectedDoctorCard({required this.doctor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 32,
-            backgroundImage: NetworkImage(doctor.imageUrl),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  doctor.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A2C3E),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  doctor.specialty,
-                  style: const TextStyle(
-                    color: AppTheme.primaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Kinh nghiệm: ${doctor.experienceYears}+ năm • Đánh giá ${doctor.rating.toStringAsFixed(1)}',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                ),
-                Text(
-                  'Liên hệ: ${doctor.contactPhone}',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                ),
-              ],
+        child: Container(
+          width: 140,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primaryColor : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? AppTheme.primaryColor : Colors.grey.shade200,
+              width: 1.5,
             ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
-        ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withOpacity(0.2)
+                      : AppTheme.primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.person,
+                  color: isSelected ? Colors.white : AppTheme.primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                doctor.name,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF1A2C3E),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  height: 1.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                doctor.specialty,
+                style: TextStyle(
+                  color: isSelected ? Colors.white70 : Colors.grey.shade600,
+                  fontSize: 10,
+                  height: 1.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -939,9 +1205,9 @@ class _SlotCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -951,11 +1217,15 @@ class _SlotCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppTheme.primaryColor.withOpacity(0.1),
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.schedule, color: AppTheme.primaryColor),
+            child: const Icon(
+              Icons.schedule,
+              color: AppTheme.primaryColor,
+              size: 24,
+            ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -964,37 +1234,52 @@ class _SlotCard extends StatelessWidget {
                   '${slot.slotStartTime} - ${slot.slotEndTime}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
+                    fontSize: 16,
                     color: Color(0xFF1A2C3E),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('EEEE, dd MMM').format(date),
+                  DateFormat('EEEE, dd/MM/yyyy').format(date),
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Trạng thái: Còn trống',
-                  style: TextStyle(
-                    color: AppTheme.primaryColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'Còn trống',
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
           ElevatedButton(
             onPressed: onBook,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
               foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: const Text('Đặt lịch'),
+            child: const Text(
+              'Đặt lịch',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),

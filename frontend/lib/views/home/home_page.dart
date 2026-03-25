@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/data/models/record/encounter_model.dart';
+import 'package:frontend/data/models/record/relative_history_model.dart';
+import 'package:frontend/data/repositories/record_repository.dart';
 import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
+import 'package:frontend/utils/relationship_formatter.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/views/doctor/create_medical_record_page.dart';
 import 'package:frontend/views/doctor/doctor_schedule_page.dart';
@@ -8,6 +12,7 @@ import 'package:frontend/views/home/doctor_user_search_page.dart';
 import 'package:frontend/viewmodels/notification_viewmodel.dart';
 import 'package:frontend/viewmodels/schedule_viewmodel.dart';
 import 'package:frontend/views/home/notification_page.dart';
+import 'package:frontend/views/user/encounter_detail_page.dart';
 import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -23,52 +28,20 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String? _userRole;
   bool _isRoleLoading = true;
-  final TextEditingController _recordSearchController = TextEditingController();
-  String _recordSearchQuery = '';
-
-  static const List<_MockMedicalHistoryItem> _mockHistoryItems = [
-    _MockMedicalHistoryItem(
-      title: 'Khám tổng quát định kỳ',
-      facility: 'Bệnh viện Gia Đình',
-      date: '12/03/2026',
-      status: 'Hoàn tất',
-    ),
-    _MockMedicalHistoryItem(
-      title: 'Xét nghiệm đường huyết',
-      facility: 'Phòng khám Minh Tâm',
-      date: '03/03/2026',
-      status: 'Đã trả kết quả',
-    ),
-    _MockMedicalHistoryItem(
-      title: 'Tái khám tim mạch',
-      facility: 'Bệnh viện Đa khoa Thành phố',
-      date: '24/02/2026',
-      status: 'Hoàn tất',
-    ),
-    _MockMedicalHistoryItem(
-      title: 'Khám chuyên khoa hô hấp',
-      facility: 'Phòng khám An Khang',
-      date: '15/02/2026',
-      status: 'Theo dõi thêm',
-    ),
-  ];
+  bool _isRecentLoading = false;
+  List<_RecentEncounterItem> _recentEncounters = const [];
 
   @override
   void initState() {
     super.initState();
     _resolveUserRole();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final profileVM = context.read<ProfileViewModel>();
       if (!profileVM.isLoading) {
-        profileVM.loadOverview();
+        await profileVM.loadOverview();
       }
+      await _loadRecentEncounters();
     });
-  }
-
-  @override
-  void dispose() {
-    _recordSearchController.dispose();
-    super.dispose();
   }
 
   Future<void> _resolveUserRole() async {
@@ -113,19 +86,129 @@ class _HomePageState extends State<HomePage> {
     return normalized == 'doctor' || normalized == 'role_doctor';
   }
 
-  List<_MockMedicalHistoryItem> get _filteredHistoryItems {
-    final query = _recordSearchQuery.trim().toLowerCase();
-    if (query.isEmpty) {
-      return _mockHistoryItems;
+  Future<void> _loadRecentEncounters() async {
+    if (_isDoctor) {
+      return;
     }
 
-    return _mockHistoryItems
-        .where(
-          (item) =>
-              item.title.toLowerCase().contains(query) ||
-              item.facility.toLowerCase().contains(query),
-        )
-        .toList();
+    setState(() {
+      _isRecentLoading = true;
+    });
+
+    final profileVM = context.read<ProfileViewModel>();
+    final recordRepository = context.read<RecordRepository>();
+    final ownerTargets = <_HistoryOwnerTarget>[];
+    final selfProfileId = profileVM.profile?.id.trim() ?? '';
+    final selfName = profileVM.profile?.fullName.trim() ?? '';
+
+    if (selfProfileId.isNotEmpty) {
+      ownerTargets.add(
+        _HistoryOwnerTarget(
+          profileId: selfProfileId,
+          ownerName: selfName.isNotEmpty ? selfName : 'Bạn',
+          relationship: 'Bản thân',
+        ),
+      );
+    }
+
+    for (final relative in profileVM.familyProfiles) {
+      final profileId = (relative.profileId ?? '').trim();
+      if (profileId.isEmpty) {
+        continue;
+      }
+      ownerTargets.add(
+        _HistoryOwnerTarget(
+          profileId: profileId,
+          ownerName: relative.name.trim().isNotEmpty
+              ? relative.name.trim()
+              : formatRelationshipLabel(
+                  relative.relationship,
+                  emptyFallback: 'Người thân',
+                ),
+          relationship: formatRelationshipLabel(
+            relative.relationship,
+            emptyFallback: 'Người thân',
+          ),
+        ),
+      );
+    }
+
+    if (ownerTargets.isEmpty) {
+      setState(() {
+        _recentEncounters = const [];
+        _isRecentLoading = false;
+      });
+      return;
+    }
+
+    final uniqueOwnerTargets = <String, _HistoryOwnerTarget>{
+      for (final target in ownerTargets) target.profileId: target,
+    }.values;
+
+    try {
+      final historyResults = await Future.wait(
+        uniqueOwnerTargets.map((target) async {
+          final history = await recordRepository.getHealthHistoryByProfileId(
+            target.profileId,
+          );
+          if (history == null) {
+            return null;
+          }
+          return _OwnerHistoryResult(target: target, history: history);
+        }),
+      );
+
+      final flattened = <_RecentEncounterItem>[];
+      for (final result in historyResults.whereType<_OwnerHistoryResult>()) {
+        final history = result.history;
+        final fallbackOwner = result.target.ownerName;
+        final fallbackRelationship = result.target.relationship;
+
+        final ownerName = history.relativeName.trim().isNotEmpty
+            ? history.relativeName.trim()
+            : fallbackOwner;
+        final relationship = history.relationship.trim().isNotEmpty
+            ? formatRelationshipLabel(
+                history.relationship,
+                emptyFallback: fallbackRelationship,
+              )
+            : fallbackRelationship;
+
+        for (final encounter in history.encounters) {
+          flattened.add(
+            _RecentEncounterItem(
+              ownerName: ownerName,
+              relationship: relationship,
+              encounter: encounter,
+            ),
+          );
+        }
+      }
+
+      flattened.sort((a, b) {
+        final aTime = a.encounter.datetimeEnd ?? a.encounter.datetimeStart;
+        final bTime = b.encounter.datetimeEnd ?? b.encounter.datetimeStart;
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1;
+        if (bTime == null) return -1;
+        return bTime.compareTo(aTime);
+      });
+
+      if (!mounted) return;
+      setState(() {
+        _recentEncounters = flattened.take(3).toList();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _recentEncounters = const [];
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isRecentLoading = false;
+      });
+    }
   }
 
   @override
@@ -173,7 +256,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 20),
                 Consumer<ScheduleViewModel>(
-                  builder: (_, scheduleVM, __) => _DoctorPendingOverviewCard(
+                  builder: (_, scheduleVM, child) => _DoctorPendingOverviewCard(
                     pendingCount: scheduleVM.pendingApprovalCount,
                     onRefresh: scheduleVM.refreshPendingCount,
                     onViewSchedule: () {
@@ -191,24 +274,6 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 20),
 
               if (!_isDoctor) ...[
-                const Text(
-                  "Tìm kiếm bệnh án",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1F2A44),
-                  ),
-                ),
-                const SizedBox(height: 15),
-                _MedicalRecordSearchInput(
-                  controller: _recordSearchController,
-                  onChanged: (value) {
-                    setState(() {
-                      _recordSearchQuery = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 20),
                 _PatientAppointmentShortcut(
                   onTap: () {
                     Navigator.pushNamed(
@@ -220,17 +285,22 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 30),
               ],
 
-              // 3. Featured Categories/Services
-              const _SectionHeader(title: "Dịch vụ y tế", showViewAll: false),
-              const SizedBox(height: 15),
-              _QuickServicesGrid(isDoctor: _isDoctor),
-              const SizedBox(height: 30),
+              // 3. Featured Categories/Services (doctor only)
+              if (_isDoctor) ...[
+                const _SectionHeader(title: "Dịch vụ y tế", showViewAll: false),
+                const SizedBox(height: 15),
+                _QuickServicesGrid(isDoctor: _isDoctor),
+                const SizedBox(height: 30),
+              ],
 
               // 4. User medical history / doctor specific content
               if (!_isDoctor) ...[
                 const _SectionHeader(title: "Lịch sử khám", showViewAll: false),
                 const SizedBox(height: 15),
-                _MockMedicalHistorySection(items: _filteredHistoryItems),
+                _RecentMedicalHistorySection(
+                  items: _recentEncounters,
+                  isLoading: _isRecentLoading,
+                ),
               ],
 
               const SizedBox(height: 100), // Padding cho BottomNav
@@ -645,73 +715,6 @@ class _PatientAppointmentShortcut extends StatelessWidget {
   }
 }
 
-class _MedicalRecordSearchInput extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  const _MedicalRecordSearchInput({
-    required this.controller,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.search_rounded, color: Color(0xFF246BFF), size: 28),
-          const SizedBox(width: 15),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              style: const TextStyle(
-                color: Color(0xFF1F2A44),
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: const InputDecoration(
-                fillColor: Colors.white,
-                isDense: true,
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF246BFF),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Text(
-              'Bệnh án',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SectionHeader extends StatelessWidget {
   final String title;
   final bool showViewAll;
@@ -753,18 +756,20 @@ class _QuickServicesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = <Map<String, dynamic>>[
-      {
-        'icon': Icons.folder_shared_rounded,
-        'label': 'Hồ sơ',
-        'color': const Color(0xFFFFF1E8),
-        'onTap': () {},
-      },
-      {
-        'icon': Icons.local_hospital_rounded,
-        'label': 'Bệnh viện',
-        'color': const Color(0xFFE8FFF1),
-        'onTap': () {},
-      },
+      if (!isDoctor)
+        {
+          'icon': Icons.folder_shared_rounded,
+          'label': 'Hồ sơ',
+          'color': const Color(0xFFFFF1E8),
+          'onTap': () {},
+        },
+      if (!isDoctor)
+        {
+          'icon': Icons.local_hospital_rounded,
+          'label': 'Bệnh viện',
+          'color': const Color(0xFFE8FFF1),
+          'onTap': () {},
+        },
       if (!isDoctor)
         {
           'icon': Icons.calendar_month_rounded,
@@ -787,13 +792,6 @@ class _QuickServicesGrid extends StatelessWidget {
               ),
             );
           },
-        },
-      if (isDoctor)
-        {
-          'icon': Icons.assignment_ind_rounded,
-          'label': 'Bệnh nhân',
-          'color': const Color(0xFFFFF8E1),
-          'onTap': () {},
         },
       if (isDoctor)
         {
@@ -859,13 +857,21 @@ class _QuickServicesGrid extends StatelessWidget {
   );
 }
 
-class _MockMedicalHistorySection extends StatelessWidget {
-  final List<_MockMedicalHistoryItem> items;
+class _RecentMedicalHistorySection extends StatelessWidget {
+  final List<_RecentEncounterItem> items;
+  final bool isLoading;
 
-  const _MockMedicalHistorySection({required this.items});
+  const _RecentMedicalHistorySection({
+    required this.items,
+    required this.isLoading,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (items.isEmpty) {
       return Container(
         width: double.infinity,
@@ -876,7 +882,7 @@ class _MockMedicalHistorySection extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE3E8FF)),
         ),
         child: const Text(
-          'Không có bệnh án phù hợp với từ khóa tìm kiếm.',
+          'Chưa có dữ liệu lịch sử khám gần đây.',
           style: TextStyle(color: Colors.grey),
           textAlign: TextAlign.center,
         ),
@@ -898,49 +904,73 @@ class _MockMedicalHistorySection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: Color(0xFF1F2A44),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    item.facility,
-                    style: const TextStyle(color: Colors.black54, fontSize: 13),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Text(
-                        item.date,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F1FF),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          item.status,
-                          style: const TextStyle(
-                            color: Color(0xFF246BFF),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
+                  InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EncounterDetailPage(
+                            relativeName: item.ownerName,
+                            encounter: item.encounter,
                           ),
                         ),
-                      ),
-                    ],
+                      );
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.encounter.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: Color(0xFF1F2A44),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          item.encounter.hospitalName?.trim().isNotEmpty == true
+                              ? item.encounter.hospitalName!.trim()
+                              : 'Không rõ cơ sở y tế',
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Text(
+                              _formatEncounterDate(item.encounter),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F1FF),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                'Của ${item.ownerName} (${item.relationship})',
+                                style: const TextStyle(
+                                  color: Color(0xFF246BFF),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -949,18 +979,45 @@ class _MockMedicalHistorySection extends StatelessWidget {
           .toList(),
     );
   }
+
+  String _formatEncounterDate(EncounterModel encounter) {
+    final date = encounter.datetimeEnd ?? encounter.datetimeStart;
+    if (date == null) {
+      return 'Chưa rõ ngày khám';
+    }
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
 }
 
-class _MockMedicalHistoryItem {
-  final String title;
-  final String facility;
-  final String date;
-  final String status;
+class _RecentEncounterItem {
+  final String ownerName;
+  final String relationship;
+  final EncounterModel encounter;
 
-  const _MockMedicalHistoryItem({
-    required this.title,
-    required this.facility,
-    required this.date,
-    required this.status,
+  const _RecentEncounterItem({
+    required this.ownerName,
+    required this.relationship,
+    required this.encounter,
   });
+}
+
+class _HistoryOwnerTarget {
+  final String profileId;
+  final String ownerName;
+  final String relationship;
+
+  const _HistoryOwnerTarget({
+    required this.profileId,
+    required this.ownerName,
+    required this.relationship,
+  });
+}
+
+class _OwnerHistoryResult {
+  final _HistoryOwnerTarget target;
+  final RelativeHistoryModel history;
+
+  const _OwnerHistoryResult({required this.target, required this.history});
 }

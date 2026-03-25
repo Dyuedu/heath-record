@@ -1,6 +1,7 @@
 package backend.service;
 
 import backend.model.Notification;
+import backend.model.User;
 import backend.repository.NotificationRepository;
 import backend.model.dto.response.NotificationMessageDTO;
 import org.springframework.stereotype.Service;
@@ -65,5 +66,30 @@ public class NotificationService {
         }
 
         return candidate.isEmpty() ? null : candidate;
+    }
+
+    public void createNotification(UUID userId, String title, String message) {
+        createNotification(userId, title, message, null, null, null);
+    }
+
+    public void createNotification(UUID userId, String title, String message, 
+                                   String doctorName, String hospitalName, String recordId) {
+        if (userId == null) {
+            return;
+        }
+        User user = new User();
+        user.setId(userId);
+
+        Notification notification = Notification.builder()
+                .user(user)
+                .title(title)
+                .message(message)
+                .doctorName(doctorName)
+                .hospitalName(hospitalName)
+                .recordId(recordId)
+                .isRead(false)
+                .createdAt(java.time.LocalDateTime.now())
+                .build();
+        notificationRepository.save(notification);
     }
 }

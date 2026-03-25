@@ -268,10 +268,6 @@ public class DoctorRecordService {
                 .dateOfBirth(profile.getDateOfBirth() != null ? profile.getDateOfBirth() : "")
                 .address(profile.getAddress() != null ? profile.getAddress() : "")
                 .avatarUrl(profile.getAvatarUrl() != null ? profile.getAvatarUrl() : "")
-                .allergy(profile.getAllergy() != null ? profile.getAllergy() : "")
-                .chronicDisease(profile.getChronicDisease() != null ? profile.getChronicDisease() : "")
-                .clinicalNotes(profile.getClinicalNotes() != null ? profile.getClinicalNotes() : "")
-                .bloodGroup(profile.getBloodGroup() != null ? profile.getBloodGroup() : "")
                 .status(user != null && user.getStatus() != null ? user.getStatus().name() : "")
                 .build();
                 

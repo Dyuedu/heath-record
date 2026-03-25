@@ -7,17 +7,21 @@ class DoctorViewModel extends ChangeNotifier {
 
   List<DoctorModel> _allDoctors = [];
   List<DoctorModel> _displayDoctors = [];
+  List<String> _departments = [];
   bool isLoading = false;
   bool isAscending = true;
   String currentFilter = 'AZ';
   String searchQuery = '';
   bool _hasLoaded = false;
   String? errorMessage;
+  String? _selectedDepartment;
 
   DoctorViewModel({required UserRepository repository})
     : _userRepository = repository;
 
   List<DoctorModel> get doctors => _displayDoctors;
+  List<String> get departments => List.unmodifiable(_departments);
+  String? get selectedDepartment => _selectedDepartment;
 
   Future<void> fetchDoctors({bool forceRefresh = false}) async {
     if (_hasLoaded && !forceRefresh) {
@@ -31,12 +35,19 @@ class DoctorViewModel extends ChangeNotifier {
       _allDoctors = results
           .map((profile) => DoctorModel.fromUserProfile(profile))
           .toList();
+      _departments = _buildDepartments(_allDoctors);
+      if (_selectedDepartment != null &&
+          !_departments.contains(_selectedDepartment!)) {
+        _selectedDepartment = null;
+      }
       _applyCurrentFilter(notify: false);
       _hasLoaded = true;
     } catch (error) {
       errorMessage = 'Không thể tải danh sách bác sĩ: $error';
       _allDoctors = [];
       _displayDoctors = [];
+      _departments = [];
+      _selectedDepartment = null;
     } finally {
       isLoading = false;
       notifyListeners();
@@ -73,8 +84,27 @@ class DoctorViewModel extends ChangeNotifier {
     _applyCurrentFilter();
   }
 
+  void setDepartmentFilter(String? department) {
+    final normalized = department?.trim();
+    final resolved = normalized == null || normalized.isEmpty
+        ? null
+        : normalized;
+    if (_selectedDepartment == resolved) {
+      return;
+    }
+    _selectedDepartment = resolved;
+    _applyCurrentFilter();
+  }
+
   void _applyCurrentFilter({Gender? gender, bool notify = true}) {
     List<DoctorModel> working = List.from(_allDoctors);
+
+    if (_selectedDepartment != null && _selectedDepartment!.isNotEmpty) {
+      final target = _selectedDepartment!.toLowerCase();
+      working = working
+          .where((doc) => doc.specialty.trim().toLowerCase() == target)
+          .toList();
+    }
 
     switch (currentFilter) {
       case 'Rating':
@@ -100,13 +130,25 @@ class DoctorViewModel extends ChangeNotifier {
           .where(
             (doc) =>
                 doc.name.toLowerCase().contains(q) ||
-                doc.specialty.toLowerCase().contains(q),
+                doc.contactEmail.toLowerCase().contains(q),
           )
           .toList();
     }
 
     _displayDoctors = working;
     if (notify) notifyListeners();
+  }
+
+  List<String> _buildDepartments(List<DoctorModel> doctors) {
+    final set = <String>{};
+    for (final doctor in doctors) {
+      final department = doctor.specialty.trim();
+      if (department.isNotEmpty) {
+        set.add(department);
+      }
+    }
+    final list = set.toList()..sort((a, b) => a.compareTo(b));
+    return list;
   }
 
   int _compareByName(DoctorModel a, DoctorModel b) {

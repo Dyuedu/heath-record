@@ -8,6 +8,7 @@ import backend.model.dto.request.CreateAppointmentRequestDTO;
 import backend.model.dto.response.*;
 import backend.repository.AppointmentRepository;
 import backend.repository.UserRepository;
+import backend.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     // Định nghĩa các time slot (8h - 21h)
     private static final int[] SLOT_START_HOURS = {8, 9, 11, 14, 15, 16, 17, 18};
@@ -41,10 +43,12 @@ public class AppointmentService {
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             UserRepository userRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            NotificationService notificationService) {
         this.appointmentRepository = appointmentRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
+        this.notificationService = notificationService;
     }
 
     private String normalizeRole(User user) {
@@ -349,6 +353,22 @@ public class AppointmentService {
 
         Appointment saved = appointmentRepository.save(slotRecord);
 
+        // Send notification to doctor if patient created the request
+        if (isPatient(actor)) {
+            String patientName = saved.getPatientName();
+            String doctorName = saved.getDoctor().getProfile() != null && StringUtils.hasText(saved.getDoctor().getProfile().getFullname())
+                    ? saved.getDoctor().getProfile().getFullname()
+                    : saved.getDoctor().getEmail();
+            notificationService.createNotification(
+                    saved.getDoctor().getId(),
+                    "Lịch khám mới",
+                    "Bệnh nhân " + patientName + " đã đặt lịch khám ngày " + saved.getAppointmentDate() + " slot " + saved.getSlotNumber() + ".",
+                    doctorName,
+                    null,
+                    null
+            );
+        }
+
         return toSlotResponse(saved);
     }
 
@@ -411,6 +431,35 @@ public class AppointmentService {
         }
 
         sendDecisionEmail(saved, approve, saved.getDecisionReason());
+
+        // Send notification to patient if they have one
+        if (saved.getPatient() != null) {
+            String doctorName = saved.getDoctor().getProfile() != null && StringUtils.hasText(saved.getDoctor().getProfile().getFullname())
+                    ? saved.getDoctor().getProfile().getFullname()
+                    : saved.getDoctor().getEmail();
+            String appointmentDateStr = saved.getAppointmentDate().toString();
+            String slotTimeStr = saved.getSlotStartTime() + " - " + saved.getSlotEndTime();
+            
+            if (approve) {
+                notificationService.createNotification(
+                        saved.getPatient().getId(),
+                        "Lịch khám đã được xác nhận",
+                        "Bác sĩ " + doctorName + " đã xác nhận lịch khám của bạn vào ngày " + appointmentDateStr + " " + slotTimeStr + ".",
+                        doctorName,
+                        null,
+                        null
+                );
+            } else {
+                notificationService.createNotification(
+                        saved.getPatient().getId(),
+                        "Lịch khám đã bị từ chối",
+                        "Lịch khám ngày " + appointmentDateStr + " " + slotTimeStr + " đã bị từ chối. Lý do: " + saved.getDecisionReason(),
+                        doctorName,
+                        null,
+                        null
+                );
+            }
+        }
 
         return AppointmentApprovalResponse.builder()
                 .appointmentId(saved.getId())
