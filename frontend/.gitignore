@@ -41,7 +41,7 @@ app.*.map.json
 .idea/
 
 # Local Dio client config
-lib/data/dio/dio_client.dart
+# lib/data/dio/dio_client.dart
 
 
 
