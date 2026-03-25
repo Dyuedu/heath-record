@@ -8,6 +8,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/notification_viewmodel.dart';
+import '../../viewmodels/profile_viewmodel.dart';
 import '../../viewmodels/user_viewmodel.dart';
 import '../../widgets/bottom_nav.dart';
 import 'edit_profile_page.dart';
@@ -287,6 +289,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
             onPressed: () async {
               await vm.logout();
               if (!context.mounted) return;
+              context.read<UserViewModel>().clearSessionData();
+              context.read<ProfileViewModel>().clearSessionData();
+              context.read<NotificationViewModel>().clearSessionData();
               Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
             },
             child: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),

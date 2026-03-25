@@ -39,11 +39,31 @@ public class NotificationService {
                 .id(notif.getId())
                 .title(notif.getTitle())
                 .message(notif.getMessage())
+                .patientName(extractPatientName(notif.getMessage()))
                 .doctorName(notif.getDoctorName())
                 .hospitalName(notif.getHospitalName())
                 .recordId(notif.getRecordId())
                 .isRead(notif.isRead())
                 .timestamp(notif.getCreatedAt())
                 .build();
+    }
+
+    private String extractPatientName(String message) {
+        if (message == null) {
+            return null;
+        }
+
+        String marker = " cho ";
+        int markerIndex = message.lastIndexOf(marker);
+        if (markerIndex < 0) {
+            return null;
+        }
+
+        String candidate = message.substring(markerIndex + marker.length()).trim();
+        if (candidate.endsWith(".")) {
+            candidate = candidate.substring(0, candidate.length() - 1).trim();
+        }
+
+        return candidate.isEmpty() ? null : candidate;
     }
 }

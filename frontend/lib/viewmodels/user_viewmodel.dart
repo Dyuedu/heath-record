@@ -159,6 +159,17 @@ class UserViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSessionData() {
+    _isLoading = false;
+    _isAvatarUploading = false;
+    _errorMessage = null;
+    _successMessage = null;
+    _avatarErrorMessage = null;
+    _fieldErrors = const {};
+    _profile = null;
+    notifyListeners();
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
