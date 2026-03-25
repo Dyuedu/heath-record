@@ -22,10 +22,14 @@ class _AddProfilePageState extends State<AddProfilePage> {
   final TextEditingController _identityCtrl = TextEditingController();
   final TextEditingController _phoneCtrl = TextEditingController();
   final TextEditingController _dobCtrl = TextEditingController();
+  final TextEditingController _allergyCtrl = TextEditingController();
+  final TextEditingController _chronicDiseaseCtrl = TextEditingController();
+  final TextEditingController _clinicalNotesCtrl = TextEditingController();
   File? _avatarFile;
 
   String selectedGender = "Nam";
   String selectedRelation = "Khác";
+  String selectedBloodGroup = "Chưa xác định";
   DateTime? _selectedDob;
 
   @override
@@ -35,6 +39,9 @@ class _AddProfilePageState extends State<AddProfilePage> {
     _identityCtrl.dispose();
     _phoneCtrl.dispose();
     _dobCtrl.dispose();
+    _allergyCtrl.dispose();
+    _chronicDiseaseCtrl.dispose();
+    _clinicalNotesCtrl.dispose();
     super.dispose();
   }
 
@@ -148,6 +155,27 @@ class _AddProfilePageState extends State<AddProfilePage> {
                     hint: "Số điện thoại",
                     controller: _phoneCtrl,
                     keyboardType: TextInputType.phone,
+                  ),
+                  _buildFieldLabel('Nhóm máu'),
+                  _buildBloodGroupDropdown(),
+                  _buildFieldLabel('Dị ứng (nếu có)'),
+                  _buildTextField(
+                    icon: Icons.warning_amber_rounded,
+                    hint: "Ví dụ: Hải sản, phấn hoa...",
+                    controller: _allergyCtrl,
+                  ),
+                  _buildFieldLabel('Bệnh mãn tính (nếu có)'),
+                  _buildTextField(
+                    icon: Icons.monitor_heart_outlined,
+                    hint: "Ví dụ: Tiểu đường, cao huyết áp...",
+                    controller: _chronicDiseaseCtrl,
+                  ),
+                  _buildFieldLabel('Ghi chú lâm sàng / Tóm tắt y tế'),
+                  _buildTextField(
+                    icon: Icons.notes_outlined,
+                    hint: "Thông tin y tế quan trọng khác",
+                    controller: _clinicalNotesCtrl,
+                    maxLines: 4,
                   ),
                   const SizedBox(height: 20),
                   _buildRequiredLabel("Giới tính"),
@@ -271,6 +299,16 @@ class _AddProfilePageState extends State<AddProfilePage> {
       phoneNumber: _phoneCtrl.text.trim().isEmpty
           ? null
           : _phoneCtrl.text.trim(),
+        allergy: _allergyCtrl.text.trim().isEmpty
+          ? null
+          : _allergyCtrl.text.trim(),
+        chronicDisease: _chronicDiseaseCtrl.text.trim().isEmpty
+          ? null
+          : _chronicDiseaseCtrl.text.trim(),
+        clinicalNotes: _clinicalNotesCtrl.text.trim().isEmpty
+          ? null
+          : _clinicalNotesCtrl.text.trim(),
+        bloodGroup: selectedBloodGroup,
       relationship: selectedRelation,
     );
 
@@ -302,6 +340,7 @@ class _AddProfilePageState extends State<AddProfilePage> {
     required TextEditingController controller,
     TextInputType keyboardType = TextInputType.text,
     bool readOnly = false,
+    int maxLines = 1,
     VoidCallback? onTap,
   }) {
     return Padding(
@@ -310,6 +349,7 @@ class _AddProfilePageState extends State<AddProfilePage> {
         controller: controller,
         readOnly: readOnly,
         keyboardType: keyboardType,
+        maxLines: maxLines,
         onTap: onTap,
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.black87, size: 20),
@@ -419,6 +459,41 @@ class _AddProfilePageState extends State<AddProfilePage> {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBloodGroupDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: DropdownButtonFormField<String>(
+        initialValue: selectedBloodGroup,
+        items: const [
+          DropdownMenuItem(value: 'Chưa xác định', child: Text('Chưa xác định')),
+          DropdownMenuItem(value: 'A', child: Text('A')),
+          DropdownMenuItem(value: 'B', child: Text('B')),
+          DropdownMenuItem(value: 'AB', child: Text('AB')),
+          DropdownMenuItem(value: 'O', child: Text('O')),
+        ],
+        onChanged: (value) {
+          if (value == null) return;
+          setState(() {
+            selectedBloodGroup = value;
+          });
+        },
+        decoration: InputDecoration(
+          prefixIcon: const Icon(
+            Icons.bloodtype_outlined,
+            color: Colors.black87,
+            size: 20,
+          ),
+          enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.black12),
+          ),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFF246BFF)),
+          ),
         ),
       ),
     );

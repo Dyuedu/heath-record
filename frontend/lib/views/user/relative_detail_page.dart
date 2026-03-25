@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/record/encounter_model.dart';
 import 'package:frontend/data/models/record/relative_history_model.dart';
+import 'package:frontend/utils/relationship_formatter.dart';
+import 'package:frontend/views/user/encounter_detail_page.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/relative_detail_viewmodel.dart';
 
@@ -19,6 +21,9 @@ class RelativeDetailPage extends StatefulWidget {
 }
 
 class _RelativeDetailPageState extends State<RelativeDetailPage> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -28,25 +33,31 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
   }
 
   @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final vm = context.watch<RelativeDetailViewModel>();
     final bool isActiveProfile = vm.activeProfileId == widget.profileId;
     final RelativeHistoryModel? history = isActiveProfile ? vm.history : null;
+    final allEncounters = history?.encounters ?? const <EncounterModel>[];
+    final encounterCount = allEncounters.length;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      // SafeArea bọc quanh body để tránh Notch/Bottom Bar
       body: SafeArea(
         child: Column(
           children: [
-            _buildCustomAppBar(context),
-            _buildFilterBar(),
+            _buildCustomAppBar(context, history),
             Expanded(
               child: vm.isLoading && history == null
                   ? const Center(child: CircularProgressIndicator())
                   : RefreshIndicator(
                       onRefresh: () => vm.refresh(widget.profileId),
-                      child: _buildContent(history),
+                      child: _buildContent(history, encounterCount),
                     ),
             ),
           ],
@@ -55,8 +66,11 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
     );
   }
 
-  // Thay AppBar mặc định bằng Custom Widget để kiểm soát tốt hơn trong SafeArea
-  Widget _buildCustomAppBar(BuildContext context) {
+  Widget _buildCustomAppBar(BuildContext context, RelativeHistoryModel? history) {
+    final title = (history?.relativeName.trim().isNotEmpty ?? false)
+        ? history!.relativeName.trim()
+        : widget.relativeName;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
@@ -65,10 +79,89 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
             icon: const Icon(Icons.arrow_back_ios, color: Colors.black54, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
-          Expanded(child: _buildSearchBar()),
-          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF1F2D3D),
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 44),
         ],
       ),
+    );
+  }
+
+  Widget _buildContent(RelativeHistoryModel? history, int encounterCount) {
+    if (history == null) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        children: const [
+          SizedBox(height: 24),
+          Text(
+            'Chưa có dữ liệu hồ sơ. Kéo xuống để thử tải lại.',
+            style: TextStyle(color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      );
+    }
+
+    final encounters = List<EncounterModel>.from(history.encounters)
+      ..sort((a, b) {
+        final aTime = a.datetimeEnd ?? a.datetimeStart;
+        final bTime = b.datetimeEnd ?? b.datetimeStart;
+        if (aTime == null && bTime == null) {
+          return 0;
+        }
+        if (aTime == null) {
+          return 1;
+        }
+        if (bTime == null) {
+          return -1;
+        }
+        return bTime.compareTo(aTime);
+      });
+
+    final filteredEncounters = encounters
+        .where((encounter) => _matchesSearch(encounter, _searchQuery))
+        .toList();
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      children: [
+        _buildPatientHeader(history),
+        const SizedBox(height: 14),
+        _buildSearchBar(),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "TIẾN TRÌNH ĐIỀU TRỊ",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF4A4A4A), letterSpacing: 0.5),
+            ),
+            Text(
+              "$encounterCount bệnh án đã lưu",
+              style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (filteredEncounters.isEmpty)
+          const Text(
+            'Không tìm thấy đợt khám phù hợp.',
+            style: TextStyle(color: Colors.grey),
+          )
+        else
+          ...filteredEncounters.map((e) => _buildEncounterCard(history, e)),
+      ],
     );
   }
 
@@ -79,98 +172,43 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
         color: const Color(0xFFF5F7FA),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const TextField(
+      child: TextField(
+        controller: _searchCtrl,
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
         decoration: InputDecoration(
-          hintText: "Tìm theo chẩn đoán, bác sĩ...",
-          hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
-          prefixIcon: Icon(Icons.search, color: Colors.grey, size: 20),
+          hintText: 'Tìm theo tiêu đề, tag, bác sĩ...',
+          hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+          prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
+          suffixIcon: _searchQuery.trim().isEmpty
+              ? null
+              : IconButton(
+                  onPressed: () {
+                    _searchCtrl.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                  icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                ),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
       ),
-    );
-  }
-
-  Widget _buildFilterBar() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        children: [
-          _buildFilterChip("Tất cả", isSelected: true),
-          const SizedBox(width: 8),
-          _buildFilterChip("Nội khoa"),
-          const SizedBox(width: 8),
-          _buildFilterChip("Ngoại khoa"),
-          const SizedBox(width: 16),
-          const Icon(Icons.calendar_today_outlined, size: 18, color: Color(0xFF246BFF)),
-          const SizedBox(width: 6),
-          const Text("Gần đây", style: TextStyle(color: Color(0xFF246BFF), fontWeight: FontWeight.bold, fontSize: 13)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, {bool isSelected = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF246BFF) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isSelected ? Colors.transparent : Colors.grey.shade300),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.black54,
-          fontSize: 12,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContent(RelativeHistoryModel? history) {
-    // Dữ liệu mẫu (Fake data)
-    final encounters = [
-      EncounterModel(
-        title: "Viêm họng cấp, sốt siêu vi nhẹ. Cần theo dõi nhiệt độ thường xuyên.",
-        datetimeStart: DateTime(2023, 8, 12),
-        hospitalName: "Nội tổng quát", id: null, tag: '', note: '', datetimeEnd: null, tagNames: [], diagnostics: [],
-      ),
-      EncounterModel(
-        title: "Viêm da cơ địa dị ứng thời tiết. Tình trạng ổn định.",
-        datetimeStart: DateTime(2023, 5, 20),
-        hospitalName: "Da liễu", id: null, tag: '', note: '', datetimeEnd: null, tagNames: [], diagnostics: [],
-      ),
-    ];
-
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      children: [
-        _buildPatientHeader(history),
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              "TIẾN TRÌNH ĐIỀU TRỊ",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF4A4A4A), letterSpacing: 0.5),
-            ),
-            Text(
-              "${encounters.length} bệnh án đã lưu",
-              style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ...encounters.map((e) => _buildEncounterCard(e)),
-      ],
     );
   }
 
   Widget _buildPatientHeader(RelativeHistoryModel? history) {
+    final name = history?.relativeName.trim().isNotEmpty == true
+        ? history!.relativeName.trim()
+        : widget.relativeName;
+    final relationship = formatRelationshipLabel(history?.relationship ?? '');
+    final dob = _safeText(history?.dateOfBirth);
+    final avatarUrl = (history?.avatarUrl ?? '').trim();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -179,20 +217,23 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
-            radius: 32,
-            backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=32"),
-          ),
+          avatarUrl.isEmpty
+              ? const CircleAvatar(
+                  radius: 32,
+                  backgroundColor: Color(0xFFDDE3FF),
+                  child: Icon(Icons.person, size: 32, color: Color(0xFF246BFF)),
+                )
+              : CircleAvatar(radius: 32, backgroundImage: NetworkImage(avatarUrl)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Trần Thị Hoa", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF1F2D3D))),
+                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF1F2D3D))),
                 const SizedBox(height: 2),
-                const Text("ID: BN-100293", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                Text("Quan hệ: $relationship", style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 const SizedBox(height: 6),
-                _buildBloodGroupBadge("NHÓM A+"),
+                _buildBadge(dob),
               ],
             ),
           ),
@@ -201,7 +242,7 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
     );
   }
 
-  Widget _buildBloodGroupBadge(String label) {
+  Widget _buildBadge(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: const Color(0xFFCCF9E1), borderRadius: BorderRadius.circular(6)),
@@ -209,46 +250,82 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
     );
   }
 
-  Widget _buildEncounterCard(EncounterModel encounter) {
+  Widget _buildEncounterCard(RelativeHistoryModel history, EncounterModel encounter) {
+    final tags = _collectEncounterTags(encounter);
+    final subtitle = _buildEncounterSubtitle(encounter);
+    final doctors = _collectEncounterDoctors(encounter);
+    final doctorLabel = doctors.isEmpty ? 'Chưa rõ bác sĩ' : doctors.join(', ');
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFF9F9F9),
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "${encounter.datetimeStart?.day} THÁNG 0${encounter.datetimeStart?.month}, ${encounter.datetimeStart?.year}",
-                style: const TextStyle(color: Color(0xFF246BFF), fontWeight: FontWeight.bold, fontSize: 11),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => EncounterDetailPage(
+                relativeName: history.relativeName,
+                encounter: encounter,
               ),
-              const Icon(Icons.keyboard_arrow_down, color: Colors.grey, size: 20),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(encounter.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, height: 1.4, color: Color(0xFF2D3238))),
-          const SizedBox(height: 15),
-          Row(
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildInfoChip(Icons.person_outline, "BS. Nguyễn Văn An"),
-              const SizedBox(width: 8),
-              _buildInfoChip(Icons.medical_services_outlined, encounter.hospitalName ?? "Nội khoa"),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _formatDate(encounter.datetimeStart),
+                      style: const TextStyle(
+                        color: Color(0xFF246BFF),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _safeText(encounter.title),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  height: 1.4,
+                  color: Color(0xFF2D3238),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildInfoChip(
+                Icons.medical_services_outlined,
+                subtitle,
+              ),
+              const SizedBox(height: 8),
+              _buildInfoChip(
+                Icons.person_outline,
+                doctorLabel,
+              ),
+              if (tags.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: tags.map(_buildTag).toList(),
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildTag("Tái khám"),
-              const SizedBox(width: 8),
-              _buildTag("Nội khoa"),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -273,5 +350,94 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
       decoration: BoxDecoration(color: const Color(0xFFEEEEEE), borderRadius: BorderRadius.circular(10)),
       child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.black45, fontWeight: FontWeight.w500)),
     );
+  }
+
+  List<String> _collectEncounterTags(EncounterModel encounter) {
+    final values = <String>{};
+
+    final encounterTag = (encounter.tag ?? '').trim();
+    if (encounterTag.isNotEmpty) {
+      values.add(encounterTag);
+    }
+
+    for (final tag in encounter.tagNames) {
+      final clean = tag.trim();
+      if (clean.isNotEmpty) {
+        values.add(clean);
+      }
+    }
+
+    for (final diagnostic in encounter.diagnostics) {
+      final tag = (diagnostic.tag ?? '').trim();
+      if (tag.isNotEmpty) {
+        values.add(tag);
+      }
+      for (final childTag in diagnostic.tagNames) {
+        final clean = childTag.trim();
+        if (clean.isNotEmpty) {
+          values.add(clean);
+        }
+      }
+    }
+
+    return values.toList();
+  }
+
+  List<String> _collectEncounterDoctors(EncounterModel encounter) {
+    final values = <String>{};
+    for (final diagnostic in encounter.diagnostics) {
+      final doctor = (diagnostic.doctor ?? '').trim();
+      if (doctor.isNotEmpty) {
+        values.add(doctor);
+      }
+    }
+    return values.toList();
+  }
+
+  bool _matchesSearch(EncounterModel encounter, String query) {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return true;
+    }
+
+    final title = encounter.title.toLowerCase();
+    if (title.contains(normalized)) {
+      return true;
+    }
+
+    final tags = _collectEncounterTags(encounter)
+        .map((e) => e.toLowerCase())
+        .toList();
+    if (tags.any((e) => e.contains(normalized))) {
+      return true;
+    }
+
+    final doctors = _collectEncounterDoctors(encounter)
+        .map((e) => e.toLowerCase())
+        .toList();
+    if (doctors.any((e) => e.contains(normalized))) {
+      return true;
+    }
+
+    return false;
+  }
+
+  String _buildEncounterSubtitle(EncounterModel encounter) {
+    final hospital = _safeText(encounter.hospitalName);
+    return '${_formatDate(encounter.datetimeStart)} • $hospital';
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) {
+      return 'Chưa rõ thời gian';
+    }
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+
+  String _safeText(String? value) {
+    final text = (value ?? '').trim();
+    return text.isEmpty ? 'Không có' : text;
   }
 }

@@ -68,6 +68,8 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
   void initState() {
     super.initState();
     _diagnostics.add(DiagnosticFormModel());
+    _hospitalFieldController = TextEditingController();
+    _hospitalFieldController!.addListener(_handleHospitalQueryChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadHospitals();
     });
@@ -528,83 +530,42 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: Autocomplete<ProfileSearchResponse>(
-        displayStringForOption: (opt) => opt.fullName,
-        optionsBuilder: (val) {
-          if (val.text.isEmpty) return const Iterable.empty();
-          final q = val.text.toLowerCase();
-          return _relativeOptions.where((o) =>
-            o.fullName.toLowerCase().contains(q) ||
-            o.phoneNumber.toLowerCase().contains(q) ||
-            o.identityNumber.toLowerCase().contains(q)
+        displayStringForOption: (option) => option.fullName,
+        optionsBuilder: (TextEditingValue textEditingValue) {
+          final query = textEditingValue.text;
+          if (query.isEmpty) {
+            return const Iterable<ProfileSearchResponse>.empty();
+          }
+          final lowerQuery = query.toLowerCase();
+          return _relativeOptions.where(
+            (option) =>
+                option.fullName.toLowerCase().contains(lowerQuery) ||
+                option.phoneNumber.toLowerCase().contains(lowerQuery) ||
+                option.identityNumber.toLowerCase().contains(lowerQuery),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, {
-    bool required = false,
-    int maxLines = 1,
-  }) {
-    return TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        label: required ? _buildRequiredLabel(label) : Text(label),
-        prefixIcon: Icon(icon, color: AppTheme.primaryColor),
-        filled: true,
-        fillColor: AppTheme.primaryLight.withOpacity(0.35),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide.none,
-        ),
-      ),
-      validator: required
-          ? ((v) => (v == null || v.isEmpty) ? 'Không được để trống' : null)
-          : null,
-    );
-  }
-
-  Widget _buildRelativeSearch() {
-    return Autocomplete<ProfileSearchResponse>(
-      displayStringForOption: (option) => option.fullName,
-      optionsBuilder: (TextEditingValue textEditingValue) {
-        final query = textEditingValue.text;
-        if (query.isEmpty) {
-          return const Iterable<ProfileSearchResponse>.empty();
-        }
-        final lowerQuery = query.toLowerCase();
-        return _relativeOptions.where(
-          (option) =>
-              option.fullName.toLowerCase().contains(lowerQuery) ||
-              option.phoneNumber.toLowerCase().contains(lowerQuery),
-        );
-      },
-      onSelected: (ProfileSearchResponse selection) {
-        setState(() {
-          _selectedRelative = selection;
-        });
-      },
-      optionsViewBuilder: (context, onSelected, options) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4.0,
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width - 32,
-              height: 250.0,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(8.0),
-                itemCount: options.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final option = options.elementAt(index);
-                  return GestureDetector(
-                    onTap: () => onSelected(option),
-                    child: ListTile(
+        onSelected: (ProfileSearchResponse selection) {
+          setState(() {
+            _selectedRelative = selection;
+            _relativeOptions = <ProfileSearchResponse>[];
+          });
+        },
+        optionsViewBuilder: (context, onSelected, options) {
+          return Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              elevation: 4.0,
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width - 40,
+                height: 250,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: options.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final option = options.elementAt(index);
+                    return ListTile(
+                      onTap: () => onSelected(option),
                       leading: CircleAvatar(
                         backgroundImage: option.avatarUrl.isNotEmpty
                             ? NetworkImage(option.avatarUrl)
@@ -620,73 +581,57 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                       subtitle: Text(
                         'Ngày sinh: ${option.dateOfBirth} - ${formatRelationshipLabel(option.relationship)}',
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        );
-      },
-      fieldViewBuilder:
-          (context, textEditingController, focusNode, onFieldSubmitted) {
-            if (_relativeFieldController != textEditingController) {
-              _relativeFieldController?.removeListener(
-                _handleRelativeQueryChanged,
-              );
-              _relativeFieldController = textEditingController;
-              _relativeFieldController!.addListener(
-                _handleRelativeQueryChanged,
-              );
-            }
-            return TextFormField(
-              controller: textEditingController,
-              focusNode: focusNode,
-              decoration: InputDecoration(
-                label: _buildRequiredLabel('Bệnh nhân / Người thân (tìm theo tên/số ĐT)'),
-                prefixIcon: const Icon(
-                  Icons.person,
-                  color: AppTheme.primaryColor,
-                ),
-                suffixIcon:
-                    _selectedRelative != null ||
-                        textEditingController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          textEditingController.clear();
-                          setState(() {
-                            _selectedRelative = null;
-                            _relativeOptions = <ProfileSearchResponse>[];
-                          });
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: AppTheme.primaryLight.withOpacity(0.35),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              validator: (v) =>
-                  _selectedRelative == null ? 'Vui lòng chọn bệnh nhân' : null,
-            );
-          },
-    );
-  }
+          );
+        },
+        fieldViewBuilder:
+            (context, textEditingController, focusNode, onFieldSubmitted) {
+              if (_relativeFieldController != textEditingController) {
+                _relativeFieldController?.removeListener(
+                  _handleRelativeQueryChanged,
+                );
+                _relativeFieldController = textEditingController;
+                _relativeFieldController!.addListener(
+                  _handleRelativeQueryChanged,
+                );
+              }
 
-  Widget _buildRequiredLabel(String text) {
-    return RichText(
-      text: TextSpan(
-        style: const TextStyle(fontSize: 16, color: AppTheme.bodyTextColor),
-        children: [
-          TextSpan(text: text),
-          const TextSpan(
-            text: ' *',
-            style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700),
-          ),
-        ],
+              return TextFormField(
+                controller: textEditingController,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  hintText: 'Tìm bệnh nhân theo tên/SĐT/CCCD',
+                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                  prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
+                  suffixIcon:
+                      _selectedRelative != null ||
+                          textEditingController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            textEditingController.clear();
+                            setState(() {
+                              _selectedRelative = null;
+                              _relativeOptions = <ProfileSearchResponse>[];
+                            });
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
+                ),
+                validator: (v) =>
+                    _selectedRelative == null ? 'Vui lòng chọn bệnh nhân' : null,
+                onFieldSubmitted: (_) => onFieldSubmitted(),
+              );
+            },
       ),
     );
   }

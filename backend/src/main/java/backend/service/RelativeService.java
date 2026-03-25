@@ -83,6 +83,10 @@ public class RelativeService {
         profile.setDateOfBirth(trimToNull(request.dateOfBirth()));
         profile.setPhoneNumber(normalizePhone(request.phoneNumber()));
         profile.setIdentityNumber(normalizeIdentity(request.identityNumber()));
+        profile.setAllergy(trimToNull(request.allergy()));
+        profile.setChronicDisease(trimToNull(request.chronicDisease()));
+        profile.setClinicalNotes(trimToNull(request.clinicalNotes()));
+        profile.setBloodGroup(trimToNull(request.bloodGroup()));
         if (avatarFile != null && !avatarFile.isEmpty()) {
             profile.setAvatarUrl(cloudinaryService.uploadImage(avatarFile));
         }

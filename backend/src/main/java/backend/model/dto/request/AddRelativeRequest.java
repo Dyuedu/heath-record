@@ -20,6 +20,14 @@ public record AddRelativeRequest(
 
         String phoneNumber,
 
+        String allergy,
+
+        String chronicDisease,
+
+        String clinicalNotes,
+
+        String bloodGroup,
+
         @NotBlank(message = "Mối quan hệ không được để trống")
         String relationship
 ) {
