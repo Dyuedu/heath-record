@@ -44,6 +44,10 @@ class UserViewModel extends ChangeNotifier {
     required String gender,
     required String dateOfBirth,
     required String address,
+    required String allergy,
+    required String chronicDisease,
+    required String clinicalNotes,
+    required String bloodGroup,
   }) async {
     _setLoading(true);
     _errorMessage = null;
@@ -56,6 +60,10 @@ class UserViewModel extends ChangeNotifier {
       gender: gender,
       dateOfBirth: dateOfBirth,
       address: address,
+      allergy: allergy,
+      chronicDisease: chronicDisease,
+      clinicalNotes: clinicalNotes,
+      bloodGroup: bloodGroup,
     );
 
     if (data == null) {

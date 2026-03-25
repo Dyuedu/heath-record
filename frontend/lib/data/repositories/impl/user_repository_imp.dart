@@ -41,6 +41,10 @@ class UserRepositoryImp implements UserRepository {
     required String gender,
     required String dateOfBirth,
     required String address,
+    required String allergy,
+    required String chronicDisease,
+    required String clinicalNotes,
+    required String bloodGroup,
   }) async {
     _clearLastError();
     try {
@@ -52,6 +56,10 @@ class UserRepositoryImp implements UserRepository {
           'gender': gender,
           'dateOfBirth': dateOfBirth,
           'address': address,
+          'allergy': allergy,
+          'chronicDisease': chronicDisease,
+          'clinicalNotes': clinicalNotes,
+          'bloodGroup': bloodGroup,
         },
       );
 
@@ -185,8 +193,8 @@ class UserRepositoryImp implements UserRepository {
 
     try {
       final response = await _dioClient.dio.get(
-        '/api/doctor/search-patients',
-        queryParameters: {'keyword': cleanKeyword},
+        '/api/v1/doctor/records/profiles/search',
+        queryParameters: {'query': cleanKeyword},
       );
 
       if (response.statusCode == 200 && response.data is List) {
@@ -213,7 +221,7 @@ class UserRepositoryImp implements UserRepository {
     }
 
     try {
-      final response = await _dioClient.dio.get('/api/doctor/patients/$id');
+      final response = await _dioClient.dio.get('/api/v1/doctor/records/patients/$id/detail');
       if (response.statusCode == 200 && response.data != null) {
         return DoctorPatientDetailModel.fromMap(
           Map<String, dynamic>.from(response.data as Map),

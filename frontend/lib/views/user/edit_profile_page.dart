@@ -16,9 +16,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _phoneController = TextEditingController();
   final _dobController = TextEditingController();
   final _addressController = TextEditingController();
+  final _allergyController = TextEditingController();
+  final _chronicDiseaseController = TextEditingController();
+  final _clinicalNotesController = TextEditingController();
 
   bool _initialized = false;
   String? _selectedGender;
+  String? _selectedBloodGroup;
 
   @override
   void initState() {
@@ -37,6 +41,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _phoneController.dispose();
     _dobController.dispose();
     _addressController.dispose();
+    _allergyController.dispose();
+    _chronicDiseaseController.dispose();
+    _clinicalNotesController.dispose();
     super.dispose();
   }
 
@@ -50,7 +57,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       _phoneController.text = profile.phoneNumber;
       _dobController.text = profile.dateOfBirth;
       _selectedGender = _normalizeGenderValue(profile.gender);
+      _selectedBloodGroup = _normalizeBloodGroupValue(profile.bloodGroup);
       _addressController.text = profile.address;
+      _allergyController.text = profile.allergy ?? '';
+      _chronicDiseaseController.text = profile.chronicDisease ?? '';
+      _clinicalNotesController.text = profile.clinicalNotes ?? '';
       _initialized = true;
     }
 
@@ -139,6 +150,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         return null;
                       },
                     ),
+                    _buildBloodGroupInput(),
                     _buildInput(
                       label: 'Địa chỉ:',
                       controller: _addressController,
@@ -151,6 +163,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         }
                         return null;
                       },
+                    ),
+                    _buildInput(
+                      label: 'Dị ứng (nếu có):',
+                      controller: _allergyController,
+                      serverErrorText: vm.fieldErrors['allergy'],
+                      onChanged: (_) => vm.clearMessages(),
+                      validator: (_) => null,
+                    ),
+                    _buildInput(
+                      label: 'Bệnh mãn tính (nếu có):',
+                      controller: _chronicDiseaseController,
+                      serverErrorText: vm.fieldErrors['chronicDisease'],
+                      onChanged: (_) => vm.clearMessages(),
+                      validator: (_) => null, // Optional
+                    ),
+                    _buildInput(
+                      label: 'Ghi chú lâm sàng / Tóm tắt y tế:',
+                      controller: _clinicalNotesController,
+                      serverErrorText: vm.fieldErrors['clinicalNotes'],
+                      onChanged: (_) => vm.clearMessages(),
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 4,
+                      validator: (_) => null,
                     ),
                     const SizedBox(height: 10),
                     ElevatedButton(
@@ -188,6 +223,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       gender: _selectedGender!,
       dateOfBirth: normalizedDob,
       address: _addressController.text.trim(),
+      allergy: _allergyController.text.trim(),
+      chronicDisease: _chronicDiseaseController.text.trim(),
+      clinicalNotes: _clinicalNotesController.text.trim(),
+      bloodGroup: _selectedBloodGroup ?? 'Chưa xác định',
     );
 
     if (!mounted) return;
@@ -210,6 +249,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     Widget? suffixIcon,
     String? serverErrorText,
     void Function(String)? onChanged,
+    int? maxLines,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -223,6 +263,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             keyboardType: keyboardType,
             validator: validator,
             onChanged: onChanged,
+            maxLines: maxLines ?? 1,
             decoration: InputDecoration(
               filled: true,
               fillColor: const Color(0xFFDDE3FF).withValues(alpha: 0.45),
@@ -277,6 +318,43 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 borderSide: BorderSide.none,
               ),
               errorMaxLines: 2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBloodGroupInput() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildRequiredLabel('Nhóm máu:'),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedBloodGroup,
+            items: const [
+              DropdownMenuItem(value: 'Chưa xác định', child: Text('Chưa xác định')),
+              DropdownMenuItem(value: 'A', child: Text('A')),
+              DropdownMenuItem(value: 'B', child: Text('B')),
+              DropdownMenuItem(value: 'AB', child: Text('AB')),
+              DropdownMenuItem(value: 'O', child: Text('O')),
+            ],
+            onChanged: (value) {
+              setState(() {
+                _selectedBloodGroup = value;
+              });
+              context.read<UserViewModel>().clearMessages();
+            },
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFFDDE3FF).withValues(alpha: 0.45),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
         ],
@@ -344,6 +422,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (value == 'nam') return 'Nam';
     if (value == 'nữ' || value == 'nu') return 'Nữ';
     return null;
+  }
+
+  String? _normalizeBloodGroupValue(String? bg) {
+    final value = (bg ?? '').trim().toUpperCase();
+    if (value == 'A') return 'A';
+    if (value == 'B') return 'B';
+    if (value == 'AB') return 'AB';
+    if (value == 'O') return 'O';
+    return 'Chưa xác định';
   }
 
   Widget _buildRequiredLabel(String text) {

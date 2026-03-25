@@ -14,6 +14,10 @@ class UserProfileModel {
   final String? cccdBackUrl;
   final String? diplomaUrl;
   final String? createdAt;
+  final String? allergy;
+  final String? chronicDisease;
+  final String? clinicalNotes;
+  final String? bloodGroup;
 
   const UserProfileModel({
     required this.id,
@@ -31,6 +35,10 @@ class UserProfileModel {
     this.cccdBackUrl,
     this.diplomaUrl,
     this.createdAt,
+    this.allergy,
+    this.chronicDisease,
+    this.clinicalNotes,
+    this.bloodGroup,
   });
 
   factory UserProfileModel.fromMap(Map<String, dynamic> map) {
@@ -50,6 +58,10 @@ class UserProfileModel {
       cccdBackUrl: map['cccdBackUrl']?.toString(),
       diplomaUrl: map['diplomaUrl']?.toString(),
       createdAt: map['createdAt']?.toString(),
+      allergy: map['allergy']?.toString(),
+      chronicDisease: map['chronicDisease']?.toString(),
+      clinicalNotes: map['clinicalNotes']?.toString(),
+      bloodGroup: map['bloodGroup']?.toString(),
     );
   }
 }

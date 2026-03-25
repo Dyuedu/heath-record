@@ -6,6 +6,7 @@ import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/notification_viewmodel.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:provider/provider.dart';
+import 'package:frontend/views/home/doctor_user_search_page.dart';
 
 class DoctorDashboardPage extends StatefulWidget {
   const DoctorDashboardPage({super.key});
@@ -192,7 +193,7 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
         'title': 'View Patients',
         'icon': Icons.people_alt_rounded,
         'onTap': (BuildContext context) =>
-            _showComingSoon(context, 'Patient manager coming soon.'),
+             Navigator.push(context, MaterialPageRoute(builder: (_) => const DoctorUserSearchPage())),
       },
       {
         'title': 'Schedule',

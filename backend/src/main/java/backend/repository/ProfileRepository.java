@@ -11,8 +11,7 @@ import java.util.UUID;
 public interface ProfileRepository extends JpaRepository<Profile, UUID> {
 
     @Query("SELECT p FROM Profile p LEFT JOIN FETCH p.user u " +
-           "WHERE LOWER(p.fullname) LIKE LOWER(CONCAT('%', :query, '%')) " +
-           "OR u.phoneNumber LIKE CONCAT('%', :query, '%')")
+           "WHERE p.identityNumber = :query OR p.phoneNumber = :query OR u.phoneNumber = :query")
     java.util.List<Profile> searchProfilesForDoctor(@Param("query") String query);
 
     Optional<Profile> findFirstByIdentityNumber(String identityNumber);
