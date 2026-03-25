@@ -158,4 +158,19 @@ class ProfileViewModel extends ChangeNotifier {
   ) {
     return _repository.fetchDoctorPatientDetail(patientId: patientId);
   }
+
+  void clearSessionData() {
+    _isLoading = false;
+    _isFamilyLoading = false;
+    _isAddLoading = false;
+    _errorMessage = null;
+    _familyErrorMessage = null;
+    _addErrorMessage = null;
+    _doctorSearchErrorMessage = null;
+    _profile = null;
+    _familyProfiles = const [];
+    _doctorSearchResults = const [];
+    _isDoctorSearchLoading = false;
+    notifyListeners();
+  }
 }

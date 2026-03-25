@@ -541,7 +541,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
           cccdFrontUrl: _currentUser.cccdFrontUrl,
           cccdBackUrl: _currentUser.cccdBackUrl,
           diplomaUrl: _currentUser.diplomaUrl,
-          createdAt: _currentUser.createdAt,
+          createdAt: _currentUser.createdAt, 
           identityNumber: '',
         );
       });

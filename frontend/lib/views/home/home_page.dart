@@ -56,7 +56,7 @@ class _HomePageState extends State<HomePage> {
     _resolveUserRole();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final profileVM = context.read<ProfileViewModel>();
-      if (profileVM.profile == null && !profileVM.isLoading) {
+      if (!profileVM.isLoading) {
         profileVM.loadOverview();
       }
     });

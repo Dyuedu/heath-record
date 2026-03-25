@@ -15,6 +15,7 @@ public class NotificationMessageDTO {
     private UUID id;
     private String title;
     private String message;
+    private String patientName;
     private String doctorName;
     private String hospitalName;
     private String recordId;

@@ -3,6 +3,7 @@ import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/utils/app_theme.dart';
 import 'package:frontend/utils/doctor_ui_helpers.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
+import 'package:frontend/viewmodels/notification_viewmodel.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -380,6 +381,8 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
   Future<void> _logout(BuildContext context) async {
     await context.read<AuthViewModel>().logout();
     if (context.mounted) {
+      context.read<ProfileViewModel>().clearSessionData();
+      context.read<NotificationViewModel>().clearSessionData();
       Navigator.of(context).pushReplacementNamed('/login');
     }
   }

@@ -103,6 +103,15 @@ class NotificationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSessionData() {
+    _stompClient?.deactivate();
+    _stompClient = null;
+    _isConnected = false;
+    _notifications = [];
+    _unreadCount = 0;
+    notifyListeners();
+  }
+
   void _showNotification(Map<String, dynamic> notification) {
     final title = notification['title'] ?? 'Thông báo';
     final message = notification['message'] ?? '';

@@ -27,8 +27,6 @@ migrate_working_dir/
 /build/
 /coverage/
 
-lib/data/dio/dio_client.dart
-
 # Symbolication related
 app.*.symbols
 
@@ -41,3 +39,9 @@ app.*.map.json
 /android/app/release
 
 .idea/
+
+# Local Dio client config
+lib/data/dio/dio_client.dart
+
+
+

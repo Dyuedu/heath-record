@@ -41,18 +41,11 @@ class NotificationPage extends StatelessWidget {
               itemBuilder: (context, index) {
                 final notif = notifications[index];
                 return GestureDetector(
-                  onTap: () {
+                  onTap: () async {
                     if (!notif.isRead) {
                       notificationVM.markAsRead(notif.id);
                     }
-                    if (notif.recordId != null && notif.recordId!.isNotEmpty) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SingleRecordDetailPage(recordId: notif.recordId!),
-                        ),
-                      );
-                    }
+                    await _showNotificationDetail(context, notif);
                   },
                   child: Container(
                     padding: const EdgeInsets.all(16),
@@ -108,6 +101,17 @@ class NotificationPage extends StatelessWidget {
                                   color: notif.isRead ? Colors.black45 : Colors.black87,
                                 ),
                               ),
+                              if (notif.patientName != null && notif.patientName!.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Bệnh án cho: ${notif.patientName!}',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF246BFF),
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 8),
                               Text(
                                 _formatDuration(notif.timestamp),
@@ -135,6 +139,68 @@ class NotificationPage extends StatelessWidget {
                 );
               },
             ),
+    );
+  }
+
+  Future<void> _showNotificationDetail(BuildContext context, dynamic notif) async {
+    final patientName = (notif.patientName != null && notif.patientName!.isNotEmpty)
+        ? notif.patientName!
+        : 'Không xác định';
+    final doctorName = (notif.doctorName != null && notif.doctorName!.isNotEmpty)
+      ? notif.doctorName!
+      : 'Không xác định';
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(notif.title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(notif.message),
+              const SizedBox(height: 10),
+              RichText(
+                text: TextSpan(
+                  style: DefaultTextStyle.of(dialogContext).style,
+                  children: [
+                    const TextSpan(text: 'Bác sĩ: '),
+                    TextSpan(
+                      text: doctorName,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Người được thêm bệnh án: $patientName',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Đóng'),
+            ),
+            if (notif.recordId != null && notif.recordId!.isNotEmpty)
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SingleRecordDetailPage(recordId: notif.recordId!),
+                    ),
+                  );
+                },
+                child: const Text('Xem bệnh án'),
+              ),
+          ],
+        );
+      },
     );
   }
 

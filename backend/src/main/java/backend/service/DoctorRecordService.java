@@ -23,7 +23,9 @@ import backend.model.dto.response.RelativeSearchResponse;
 import backend.model.dto.response.NotificationMessageDTO;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
@@ -135,42 +137,57 @@ public class DoctorRecordService {
 
         MedicalRecord saved = medicalRecordRepository.save(record);
 
+        String docName = doctor.getProfile() != null && doctor.getProfile().getFullname() != null
+                ? doctor.getProfile().getFullname()
+                : doctor.getEmail();
+        String hospName = hospital != null && hospital.getName() != null ? hospital.getName() : "Phòng khám";
+        String patientName = profile.getFullname() != null ? profile.getFullname() : "N/A";
+
+        // Notify every user linked to this profile (owner account and users managing it as a relative).
+        Set<UUID> recipientIds = new HashSet<>();
         if (profile.getUser() != null) {
-            String patientUserId = profile.getUser().getId().toString();
-            String docName = doctor.getProfile() != null && doctor.getProfile().getFullname() != null ? doctor.getProfile().getFullname() : doctor.getEmail();
-            String hospName = hospital != null && hospital.getName() != null ? hospital.getName() : "Phòng khám";
+            recipientIds.add(profile.getUser().getId());
+        }
+        relativeRepository.findAllByProfileId(profile.getId()).forEach(rel -> {
+            if (rel.getUser() != null) {
+                recipientIds.add(rel.getUser().getId());
+            }
+        });
 
-            Notification notificationEntity = Notification.builder()
-                    .user(profile.getUser())
-                    .title("Bệnh án mới")
-                    .message("Bác sĩ " + docName + " đã thêm một bệnh án mới.")
-                    .doctorName(docName)
-                    .hospitalName(hospName)
-                    .recordId(saved.getId() != null ? saved.getId().toString() : "")
-                    .isRead(false)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-            
-            notificationEntity = notificationRepository.save(notificationEntity);
+        recipientIds.remove(doctor.getId());
 
-            NotificationMessageDTO notification = NotificationMessageDTO.builder()
-                    .id(notificationEntity.getId())
-                    .title(notificationEntity.getTitle())
-                    .message(notificationEntity.getMessage())
-                    .doctorName(notificationEntity.getDoctorName())
-                    .hospitalName(notificationEntity.getHospitalName())
-                    .recordId(notificationEntity.getRecordId())
-                    .isRead(false)
-                    .timestamp(notificationEntity.getCreatedAt())
-                    .build();
-            messagingTemplate.convertAndSend("/topic/notifications/" + patientUserId, notification);
+        for (UUID recipientId : recipientIds) {
+            userRepository.findById(recipientId).ifPresent(recipient -> {
+                Notification notificationEntity = Notification.builder()
+                        .user(recipient)
+                        .title("Bệnh án mới")
+                    .message("Bác sĩ " + docName + " đã thêm một bệnh án mới cho " + patientName + ".")
+                        .doctorName(docName)
+                        .hospitalName(hospName)
+                        .recordId(saved.getId() != null ? saved.getId().toString() : "")
+                        .isRead(false)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+
+                Notification savedNotification = notificationRepository.save(notificationEntity);
+
+                NotificationMessageDTO notification = NotificationMessageDTO.builder()
+                        .id(savedNotification.getId())
+                        .title(savedNotification.getTitle())
+                        .message(savedNotification.getMessage())
+                    .patientName(patientName)
+                        .doctorName(savedNotification.getDoctorName())
+                        .hospitalName(savedNotification.getHospitalName())
+                        .recordId(savedNotification.getRecordId())
+                        .isRead(false)
+                        .timestamp(savedNotification.getCreatedAt())
+                        .build();
+
+                messagingTemplate.convertAndSend("/topic/notifications/" + recipientId, notification);
+            });
         }
 
         // Send success notification to Doctor
-        String docName = doctor.getProfile() != null && doctor.getProfile().getFullname() != null ? doctor.getProfile().getFullname() : doctor.getEmail();
-        String hospName = hospital != null && hospital.getName() != null ? hospital.getName() : "Phòng khám";
-        String patientName = profile.getFullname() != null ? profile.getFullname() : "N/A";
-        
         Notification doctorNotification = Notification.builder()
                 .user(doctor)
                 .title("Tạo bệnh án thành công")
@@ -188,6 +205,7 @@ public class DoctorRecordService {
                 .id(doctorNotification.getId())
                 .title(doctorNotification.getTitle())
                 .message(doctorNotification.getMessage())
+            .patientName(patientName)
                 .doctorName(doctorNotification.getDoctorName())
                 .hospitalName(doctorNotification.getHospitalName())
                 .recordId(doctorNotification.getRecordId())
