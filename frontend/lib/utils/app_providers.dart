@@ -13,9 +13,12 @@ import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/data/repositories/user_repository.dart';
 import 'package:frontend/data/repositories/profile_repository.dart';
 import 'package:frontend/data/repositories/notification_repository.dart';
+import 'package:frontend/data/repositories/appointment_repository.dart';
+import 'package:frontend/data/repositories/impl/appointment_repository_imp.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
+import 'package:frontend/viewmodels/schedule_viewmodel.dart';
 import 'package:frontend/viewmodels/link_request_viewmodel.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
@@ -98,8 +101,11 @@ class AppProviders {
           repository: context.read<RecordRepository>(),
         ),
       ),
-      ChangeNotifierProvider<DoctorViewModel>(
-        create: (context) => DoctorViewModel(),
+      ChangeNotifierProxyProvider<UserRepository, DoctorViewModel>(
+        create: (context) =>
+            DoctorViewModel(repository: context.read<UserRepository>()),
+        update: (context, userRepository, previous) =>
+            previous ?? DoctorViewModel(repository: userRepository),
       ),
       ChangeNotifierProxyProvider<UserRepository, UserViewModel>(
         create: (context) =>
@@ -124,7 +130,18 @@ class AppProviders {
         update: (context, dioClient, previous) => AdminRepositoryImp(dioClient),
       ),
       ProxyProvider<DioClient, NotificationRepository>(
-        update: (context, dioClient, previous) => NotificationRepository(dioClient: dioClient),
+        update: (context, dioClient, previous) =>
+            NotificationRepository(dioClient: dioClient),
+      ),
+      ProxyProvider<DioClient, AppointmentRepository>(
+        update: (context, dioClient, previous) =>
+            AppointmentRepositoryImp(dioClient),
+      ),
+      ChangeNotifierProxyProvider<AppointmentRepository, ScheduleViewModel>(
+        create: (context) =>
+            ScheduleViewModel(context.read<AppointmentRepository>()),
+        update: (context, appointmentRepository, previous) =>
+            previous ?? ScheduleViewModel(appointmentRepository),
       ),
       ChangeNotifierProxyProvider<AdminRepository, AdminViewModel>(
         create: (context) =>
@@ -132,7 +149,10 @@ class AppProviders {
         update: (context, repository, previous) =>
             previous ?? AdminViewModel(repository: repository),
       ),
-      ChangeNotifierProxyProvider<NotificationRepository, NotificationViewModel>(
+      ChangeNotifierProxyProvider<
+        NotificationRepository,
+        NotificationViewModel
+      >(
         create: (context) => NotificationViewModel(
           repository: context.read<NotificationRepository>(),
         ),
@@ -143,15 +163,19 @@ class AppProviders {
         update: (context, dioClient, previous) => TagRepositoryImp(dioClient),
       ),
       ChangeNotifierProxyProvider<TagRepository, AdminTagViewModel>(
-        create: (context) => AdminTagViewModel(repository: context.read<TagRepository>()),
+        create: (context) =>
+            AdminTagViewModel(repository: context.read<TagRepository>()),
         update: (context, repository, previous) =>
             previous ?? AdminTagViewModel(repository: repository),
       ),
       ProxyProvider<DioClient, HospitalRepository>(
-        update: (context, dioClient, previous) => HospitalRepositoryImp(dioClient),
+        update: (context, dioClient, previous) =>
+            HospitalRepositoryImp(dioClient),
       ),
       ChangeNotifierProxyProvider<HospitalRepository, AdminHospitalViewModel>(
-        create: (context) => AdminHospitalViewModel(repository: context.read<HospitalRepository>()),
+        create: (context) => AdminHospitalViewModel(
+          repository: context.read<HospitalRepository>(),
+        ),
         update: (context, repository, previous) =>
             previous ?? AdminHospitalViewModel(repository: repository),
       ),

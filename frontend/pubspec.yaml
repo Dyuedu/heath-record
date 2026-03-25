@@ -49,6 +49,7 @@ dependencies:
   file_picker: ^10.3.10
   mocktail: ^1.0.4
   cached_network_image: ^3.4.1
+  intl: ^0.19.0
   fl_chart: ^0.69.0
   flutter_dotenv: ^5.2.1
   app_links: ^6.4.0

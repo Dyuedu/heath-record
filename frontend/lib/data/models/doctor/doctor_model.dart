@@ -1,3 +1,5 @@
+import 'package:frontend/data/models/user/user_profile_model.dart';
+
 enum Gender { male, female }
 
 class DoctorModel {
@@ -56,6 +58,36 @@ class DoctorModel {
       availableSlots: List<String>.from(json['availableSlots'] ?? const []),
       contactEmail: json['contactEmail'] ?? 'contact@health.com',
       contactPhone: json['contactPhone'] ?? '+1 000 000 0000',
+    );
+  }
+
+  factory DoctorModel.fromUserProfile(UserProfileModel profile) {
+    final genderString = profile.gender.trim().toLowerCase();
+    final gender = genderString == 'nam' ? Gender.male : Gender.female;
+    final fallbackName = profile.fullName.trim().isEmpty
+        ? profile.email.trim()
+        : profile.fullName.trim();
+    return DoctorModel(
+      id: profile.id,
+      name: fallbackName.isEmpty ? 'Bác sĩ' : fallbackName,
+      specialty: profile.address.trim().isEmpty
+          ? 'Bác sĩ đa khoa'
+          : profile.address.trim(),
+      rating: 4.9,
+      heartCount: 0,
+      gender: gender,
+      imageUrl: profile.avatarUrl.trim().isEmpty
+          ? 'https://via.placeholder.com/150'
+          : profile.avatarUrl.trim(),
+      experienceYears: 10,
+      reviewCount: 0,
+      availability: 'Liên hệ để biết lịch làm việc',
+      profile: 'Thông tin đang được cập nhật.',
+      careerPath: 'Đang cập nhật',
+      highlights: 'Đang cập nhật',
+      availableSlots: const [],
+      contactEmail: profile.email,
+      contactPhone: profile.phoneNumber,
     );
   }
 }

@@ -18,9 +18,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-    // QUAN TRỌNG: Chỉ khởi tạo Future 1 lần duy nhất trong initState
-    // Sử dụng context.read thay vì watch ở đây để tránh loop
-    _authFuture = context.read<AuthViewModel>().isLoggedIn();
+    _authFuture = _resolveAuth();
+  }
+
+  Future<bool> _resolveAuth() async {
+    final authViewModel = context.read<AuthViewModel>();
+    final isAuthenticated = await authViewModel.checkAuthStatus();
+    if (!isAuthenticated) {
+      authViewModel.setRoleFromString(null);
+      return false;
+    }
+
+    await authViewModel.isLoggedIn();
+    return true;
   }
 
   @override
@@ -30,7 +40,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: Color(0xFF246BFF))),
+            body: Center(
+              child: CircularProgressIndicator(color: Color(0xFF246BFF)),
+            ),
           );
         }
 

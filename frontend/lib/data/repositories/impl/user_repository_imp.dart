@@ -192,9 +192,8 @@ class UserRepositoryImp implements UserRepository {
       if (response.statusCode == 200 && response.data is List) {
         return (response.data as List)
             .map(
-              (e) => UserProfileModel.fromMap(
-                Map<String, dynamic>.from(e as Map),
-              ),
+              (e) =>
+                  UserProfileModel.fromMap(Map<String, dynamic>.from(e as Map)),
             )
             .toList();
       }
@@ -223,6 +222,31 @@ class UserRepositoryImp implements UserRepository {
       return null;
     } catch (_) {
       return null;
+    }
+  }
+
+  @override
+  Future<List<UserProfileModel>> fetchDoctors({String? keyword}) async {
+    final cleanKeyword = keyword?.trim() ?? '';
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/doctors',
+        queryParameters: cleanKeyword.isEmpty
+            ? null
+            : {'keyword': cleanKeyword},
+      );
+
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map(
+              (e) =>
+                  UserProfileModel.fromMap(Map<String, dynamic>.from(e as Map)),
+            )
+            .toList();
+      }
+      return const [];
+    } catch (_) {
+      return const [];
     }
   }
 }
