@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:frontend/views/admin/admin_bottom_nav.dart';
 import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_pending_list_page.dart';
-import 'package:frontend/views/user/user_profile_page.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/views/authentication/login_page.dart';

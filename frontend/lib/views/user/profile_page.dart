@@ -231,7 +231,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '$dobText',
+                        dobText,
                         style: const TextStyle(
                           color: Color(0xFF5F6368),
                           fontSize: 12.5,
