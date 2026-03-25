@@ -3,7 +3,6 @@ package backend.controller;
 import backend.model.UserPrincipal;
 import backend.model.dto.request.ChangePasswordRequest;
 import backend.model.dto.request.UpdateMyProfileRequest;
-import backend.model.dto.request.VerifyOtpRequest;
 import backend.model.dto.response.PatientDetailResponse;
 import backend.model.dto.response.UserResponse;
 import backend.service.UserService;
@@ -14,7 +13,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -77,16 +75,6 @@ public class UserController {
             return ResponseEntity.status(401).build();
         }
         return ResponseEntity.ok(userService.updateMyPassword(userPrincipal.getId(), request));
-    }
-
-    @PostMapping("/users/me/password/verify-otp")
-    public ResponseEntity<Map<String, String>> verifyMyPasswordOtp(
-            @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @Valid @RequestBody VerifyOtpRequest request) {
-        if (userPrincipal == null) {
-            return ResponseEntity.status(401).build();
-        }
-        return ResponseEntity.ok(userService.verifyMyPasswordOtp(userPrincipal.getId(), request));
     }
 
     @PutMapping("/users/me")

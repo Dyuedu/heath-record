@@ -6,6 +6,7 @@ import 'package:frontend/data/models/hospital_response.dart';
 import 'package:frontend/data/models/relative_search_response.dart';
 import 'package:frontend/data/repositories/record_repository.dart';
 import 'package:frontend/utils/app_notifier.dart';
+import 'package:frontend/utils/relationship_formatter.dart';
 import 'package:frontend/utils/app_theme.dart';
 import 'package:frontend/views/doctor/widgets/diagnostic_card.dart';
 import 'package:frontend/views/doctor/widgets/record_section_header.dart';
@@ -476,7 +477,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        'Ngày sinh: ${option.dateOfBirth} - ${option.relationship}',
+                        'Ngày sinh: ${option.dateOfBirth} - ${formatRelationshipLabel(option.relationship)}',
                       ),
                     ),
                   );

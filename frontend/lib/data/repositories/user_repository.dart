@@ -21,12 +21,8 @@ abstract class UserRepository {
     required String bloodGroup,
   });
 
-  Future<bool> requestPasswordOtp();
-
-  Future<bool> verifyPasswordOtp({required String otp});
-
-  Future<bool> updatePasswordWithOtp({
-    required String otp,
+  Future<bool> updatePassword({
+    required String oldPassword,
     required String newPassword,
   });
 

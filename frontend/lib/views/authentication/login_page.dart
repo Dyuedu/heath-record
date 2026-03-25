@@ -3,6 +3,7 @@ import 'package:frontend/utils/app_notifier.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/utils/app_routers.dart';
+import 'package:frontend/views/authentication/forgot_password_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -99,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
                 _buildRememberAndForgot(),
 
                 const SizedBox(height: 30),
-                _buildSignInButton(context, authVM),
+                _buildSignInButton(authVM),
 
                 const SizedBox(height: 24),
                 _buildDivider(),
@@ -220,7 +221,12 @@ class _LoginPageState extends State<LoginPage> {
         ],
       ),
       TextButton(
-        onPressed: () {}, // Logic quên mật khẩu
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+          );
+        },
         child: const Text(
           "Quên mật khẩu?",
           style: TextStyle(
@@ -233,7 +239,7 @@ class _LoginPageState extends State<LoginPage> {
     ],
   );
 
-  Widget _buildSignInButton(BuildContext context, AuthViewModel vm) => SizedBox(
+  Widget _buildSignInButton(AuthViewModel vm) => SizedBox(
     width: double.infinity,
     child: ElevatedButton(
       style: ElevatedButton.styleFrom(

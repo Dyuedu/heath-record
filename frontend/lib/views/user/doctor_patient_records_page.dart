@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/data/models/record/diagnostic_model.dart';
 import 'package:frontend/data/models/record/encounter_model.dart';
 import 'package:frontend/data/models/record/relative_history_model.dart';
+import 'package:frontend/utils/relationship_formatter.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -71,11 +72,7 @@ class _DoctorPatientRecordsPageState extends State<DoctorPatientRecordsPage> {
     if (name.isNotEmpty) {
       return name;
     }
-    final relation = relative.relationship.trim();
-    if (relation.toLowerCase() == 'me') {
-      return 'Bản thân';
-    }
-    return relation.isEmpty ? 'Không rõ' : relation;
+    return formatRelationshipLabel(relative.relationship, emptyFallback: 'Không rõ');
   }
 
   @override
@@ -514,7 +511,7 @@ class _DoctorPatientRecordsPageState extends State<DoctorPatientRecordsPage> {
     final dateText = time == null
         ? 'Không rõ ngày khám'
         : '${time.day}/${time.month}/${time.year}';
-    final relation = item.relationship.isEmpty ? 'N/A' : item.relationship;
+    final relation = formatRelationshipLabel(item.relationship, emptyFallback: 'N/A');
     return '$dateText • ${item.ownerName} ($relation)';
   }
 }

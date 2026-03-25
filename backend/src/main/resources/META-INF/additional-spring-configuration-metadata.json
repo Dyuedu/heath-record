@@ -1,0 +1,67 @@
+{"properties": [
+  {
+    "name": "app.profile-link.expire-days",
+    "type": "java.lang.String",
+    "description": "A description for 'app.profile-link.expire-days'"
+  },
+  {
+    "name": "app.feature.enableProfileLinkApproval",
+    "type": "java.lang.String",
+    "description": "A description for 'app.feature.enableProfileLinkApproval'"
+  },
+  {
+    "name": "app.doctor.activation-fallback-url",
+    "type": "java.lang.String",
+    "description": "A description for 'app.doctor.activation-fallback-url'"
+  },
+  {
+    "name": "app.doctor.activation-result-deeplink-template",
+    "type": "java.lang.String",
+    "description": "A description for 'app.doctor.activation-result-deeplink-template'"
+  },
+  {
+    "name": "app.doctor.activation-link-template",
+    "type": "java.lang.String",
+    "description": "A description for 'app.doctor.activation-link-template'"
+  },
+  {
+    "name": "app.mail.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'app.mail.enabled'"
+  },
+  {
+    "name": "cloudinary.api_secret",
+    "type": "java.lang.String",
+    "description": "A description for 'cloudinary.api_secret'"
+  },
+  {
+    "name": "cloudinary.api_key",
+    "type": "java.lang.String",
+    "description": "A description for 'cloudinary.api_key'"
+  },
+  {
+    "name": "cloudinary.cloud_name",
+    "type": "java.lang.String",
+    "description": "A description for 'cloudinary.cloud_name'"
+  },
+  {
+    "name": "application.security.jwt.secret-key",
+    "type": "java.lang.String",
+    "description": "A description for 'application.security.jwt.secret-key'"
+  },
+  {
+    "name": "spring.devtools.restart.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.devtools.restart.enabled'"
+  },
+  {
+    "name": "spring.devtools.livereload.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.devtools.livereload.enabled'"
+  },
+  {
+    "name": "app.feature.enableProfileLinkApproval",
+    "type": "java.lang.String",
+    "description": "A description for 'app.feature.enableProfileLinkApproval'"
+  }
+]}

@@ -10,6 +10,13 @@ abstract class AuthRepository {
   Future<RegisterResultModel?> register(RegisterRequest request);
   Future<bool> verifyOtp(String email, String otp);
   Future<bool> resendOtp(String email);
+  Future<bool> requestForgotPasswordOtp(String email);
+  Future<bool> verifyForgotPasswordOtp(String email, String otp);
+  Future<bool> resetForgotPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  });
   Future<void> logout();
   Future<bool> isLoggedIn();
   Future<dynamic> isAuthenticated() async {}

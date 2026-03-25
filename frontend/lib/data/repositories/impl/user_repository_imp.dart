@@ -79,40 +79,14 @@ class UserRepositoryImp implements UserRepository {
   }
 
   @override
-  Future<bool> requestPasswordOtp() async {
-    try {
-      final response = await _dioClient.dio.put(
-        '/api/users/me/password',
-        data: {'otp': '', 'newPassword': ''},
-      );
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  @override
-  Future<bool> verifyPasswordOtp({required String otp}) async {
-    try {
-      final response = await _dioClient.dio.post(
-        '/api/users/me/password/verify-otp',
-        data: {'otp': otp},
-      );
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  @override
-  Future<bool> updatePasswordWithOtp({
-    required String otp,
+  Future<bool> updatePassword({
+    required String oldPassword,
     required String newPassword,
   }) async {
     try {
       final response = await _dioClient.dio.put(
         '/api/users/me/password',
-        data: {'otp': otp, 'newPassword': newPassword},
+        data: {'oldPassword': oldPassword, 'newPassword': newPassword},
       );
       return response.statusCode == 200;
     } catch (_) {

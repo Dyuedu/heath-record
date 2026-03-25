@@ -26,30 +26,6 @@ class AuthRepositoryImp implements AuthRepository {
     _lastValidationErrors = const {};
   }
 
-  void _captureErrorFromDio(DioException error) {
-    final data = error.response?.data;
-    if (data is Map) {
-      final map = Map<String, dynamic>.from(data);
-      final message = map['message']?.toString();
-      _lastErrorMessage = (message != null && message.trim().isNotEmpty)
-          ? message
-          : 'Đăng ký thất bại. Vui lòng thử lại.';
-
-      final validation = map['validationErrors'];
-      if (validation is Map) {
-        _lastValidationErrors = validation.map(
-          (key, value) => MapEntry(
-            key.toString(),
-            value?.toString() ?? 'Dữ liệu không hợp lệ',
-          ),
-        );
-      }
-      return;
-    }
-
-    _lastErrorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
-  }
-
   @override
   Future<bool> isLoggedIn() {
     return _secureStorageRepository.getToken().then((token) => token != null);
@@ -159,6 +135,53 @@ class AuthRepositoryImp implements AuthRepository {
       );
       return response.statusCode == 200;
     } catch (error) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> requestForgotPasswordOtp(String email) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/api/auth/forgot-password/request-otp',
+        data: {'email': email},
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> verifyForgotPasswordOtp(String email, String otp) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/api/auth/forgot-password/verify-otp',
+        data: {'email': email, 'otp': otp},
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> resetForgotPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/api/auth/forgot-password/reset',
+        data: {
+          'email': email,
+          'otp': otp,
+          'newPassword': newPassword,
+        },
+      );
+      return response.statusCode == 200;
+    } catch (_) {
       return false;
     }
   }

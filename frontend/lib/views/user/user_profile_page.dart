@@ -39,8 +39,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
     final profile = userVM.profile;
     final avatar = (profile?.avatarUrl ?? '').trim();
 
-    final isAdmin = profile?.role.toUpperCase() == 'ADMIN';
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA), // Nền xám nhạt như ảnh
       appBar: AppBar(
@@ -85,12 +83,40 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   ),
                   const SizedBox(height: 12),
 
-                  // --- Section: THÔNG TIN LIÊN HỆ ---
-                  _buildSectionTitle('THÔNG TIN LIÊN HỆ'),
+                  // --- Section: THÔNG TIN HỒ SƠ ---
+                  _buildSectionTitle('THÔNG TIN HỒ SƠ'),
                   _buildInfoCard([
-                    _buildInfoTile(Icons.email_outlined, 'Email', profile?.email ?? '-', Colors.blue),
-                    _buildInfoTile(Icons.phone_outlined, 'Số điện thoại', profile?.phoneNumber ?? '-', Colors.blue),
-                    _buildInfoTile(Icons.location_on_outlined, 'Địa chỉ', profile?.address ?? '-', Colors.blue, isLast: true),
+                    _buildInfoTile(Icons.person_outline, 'Họ và tên', _displayValue(profile?.fullName), Colors.blue),
+                    _buildInfoTile(Icons.email_outlined, 'Email', _displayValue(profile?.email), Colors.blue),
+                    _buildInfoTile(Icons.phone_outlined, 'Số điện thoại', _displayValue(profile?.phoneNumber), Colors.blue),
+                    _buildInfoTile(Icons.wc_outlined, 'Giới tính', _displayValue(profile?.gender), Colors.blue),
+                    _buildInfoTile(Icons.cake_outlined, 'Ngày sinh', _displayValue(profile?.dateOfBirth), Colors.blue),
+                    _buildInfoTile(Icons.bloodtype_outlined, 'Nhóm máu', _displayValue(profile?.bloodGroup), Colors.blue),
+                    _buildInfoTile(Icons.location_on_outlined, 'Địa chỉ', _displayValue(profile?.address), Colors.blue, isLast: true),
+                  ]),
+
+                  // --- Section: THÔNG TIN Y TẾ ---
+                  _buildSectionTitle('THÔNG TIN Y TẾ'),
+                  _buildInfoCard([
+                    _buildInfoTile(
+                      Icons.healing_outlined,
+                      'Dị ứng',
+                      _displayValue(profile?.allergy, fallback: 'Không có'),
+                      Colors.blue,
+                    ),
+                    _buildInfoTile(
+                      Icons.monitor_heart_outlined,
+                      'Bệnh mãn tính',
+                      _displayValue(profile?.chronicDisease, fallback: 'Không có'),
+                      Colors.blue,
+                    ),
+                    _buildInfoTile(
+                      Icons.note_alt_outlined,
+                      'Ghi chú lâm sàng',
+                      _displayValue(profile?.clinicalNotes, fallback: 'Không có'),
+                      Colors.blue,
+                      isLast: true,
+                    ),
                   ]),
 
                   // --- Section: TÀI KHOẢN & BẢO MẬT ---
@@ -280,5 +306,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfilePage()));
     if (!mounted) return;
     context.read<UserViewModel>().loadMyProfile();
+  }
+
+  String _displayValue(String? value, {String fallback = 'Chưa cập nhật'}) {
+    final trimmed = (value ?? '').trim();
+    return trimmed.isEmpty ? fallback : trimmed;
   }
 }

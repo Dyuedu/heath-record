@@ -2,6 +2,7 @@ package backend.service;
 
 import backend.exception.EmailDuplicateException;
 import backend.exception.IdentityDuplicateException;
+import backend.exception.InvalidRequestException;
 import backend.exception.MultipleResourceDuplicateException;
 import backend.exception.PhoneDuplicateException;
 import backend.exception.ResourceDuplicateException;
@@ -14,12 +15,16 @@ import backend.repository.RelativeRepository;
 import backend.repository.RoleRepository;
 import backend.repository.UserRepository;
 import backend.model.UserStatus;
+import java.security.SecureRandom;
+import java.time.Duration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -27,6 +32,8 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 @Service
 public class AuthService {
@@ -42,11 +49,20 @@ public class AuthService {
     private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private static final String FORGOT_PASSWORD_OTP_KEY_PREFIX = "auth:forgot-password:otp:";
+    private static final Duration FORGOT_PASSWORD_OTP_TTL = Duration.ofMinutes(5);
+    private static final Pattern OTP_PATTERN = Pattern.compile("\\d{6}");
+    private static final SecureRandom OTP_RANDOM = new SecureRandom();
+    private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final int MAX_PASSWORD_LENGTH = 64;
 
     public AuthService(PasswordEncoder passwordEncoder, RoleRepository roleRepository, UserRepository userRepository,
             ProfileRepository profileRepository, RelativeRepository relativeRepository,
             LinkRequestService linkRequestService, JWTService jwtService,
-            AuthenticationManager authenticationManager, EmailService emailService) {
+            AuthenticationManager authenticationManager, EmailService emailService,
+            @Qualifier("redisTemplate") RedisTemplate<String, String> redisTemplate) {
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
@@ -56,6 +72,7 @@ public class AuthService {
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.emailService = emailService;
+        this.redisTemplate = redisTemplate;
     }
 
     @Transactional
@@ -236,6 +253,62 @@ public class AuthService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, String> requestForgotPasswordOtp(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new InvalidRequestException("EMAIL_NOT_FOUND", "Không tìm thấy tài khoản với email này"));
+
+        String otp = generateOtp();
+        redisTemplate.opsForValue().set(buildForgotPasswordOtpKey(normalizedEmail), otp, FORGOT_PASSWORD_OTP_TTL);
+        emailService.sendPasswordOtp(user.getEmail(), otp);
+
+        return Map.of("message", "OTP đã được gửi tới email của bạn");
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, String> verifyForgotPasswordOtp(String email, String otp) {
+        String normalizedEmail = normalizeEmail(email);
+        validateOtpFormat(otp);
+
+        String cachedOtp = redisTemplate.opsForValue().get(buildForgotPasswordOtpKey(normalizedEmail));
+        if (cachedOtp == null) {
+            throw new InvalidRequestException("OTP_NOT_FOUND", "OTP chưa được yêu cầu hoặc đã hết hạn");
+        }
+        if (!cachedOtp.equals(otp.trim())) {
+            throw new InvalidRequestException("OTP_INVALID", "OTP không chính xác");
+        }
+
+        return Map.of("message", "OTP hợp lệ");
+    }
+
+    @Transactional
+    public Map<String, String> resetForgotPassword(String email, String otp, String newPassword) {
+        String normalizedEmail = normalizeEmail(email);
+        String normalizedOtp = trimToNull(otp);
+        String normalizedPassword = trimToNull(newPassword);
+
+        validateOtpFormat(normalizedOtp);
+        validatePasswordStrength(normalizedPassword);
+
+        String cachedOtp = redisTemplate.opsForValue().get(buildForgotPasswordOtpKey(normalizedEmail));
+        if (cachedOtp == null) {
+            throw new InvalidRequestException("OTP_NOT_FOUND", "OTP chưa được yêu cầu hoặc đã hết hạn");
+        }
+        if (!cachedOtp.equals(normalizedOtp)) {
+            throw new InvalidRequestException("OTP_INVALID", "OTP không chính xác");
+        }
+
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new InvalidRequestException("EMAIL_NOT_FOUND", "Không tìm thấy tài khoản với email này"));
+
+        user.setPassword(passwordEncoder.encode(normalizedPassword));
+        userRepository.save(user);
+        redisTemplate.delete(buildForgotPasswordOtpKey(normalizedEmail));
+
+        return Map.of("message", "Đặt lại mật khẩu thành công");
+    }
+
     private User resolvePendingReRegistrationCandidate(List<User> usersByEmail, List<User> usersByPhone) {
         User pendingByEmail = singlePendingCandidate(usersByEmail);
         User pendingByPhone = singlePendingCandidate(usersByPhone);
@@ -339,7 +412,37 @@ public class AuthService {
     }
 
     private String generateOtp() {
-        return String.format("%06d", new java.util.Random().nextInt(999999));
+        return String.format("%06d", OTP_RANDOM.nextInt(1_000_000));
+    }
+
+    private String buildForgotPasswordOtpKey(String email) {
+        return FORGOT_PASSWORD_OTP_KEY_PREFIX + email.toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeEmail(String email) {
+        String normalizedEmail = trimToNull(email);
+        if (!StringUtils.hasText(normalizedEmail)) {
+            throw new InvalidRequestException("EMAIL_REQUIRED", "Email là bắt buộc");
+        }
+        return normalizedEmail.toLowerCase(Locale.ROOT);
+    }
+
+    private void validateOtpFormat(String otp) {
+        String normalizedOtp = trimToNull(otp);
+        if (!StringUtils.hasText(normalizedOtp) || !OTP_PATTERN.matcher(normalizedOtp).matches()) {
+            throw new InvalidRequestException("OTP_INVALID", "OTP phải gồm 6 chữ số");
+        }
+    }
+
+    private void validatePasswordStrength(String newPassword) {
+        if (!StringUtils.hasText(newPassword)
+                || newPassword.length() < MIN_PASSWORD_LENGTH
+                || newPassword.length() > MAX_PASSWORD_LENGTH) {
+            throw new InvalidRequestException(
+                    "PASSWORD_INVALID",
+                    "Mật khẩu mới phải có độ dài từ " + MIN_PASSWORD_LENGTH + " đến " + MAX_PASSWORD_LENGTH + " ký tự"
+            );
+        }
     }
 
     private Role resolveSignupRole(String roleInput) {

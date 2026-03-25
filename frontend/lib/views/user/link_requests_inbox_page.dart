@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/link_request/link_request_model.dart';
 import 'package:frontend/utils/app_notifier.dart';
+import 'package:frontend/utils/relationship_formatter.dart';
 import 'package:frontend/viewmodels/link_request_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -74,7 +75,9 @@ class _LinkRequestsInboxPageState extends State<LinkRequestsInboxPage> {
             const SizedBox(height: 6),
             Text(subtitle),
             if ((item.requestedRelationship ?? '').isNotEmpty)
-              Text('Quan hệ yêu cầu: ${item.requestedRelationship}'),
+              Text(
+                'Quan hệ yêu cầu: ${formatRelationshipLabel(item.requestedRelationship)}',
+              ),
             if ((item.note ?? '').isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 4),

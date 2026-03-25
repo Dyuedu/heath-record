@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/utils/app_notifier.dart';
+import 'package:frontend/utils/relationship_formatter.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/views/user/add_profile_page.dart';
 import 'package:frontend/views/user/relative_detail_page.dart';
@@ -59,36 +60,38 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       bottomNavigationBar: const CustomBottomNav(),
-      body: RefreshIndicator(
-        onRefresh: _handleRefresh,
-        color: const Color(0xFF246BFF),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              if (vm.isLoading) const LinearProgressIndicator(minHeight: 2),
-              const SizedBox(height: 8),
-              _buildSectionTitle('Thông tin chung'),
-              _buildMenuItem(
-                Icons.person_outline,
-                'Thông tin cá nhân',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const UserProfilePage()),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: const Color(0xFF246BFF),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                if (vm.isLoading) const LinearProgressIndicator(minHeight: 2),
+                _buildPrimaryHeader('Thông tin chung'),
+                _buildMenuItem(
+                  Icons.person_outline,
+                  'Thông tin cá nhân',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const UserProfilePage()),
+                  ),
                 ),
-              ),
-              // _buildMenuItem(
-              //   Icons.favorite_border,
-              //   'Thông tin sức khỏe',
-              //   onTap: () => Navigator.push(
-              //     context,
-              //     MaterialPageRoute(builder: (_) => const MedicalRecordPage()),
-              //   ),
-              // ),
-              const SizedBox(height: 8),
-              _buildSectionTitle('Hồ sơ người thân'),
-              _buildFamilySection(vm),
-            ],
+                // _buildMenuItem(
+                //   Icons.favorite_border,
+                //   'Thông tin sức khỏe',
+                //   onTap: () => Navigator.push(
+                //     context,
+                //     MaterialPageRoute(builder: (_) => const MedicalRecordPage()),
+                //   ),
+                // ),
+                const SizedBox(height: 8),
+                _buildSectionTitle('Hồ sơ người thân'),
+                _buildFamilySection(vm),
+              ],
+            ),
           ),
         ),
       ),
@@ -103,6 +106,29 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Text(
         title,
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+      ),
+    );
+  }
+
+  Widget _buildPrimaryHeader(String title) {
+    return Container(
+      width: double.infinity,
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      child: Column(
+        children: [
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Divider(color: Colors.grey.shade200, height: 1),
+        ],
       ),
     );
   }
@@ -211,7 +237,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatValue(relationship),
+                    formatRelationshipLabel(relationship),
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                   const SizedBox(height: 6),
@@ -322,4 +348,5 @@ class _ProfilePageState extends State<ProfilePage> {
     final trimmed = (value ?? '').trim();
     return trimmed.isEmpty ? 'Chưa cập nhật' : trimmed;
   }
+
 }

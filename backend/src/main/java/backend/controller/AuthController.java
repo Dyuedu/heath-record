@@ -101,6 +101,47 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/forgot-password/request-otp")
+    public ResponseEntity<?> requestForgotPasswordOtp(@RequestBody Map<String, String> request) {
+        try {
+            return ResponseEntity.ok(authService.requestForgotPasswordOtp(request.get("email")));
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @PostMapping("/forgot-password/verify-otp")
+    public ResponseEntity<?> verifyForgotPasswordOtp(@RequestBody Map<String, String> request) {
+        try {
+            return ResponseEntity.ok(
+                    authService.verifyForgotPasswordOtp(request.get("email"), request.get("otp"))
+            );
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<?> resetForgotPassword(@RequestBody Map<String, String> request) {
+        try {
+            return ResponseEntity.ok(
+                    authService.resetForgotPassword(
+                            request.get("email"),
+                            request.get("otp"),
+                            request.get("newPassword")
+                    )
+            );
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
     @GetMapping("/activate-doctor")
     public ResponseEntity<?> activateDoctor(@RequestParam("token") String token) {
         String status;

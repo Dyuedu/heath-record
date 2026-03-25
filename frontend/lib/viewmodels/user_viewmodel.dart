@@ -86,60 +86,26 @@ class UserViewModel extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> requestPasswordOtp() async {
-    _setLoading(true);
-    _errorMessage = null;
-    _successMessage = null;
-
-    final ok = await _repository.requestPasswordOtp();
-    if (!ok) {
-      _errorMessage = 'Cannot send OTP';
-      _setLoading(false);
-      return false;
-    }
-
-    _successMessage = 'OTP has been sent to your email';
-    _setLoading(false);
-    return true;
-  }
-
-  Future<bool> verifyPasswordOtp({required String otp}) async {
-    _setLoading(true);
-    _errorMessage = null;
-    _successMessage = null;
-
-    final ok = await _repository.verifyPasswordOtp(otp: otp);
-    if (!ok) {
-      _errorMessage = 'OTP is invalid or expired';
-      _setLoading(false);
-      return false;
-    }
-
-    _successMessage = 'OTP verified successfully';
-    _setLoading(false);
-    return true;
-  }
-
-  Future<bool> updatePasswordWithOtp({
-    required String otp,
+  Future<bool> updatePassword({
+    required String oldPassword,
     required String newPassword,
   }) async {
     _setLoading(true);
     _errorMessage = null;
     _successMessage = null;
 
-    final ok = await _repository.updatePasswordWithOtp(
-      otp: otp,
+    final ok = await _repository.updatePassword(
+      oldPassword: oldPassword,
       newPassword: newPassword,
     );
 
     if (!ok) {
-      _errorMessage = 'Password update failed';
+      _errorMessage = 'Đổi mật khẩu thất bại';
       _setLoading(false);
       return false;
     }
 
-    _successMessage = 'Password updated successfully';
+    _successMessage = 'Đổi mật khẩu thành công';
     _setLoading(false);
     return true;
   }

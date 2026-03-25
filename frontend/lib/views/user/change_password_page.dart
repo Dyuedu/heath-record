@@ -12,16 +12,17 @@ class ChangePasswordPage extends StatefulWidget {
 
 class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final _formKey = GlobalKey<FormState>();
-  final _otpController = TextEditingController();
+  final _oldPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _otpSent = false;
-  bool _otpVerified = false;
+  bool _showOldPassword = false;
+  bool _showNewPassword = false;
+  bool _showConfirmPassword = false;
 
   @override
   void dispose() {
-    _otpController.dispose();
+    _oldPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -53,62 +54,52 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildLabel('OTP:', isRequired: true),
+              _buildLabel('Mật khẩu cũ:', isRequired: true),
               TextFormField(
-                controller: _otpController,
-                keyboardType: TextInputType.number,
+                controller: _oldPasswordController,
+                obscureText: !_showOldPassword,
                 enabled: !vm.isLoading,
-                decoration: _inputDecoration('Nhập mã OTP 6 số'),
+                decoration: _inputDecoration(
+                  'Nhập mật khẩu cũ',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _showOldPassword ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showOldPassword = !_showOldPassword;
+                      });
+                    },
+                  ),
+                ),
                 validator: (value) {
                   final text = (value ?? '').trim();
                   if (text.isEmpty) {
-                    return 'OTP không được để trống';
-                  }
-                  if (!RegExp(r'^\d{6}$').hasMatch(text)) {
-                    return 'OTP phải gồm đúng 6 chữ số';
+                    return 'Mật khẩu cũ không được để trống';
                   }
                   return null;
                 },
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: vm.isLoading ? null : _sendOtp,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF246BFF),
-                        side: const BorderSide(color: Color(0xFF246BFF)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Gửi OTP'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: vm.isLoading ? null : _verifyOtp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF246BFF),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Xác thực OTP'),
-                    ),
-                  ),
-                ],
               ),
               const SizedBox(height: 20),
               _buildLabel('Mật khẩu mới:', isRequired: true),
               TextFormField(
                 controller: _newPasswordController,
-                obscureText: true,
-                enabled: _otpVerified && !vm.isLoading,
-                decoration: _inputDecoration('Nhập mật khẩu mới'),
+                obscureText: !_showNewPassword,
+                enabled: !vm.isLoading,
+                decoration: _inputDecoration(
+                  'Nhập mật khẩu mới',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _showNewPassword ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showNewPassword = !_showNewPassword;
+                      });
+                    },
+                  ),
+                ),
                 validator: (value) {
-                  if (!_otpVerified) {
-                    return null;
-                  }
                   final text = (value ?? '').trim();
                   if (text.isEmpty) {
                     return 'Mật khẩu mới không được để trống';
@@ -123,13 +114,24 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               _buildLabel('Xác nhận mật khẩu mới:', isRequired: true),
               TextFormField(
                 controller: _confirmPasswordController,
-                obscureText: true,
-                enabled: _otpVerified && !vm.isLoading,
-                decoration: _inputDecoration('Nhập lại mật khẩu mới'),
+                obscureText: !_showConfirmPassword,
+                enabled: !vm.isLoading,
+                decoration: _inputDecoration(
+                  'Nhập lại mật khẩu mới',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _showConfirmPassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showConfirmPassword = !_showConfirmPassword;
+                      });
+                    },
+                  ),
+                ),
                 validator: (value) {
-                  if (!_otpVerified) {
-                    return null;
-                  }
                   final text = (value ?? '').trim();
                   if (text.isEmpty) {
                     return 'Bạn cần xác nhận mật khẩu mới';
@@ -142,9 +144,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: (!_otpVerified || vm.isLoading)
-                    ? null
-                    : _changePassword,
+                onPressed: vm.isLoading ? null : _changePassword,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF246BFF),
                   foregroundColor: Colors.white,
@@ -160,55 +160,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     );
   }
 
-  Future<void> _sendOtp() async {
-    final vm = context.read<UserViewModel>();
-    final ok = await vm.requestPasswordOtp();
-    if (!mounted) return;
-
-    if (ok) {
-      setState(() {
-        _otpSent = true;
-        _otpVerified = false;
-      });
-    }
-
-    if (ok) {
-      AppNotifier.success(context, 'OTP đã gửi qua email');
-    } else {
-      AppNotifier.error(context, 'Không thể gửi OTP');
-    }
-  }
-
-  Future<void> _verifyOtp() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    final vm = context.read<UserViewModel>();
-    final ok = await vm.verifyPasswordOtp(otp: _otpController.text.trim());
-    if (!mounted) return;
-
-    if (ok) {
-      setState(() {
-        _otpVerified = true;
-      });
-    }
-
-    if (ok) {
-      AppNotifier.success(context, 'OTP hợp lệ');
-    } else {
-      AppNotifier.error(context, 'OTP không hợp lệ hoặc đã hết hạn');
-    }
-  }
-
   Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     final vm = context.read<UserViewModel>();
-    final ok = await vm.updatePasswordWithOtp(
-      otp: _otpController.text.trim(),
+    final ok = await vm.updatePassword(
+      oldPassword: _oldPasswordController.text.trim(),
       newPassword: _newPasswordController.text.trim(),
     );
 
@@ -221,21 +180,18 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     }
 
     if (ok) {
-      setState(() {
-        _otpSent = false;
-        _otpVerified = false;
-      });
-      _otpController.clear();
+      _oldPasswordController.clear();
       _newPasswordController.clear();
       _confirmPasswordController.clear();
     }
   }
 
-  InputDecoration _inputDecoration(String hint) {
+  InputDecoration _inputDecoration(String hint, {Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hint,
       filled: true,
       fillColor: const Color(0xFFDDE3FF).withValues(alpha: 0.4),
+      suffixIcon: suffixIcon,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,

@@ -203,6 +203,65 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> requestForgotPasswordOtp(String email) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final success = await _authRepository.requestForgotPasswordOtp(email);
+      if (!success) {
+        _errorMessage = 'Không thể gửi OTP lúc này.';
+      }
+      _setLoading(false);
+      return success;
+    } catch (_) {
+      _errorMessage = 'Đã xảy ra lỗi kết nối. Vui lòng thử lại.';
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> verifyForgotPasswordOtp(String email, String otp) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final success = await _authRepository.verifyForgotPasswordOtp(email, otp);
+      if (!success) {
+        _errorMessage = 'Mã OTP không chính xác hoặc đã hết hạn.';
+      }
+      _setLoading(false);
+      return success;
+    } catch (_) {
+      _errorMessage = 'Đã xảy ra lỗi kết nối. Vui lòng thử lại.';
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> resetForgotPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final success = await _authRepository.resetForgotPassword(
+        email: email,
+        otp: otp,
+        newPassword: newPassword,
+      );
+      if (!success) {
+        _errorMessage = 'Không thể đặt lại mật khẩu.';
+      }
+      _setLoading(false);
+      return success;
+    } catch (_) {
+      _errorMessage = 'Đã xảy ra lỗi kết nối. Vui lòng thử lại.';
+      _setLoading(false);
+      return false;
+    }
+  }
+
   // Xóa thông báo lỗi khi người dùng bắt đầu nhập lại
   void clearError() {
     if (_errorMessage != null) {
