@@ -8,6 +8,8 @@ import 'package:frontend/data/models/record/add_relative_result_model.dart';
 import 'package:frontend/data/models/record/medical_record_model.dart';
 import 'package:frontend/data/models/record/relative.dart';
 import 'package:frontend/data/models/record/relative_history_model.dart';
+import 'package:frontend/data/models/record/relative_profile_detail_model.dart';
+import 'package:frontend/data/models/record/update_relative_profile_request.dart';
 import 'package:frontend/data/models/hospital_response.dart';
 import 'package:frontend/data/models/relative_search_response.dart';
 import 'package:frontend/data/models/record/encounter_model.dart';
@@ -90,6 +92,85 @@ class RecordRepository {
       );
     } catch (error) {
       developer.log('Unexpected error when fetching health history: $error');
+    }
+    return null;
+  }
+
+  Future<RelativeProfileDetailModel?> getRelativeProfileDetail(
+    String profileId,
+  ) async {
+    try {
+      final response = await _dioClient.dio.get('/api/profiles/$profileId');
+
+      if (response.statusCode == 200 && response.data is Map) {
+        return RelativeProfileDetailModel.fromMap(
+          Map<String, dynamic>.from(response.data as Map),
+        );
+      }
+    } on DioException catch (error) {
+      developer.log(
+        'Get relative profile detail API error: ${error.response?.statusCode} - ${error.message}',
+      );
+    } catch (error) {
+      developer.log('Unexpected error when fetching relative profile detail: $error');
+    }
+    return null;
+  }
+
+  Future<RelativeProfileDetailModel?> updateRelativeProfile(
+    String profileId,
+    UpdateRelativeProfileRequest request,
+  ) async {
+    try {
+      final response = await _dioClient.dio.put(
+        '/api/profiles/$profileId',
+        data: request.toMap(),
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        return RelativeProfileDetailModel.fromMap(
+          Map<String, dynamic>.from(response.data as Map),
+        );
+      }
+    } on DioException catch (error) {
+      developer.log(
+        'Update relative profile API error: ${error.response?.statusCode} - ${error.message}',
+      );
+    } catch (error) {
+      developer.log('Unexpected error when updating relative profile: $error');
+    }
+    return null;
+  }
+
+  Future<RelativeProfileDetailModel?> updateRelativeAvatar(
+    String profileId,
+    File avatarFile,
+  ) async {
+    try {
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(
+          avatarFile.path,
+          filename: _extractFileName(avatarFile),
+        ),
+      });
+
+      final response = await _dioClient.dio.put(
+        '/api/profiles/$profileId/avatar',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        return RelativeProfileDetailModel.fromMap(
+          Map<String, dynamic>.from(response.data as Map),
+        );
+      }
+    } on DioException catch (error) {
+      developer.log(
+        'Update relative avatar API error: ${error.response?.statusCode} - ${error.message}',
+      );
+    } catch (error) {
+      developer.log('Unexpected error when updating relative avatar: $error');
     }
     return null;
   }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/record/encounter_model.dart';
 import 'package:frontend/data/models/record/relative_history_model.dart';
+import 'package:frontend/utils/app_notifier.dart';
 import 'package:frontend/utils/relationship_formatter.dart';
 import 'package:frontend/views/user/encounter_detail_page.dart';
+import 'package:frontend/views/user/relative_profile_edit_page.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/relative_detail_viewmodel.dart';
 
@@ -27,7 +29,6 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
 
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = '';
-  String _activeFilter = 'Tất cả';
 
   final _vietnameseMonths = [
     '', 'THÁNG 01', 'THÁNG 02', 'THÁNG 03', 'THÁNG 04', 'THÁNG 05', 'THÁNG 06',
@@ -38,7 +39,9 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RelativeDetailViewModel>().loadHistory(widget.profileId);
+      final vm = context.read<RelativeDetailViewModel>();
+      vm.loadHistory(widget.profileId);
+      vm.loadRelativeProfile(widget.profileId);
     });
   }
 
@@ -98,17 +101,6 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
     return values.toList();
   }
 
-  Set<String> _collectAllCategories(List<EncounterModel> encounters) {
-    final cats = <String>{};
-    for (final enc in encounters) {
-      for (final diag in enc.diagnostics) {
-        final cat = diag.category.trim();
-        if (cat.isNotEmpty) cats.add(cat);
-      }
-    }
-    return cats;
-  }
-
   bool _matchesSearch(EncounterModel encounter, String query) {
     final normalized = query.trim().toLowerCase();
     if (normalized.isEmpty) return true;
@@ -119,14 +111,6 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
     if (doctors.any((e) => e.contains(normalized))) return true;
     for (final diag in encounter.diagnostics) {
       if (diag.category.toLowerCase().contains(normalized)) return true;
-    }
-    return false;
-  }
-
-  bool _matchesFilter(EncounterModel encounter) {
-    if (_activeFilter == 'Tất cả') return true;
-    for (final diag in encounter.diagnostics) {
-      if (diag.category.trim() == _activeFilter) return true;
     }
     return false;
   }
@@ -154,6 +138,13 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
           style: TextStyle(color: _textMain, fontWeight: FontWeight.w700, fontSize: 18),
         ),
         centerTitle: false,
+        actions: [
+          IconButton(
+            onPressed: _openEditProfile,
+            icon: const Icon(Icons.edit_note_rounded, color: _primaryBlue),
+            tooltip: 'Cập nhật hồ sơ',
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(color: Colors.grey.shade200, height: 1),
@@ -191,10 +182,8 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
       });
 
     final filtered = encounters
-        .where((e) => _matchesSearch(e, _searchQuery) && _matchesFilter(e))
+      .where((e) => _matchesSearch(e, _searchQuery))
         .toList();
-
-    final allCategories = _collectAllCategories(encounters);
     final encounterCount = encounters.length;
 
     return ListView(
@@ -203,10 +192,6 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
       children: [
         // Search bar
         _buildSearchBar(),
-        const SizedBox(height: 14),
-
-        // Filter chips
-        _buildFilterChips(allCategories),
         const SizedBox(height: 20),
 
         // Patient info card
@@ -233,11 +218,30 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
     );
   }
 
+  Future<void> _openEditProfile() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RelativeProfileEditPage(profileId: widget.profileId),
+      ),
+    );
+
+    if (!mounted || result != true) {
+      return;
+    }
+
+    final vm = context.read<RelativeDetailViewModel>();
+    await vm.refresh(widget.profileId);
+    await vm.loadRelativeProfile(widget.profileId);
+    if (!mounted) return;
+    AppNotifier.success(context, 'Đã cập nhật hồ sơ người thân');
+  }
+
   // ── Search Bar ───────────────────────────────────────
 
   Widget _buildSearchBar() {
     return Container(
-      height: 44,
+      height: 46,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -249,7 +253,9 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
         decoration: InputDecoration(
           hintText: 'Tìm theo chẩn đoán, bác sĩ...',
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-          prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 20),
+          filled: true,
+          fillColor: Colors.white,
+          prefixIcon: Icon(Icons.search, size: 20),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.close, size: 18, color: Colors.grey),
@@ -259,73 +265,6 @@ class _RelativeDetailPageState extends State<RelativeDetailPage> {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
-      ),
-    );
-  }
-
-  // ── Filter Chips ─────────────────────────────────────
-
-  Widget _buildFilterChips(Set<String> categories) {
-    final filters = ['Tất cả', ...categories];
-
-    return SizedBox(
-      height: 36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: filters.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          if (index == filters.length) {
-            // "Gần đây" button
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _activeFilter = 'Tất cả';
-                  _searchQuery = '';
-                  _searchCtrl.clear();
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.access_time_outlined, size: 14, color: _textMuted),
-                    const SizedBox(width: 4),
-                    Text('Gần đây', style: TextStyle(fontSize: 12, color: _textMuted, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          final filter = filters[index];
-          final isActive = filter == _activeFilter;
-          return GestureDetector(
-            onTap: () => setState(() => _activeFilter = filter),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isActive ? _primaryBlue : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: isActive ? _primaryBlue : const Color(0xFFE5E7EB)),
-              ),
-              child: Text(
-                filter,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isActive ? Colors.white : _textMuted,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          );
-        },
       ),
     );
   }

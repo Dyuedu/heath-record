@@ -14,6 +14,7 @@ public interface RelativeRepository extends JpaRepository<Relative, UUID> {
     Optional<Relative> findById(UUID id);
     List<Relative> findByUserId(UUID userId);
     List<Relative> findAllByProfileId(UUID profileId);
+    List<Relative> findAllByUserIdAndProfileId(UUID userId, UUID profileId);
     Optional<Relative> findFirstByProfileId(UUID profileId);
     Optional<Relative> findFirstByUserIdAndProfileId(UUID userId, UUID profileId);
     boolean existsByUserIdAndProfileId(UUID userId, UUID profileId);
