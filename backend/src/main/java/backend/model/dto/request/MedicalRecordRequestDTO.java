@@ -1,5 +1,6 @@
 package backend.model.dto.request;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.Data;
@@ -18,6 +19,10 @@ public class MedicalRecordRequestDTO {
     private String title;
     
     private String note;
+    
+    private String tag;
+    
+    private LocalDateTime datetimeEnd;
     
     private List<DiagnosticDTO> diagnostics;
 }

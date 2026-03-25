@@ -1,5 +1,7 @@
 package backend.model;
 
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,6 +40,10 @@ public class DiagnosticRecord {
 
     @Column(name = "tag")
     private String tag;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type")
+    private DiagnosticType type;
 
     @Column(name = "doctor")
     private String doctor;

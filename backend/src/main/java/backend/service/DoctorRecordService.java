@@ -4,6 +4,7 @@ import backend.exception.ResourceNotFoundException;
 import backend.model.MedicalRecord;
 import backend.model.User;
 import backend.model.DiagnosticRecord;
+import backend.model.DiagnosticType;
 import backend.model.Attachment;
 import backend.model.Hospital;
 import backend.model.Tag;
@@ -92,20 +93,34 @@ public class DoctorRecordService {
         MedicalRecord record = MedicalRecord.builder()
                 .title(request.getTitle() != null ? request.getTitle().trim() : null)
                 .note(request.getNote())
+                .tag(request.getTag())
                 .doctor(doctor)
                 .relative(relative)
                 .profile(profile)
                 .hospital(hospital)
                 .datetimeStart(LocalDateTime.now())
-                .datetimeEnd(LocalDateTime.now())
+                .datetimeEnd(request.getDatetimeEnd() != null ? request.getDatetimeEnd() : LocalDateTime.now())
                 .auditField(buildAuditField(doctor))
                 .build();
+
+        if (request.getTag() != null && !request.getTag().isEmpty()) {
+            String[] individualTags = request.getTag().split(",");
+            for (String ts : individualTags) {
+                String cleanName = ts.trim();
+                if (!cleanName.isEmpty()) {
+                    Tag encounterTag = tagRepository.findByName(cleanName)
+                            .orElseGet(() -> tagRepository.save(Tag.builder().name(cleanName).build()));
+                    record.getTags().add(encounterTag);
+                }
+            }
+        }
 
         if (request.getDiagnostics() != null && !request.getDiagnostics().isEmpty()) {
             for (DiagnosticDTO diagDTO : request.getDiagnostics()) {
                 DiagnosticRecord diagnosticRecord = DiagnosticRecord.builder()
                         .category(diagDTO.getCategory())
                         .tag(diagDTO.getTag())
+                        .type(diagDTO.getType() != null ? DiagnosticType.valueOf(diagDTO.getType()) : DiagnosticType.FOLLOW_UP)
                         .doctor(doctor.getProfile() != null ? doctor.getProfile().getFullname() : doctor.getEmail())
                         .data(diagDTO.getData())
                         .datetimeEnd(LocalDateTime.now())
@@ -116,11 +131,8 @@ public class DoctorRecordService {
                         .hospital(hospital)
                         .build();
 
-                if (diagDTO.getTag() != null && !diagDTO.getTag().isEmpty()) {
-                    Tag tag = tagRepository.findByName(diagDTO.getTag())
-                            .orElseGet(() -> tagRepository.save(Tag.builder().name(diagDTO.getTag()).build()));
-                    diagnosticRecord.getTags().add(tag);
-                }
+                // Tag entities for admin are no longer managed at the DiagnosticRecord level.
+                // The raw string is preserved in diagnosticRecord.tag (from the builder).
 
                 if (diagDTO.getImageUrls() != null && !diagDTO.getImageUrls().isEmpty()) {
                     for (String url : diagDTO.getImageUrls()) {
@@ -230,6 +242,8 @@ public class DoctorRecordService {
                             .dateOfBirth(profile.getDateOfBirth() != null ? profile.getDateOfBirth() : "")
                             .avatarUrl(profile.getAvatarUrl() != null ? profile.getAvatarUrl() : "")
                             .relationship("Patient")
+                            .identityNumber(profile.getIdentityNumber() != null ? profile.getIdentityNumber() : "")
+                            .address(profile.getAddress() != null ? profile.getAddress() : "")
                             .build();
                 })
                 .collect(Collectors.toList());

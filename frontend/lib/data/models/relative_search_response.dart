@@ -5,6 +5,8 @@ class ProfileSearchResponse {
   final String dateOfBirth;
   final String avatarUrl;
   final String relationship;
+  final String identityNumber;
+  final String address;
 
   ProfileSearchResponse({
     required this.id,
@@ -13,6 +15,8 @@ class ProfileSearchResponse {
     required this.dateOfBirth,
     required this.avatarUrl,
     required this.relationship,
+    required this.identityNumber,
+    required this.address,
   });
 
   factory ProfileSearchResponse.fromJson(Map<String, dynamic> json) {
@@ -23,6 +27,8 @@ class ProfileSearchResponse {
       dateOfBirth: json['dateOfBirth'] ?? '',
       avatarUrl: json['avatarUrl'] ?? '',
       relationship: json['relationship'] ?? '',
+      identityNumber: json['identityNumber'] ?? '',
+      address: json['address'] ?? '',
     );
   }
 }
