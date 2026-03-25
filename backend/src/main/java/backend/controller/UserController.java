@@ -37,8 +37,9 @@ public class UserController {
     @GetMapping("/doctors")
     @PreAuthorize("hasAnyRole('PATIENT','USER','DOCTOR','ADMIN')")
     public ResponseEntity<List<UserResponse>> listDoctors(
-            @RequestParam(value = "keyword", required = false) String keyword) {
-        return ResponseEntity.ok(userService.listDoctors(keyword));
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "department", required = false) String department) {
+        return ResponseEntity.ok(userService.listDoctors(keyword, department));
     }
 
     @GetMapping("/doctor/search-patients")

@@ -267,6 +267,7 @@ public class DoctorRecordService {
                 .gender(profile.getGender() != null ? profile.getGender() : "")
                 .dateOfBirth(profile.getDateOfBirth() != null ? profile.getDateOfBirth() : "")
                 .address(profile.getAddress() != null ? profile.getAddress() : "")
+                .department(profile.getDepartment() != null ? profile.getDepartment() : "")
                 .avatarUrl(profile.getAvatarUrl() != null ? profile.getAvatarUrl() : "")
                 .status(user != null && user.getStatus() != null ? user.getStatus().name() : "")
                 .build();

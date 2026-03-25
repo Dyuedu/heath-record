@@ -18,6 +18,7 @@ public class UserResponse {
     String gender;
     String dateOfBirth;
     String address;
+    String department;
     String avatarUrl;
     String status;
     String cccdFrontUrl;

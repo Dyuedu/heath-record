@@ -53,9 +53,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                    OR LOWER(COALESCE(p.fullname, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(COALESCE(u.phoneNumber, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
+              AND (:department IS NULL OR :department = ''
+                   OR LOWER(COALESCE(p.department, '')) = LOWER(:department))
             ORDER BY COALESCE(p.fullname, u.email)
             """)
-    List<User> findDoctors(@Param("keyword") String keyword);
+    List<User> findDoctors(@Param("keyword") String keyword, @Param("department") String department);
 
     // For Admin User Management
     @org.springframework.data.jpa.repository.Query(

@@ -18,6 +18,8 @@ public class Profile {
     private String dateOfBirth;
     private String phoneNumber;
     private String address;
+    @Column(length = 120)
+    private String department;
     private String avatarUrl;
     private String cccdFrontUrl;
     private String cccdBackUrl;

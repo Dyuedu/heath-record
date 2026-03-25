@@ -381,6 +381,7 @@ public class AdminUserService {
                 .gender(profile != null ? profile.getGender() : null)
                 .dateOfBirth(profile != null ? profile.getDateOfBirth() : null)
                 .address(profile != null ? profile.getAddress() : null)
+                .department(profile != null ? profile.getDepartment() : null)
                 .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
                 .cccdFrontUrl(profile != null ? profile.getCccdFrontUrl() : null)
                 .cccdBackUrl(profile != null ? profile.getCccdBackUrl() : null)

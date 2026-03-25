@@ -112,6 +112,7 @@ class _PatientBookAppointmentPageState
             ..sort();
 
       if (!mounted) return;
+      final previousDoctorId = _selectedDoctor?.id;
       setState(() {
         _doctors = doctors;
         _availableDepartments = departments;
@@ -119,11 +120,12 @@ class _PatientBookAppointmentPageState
             !_availableDepartments.contains(_selectedDepartmentFilter)) {
           _selectedDepartmentFilter = null;
         }
+        if (previousDoctorId != null) {
+          final matchedIndex =
+              doctors.indexWhere((doc) => doc.id == previousDoctorId);
+          _selectedDoctor = matchedIndex == -1 ? null : doctors[matchedIndex];
+        }
       });
-
-      if (doctors.isNotEmpty && _selectedDoctor == null) {
-        _selectDoctor(doctors.first);
-      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -621,118 +623,147 @@ class _PatientBookAppointmentPageState
     }
 
     final doctors = _filteredDoctors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DropdownButtonFormField<String>(
-          value: _selectedDepartmentFilter ?? '',
-          items: [
-            const DropdownMenuItem(value: '', child: Text('Tất cả khoa')),
-            ..._availableDepartments.map(
-              (dept) => DropdownMenuItem(value: dept, child: Text(dept)),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 520;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (isCompact) ...[
+              _buildDepartmentDropdown(),
+              const SizedBox(height: 12),
+              _buildDoctorSearchField(),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(child: _buildDepartmentDropdown()),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildDoctorSearchField()),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
+            if (doctors.isEmpty)
+              _buildEmptyState('Không tìm thấy bác sĩ phù hợp.')
+            else
+              _buildDoctorCarousel(doctors, isCompact),
+            if (_selectedDoctor != null) ...[
+              const SizedBox(height: 16),
+              _buildSelectedDoctorCard(),
+            ],
           ],
-          onChanged: _availableDepartments.isEmpty
-              ? null
-              : (value) {
+        );
+      },
+    );
+  }
+
+  Widget _buildDoctorCarousel(List<DoctorModel> doctors, bool isCompact) {
+    final listHeight = isCompact ? 150.0 : 120.0;
+    final cardWidth = isCompact ? 170.0 : 140.0;
+    return SizedBox(
+      height: listHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: doctors.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final doctor = doctors[index];
+          return _DoctorCard(
+            doctor: doctor,
+            isSelected: _selectedDoctor?.id == doctor.id,
+            onTap: () => _selectDoctor(doctor),
+            width: cardWidth,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDepartmentDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedDepartmentFilter ?? '',
+      items: [
+        const DropdownMenuItem(value: '', child: Text('Tất cả khoa')),
+        ..._availableDepartments.map(
+          (dept) => DropdownMenuItem(value: dept, child: Text(dept)),
+        ),
+      ],
+      onChanged: _availableDepartments.isEmpty
+          ? null
+          : (value) {
+              setState(() {
+                final resolved = value == null || value.isEmpty ? null : value;
+                _selectedDepartmentFilter = resolved;
+                if (_selectedDoctor != null &&
+                    _filteredDoctors.every(
+                      (doc) => doc.id != _selectedDoctor!.id,
+                    )) {
+                  _selectedDoctor = null;
+                }
+              });
+            },
+      decoration: InputDecoration(
+        labelText: 'Chọn khoa',
+        labelStyle: TextStyle(color: Colors.grey[600]),
+        prefixIcon: Icon(
+          Icons.local_hospital_outlined,
+          color: Colors.grey[500],
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppTheme.primaryColor),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDoctorSearchField() {
+    return TextField(
+      controller: _doctorSearchController,
+      decoration: InputDecoration(
+        labelText: 'Tìm bác sĩ theo tên',
+        labelStyle: TextStyle(color: Colors.grey[600]),
+        prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
+        suffixIcon: _doctorSearchController.text.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.clear, size: 18),
+                onPressed: () {
                   setState(() {
-                    final resolved = value == null || value.isEmpty
-                        ? null
-                        : value;
-                    _selectedDepartmentFilter = resolved;
-                    if (_selectedDoctor != null &&
-                        _filteredDoctors.every(
-                          (doc) => doc.id != _selectedDoctor!.id,
-                        )) {
-                      _selectedDoctor = null;
-                    }
+                    _doctorSearchController.clear();
                   });
                 },
-          decoration: InputDecoration(
-            labelText: 'Chọn khoa',
-            labelStyle: TextStyle(color: Colors.grey[600]),
-            prefixIcon: Icon(
-              Icons.local_hospital_outlined,
-              color: Colors.grey[500],
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey[200]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey[200]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppTheme.primaryColor),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
+              ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey[200]!),
         ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _doctorSearchController,
-          decoration: InputDecoration(
-            labelText: 'Tìm bác sĩ theo tên',
-            labelStyle: TextStyle(color: Colors.grey[600]),
-            prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
-            suffixIcon: _doctorSearchController.text.isEmpty
-                ? null
-                : IconButton(
-                    icon: const Icon(Icons.clear, size: 18),
-                    onPressed: () {
-                      _doctorSearchController.clear();
-                      setState(() {});
-                    },
-                  ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey[200]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.grey[200]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppTheme.primaryColor),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-          onChanged: (_) => setState(() {}),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey[200]!),
         ),
-        const SizedBox(height: 16),
-        if (doctors.isEmpty)
-          _buildEmptyState('Không tìm thấy bác sĩ phù hợp.')
-        else
-          SizedBox(
-            height: 110,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: doctors.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final doctor = doctors[index];
-                return _DoctorCard(
-                  doctor: doctor,
-                  isSelected: _selectedDoctor?.id == doctor.id,
-                  onTap: () => _selectDoctor(doctor),
-                );
-              },
-            ),
-          ),
-        if (_selectedDoctor != null) ...[
-          const SizedBox(height: 16),
-          _buildSelectedDoctorCard(),
-        ],
-      ],
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppTheme.primaryColor),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+      onChanged: (_) => setState(() {}),
     );
   }
 
@@ -887,7 +918,7 @@ class _PatientBookAppointmentPageState
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 85,
+          height: 120,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: weekDates.length,
@@ -1101,11 +1132,13 @@ class _DoctorCard extends StatelessWidget {
   final DoctorModel doctor;
   final bool isSelected;
   final VoidCallback onTap;
+  final double width;
 
   const _DoctorCard({
     required this.doctor,
     required this.isSelected,
     required this.onTap,
+    this.width = 140,
   });
 
   @override
@@ -1116,7 +1149,7 @@ class _DoctorCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          width: 140,
+          width: width,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isSelected ? AppTheme.primaryColor : Colors.white,
@@ -1152,7 +1185,7 @@ class _DoctorCard extends StatelessWidget {
                   size: 24,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Text(
                 doctor.name,
                 style: TextStyle(
@@ -1163,7 +1196,7 @@ class _DoctorCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
                 doctor.specialty,
                 style: TextStyle(
@@ -1198,7 +1231,7 @@ class _SlotCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
@@ -1213,7 +1246,7 @@ class _SlotCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppTheme.primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(18),
             ),
             child: const Icon(
               Icons.schedule,

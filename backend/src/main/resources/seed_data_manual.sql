@@ -27,12 +27,26 @@ INSERT INTO tags (id, name, description) VALUES (10, 'General', 'Khám tổng qu
 
 -- 4. Create Profiles
 -- Doctor Profile
-INSERT INTO profile (id, fullname, gender, date_of_birth, address) 
-VALUES (gen_random_uuid(), 'Dr. John Smith', 'Male', '1980-05-15', '123 Health St') ON CONFLICT (id) DO NOTHING;
+INSERT INTO profile (id, fullname, gender, date_of_birth, address, department) 
+VALUES (
+       gen_random_uuid(),
+       'Dr. John Smith',
+       'Male',
+       '1980-05-15',
+       '123 Health St',
+       'Hô hấp - Nội tổng quát'
+) ON CONFLICT (id) DO NOTHING;
 
 -- Patient Profile
-INSERT INTO profile (id, fullname, gender, date_of_birth, address) 
-VALUES (gen_random_uuid(), 'Alice Johnson', 'Female', '1990-10-20', '456 User Ave') ON CONFLICT (id) DO NOTHING;
+INSERT INTO profile (id, fullname, gender, date_of_birth, address, department) 
+VALUES (
+       gen_random_uuid(),
+       'Alice Johnson',
+       'Female',
+       '1990-10-20',
+       '456 User Ave',
+       NULL
+) ON CONFLICT (id) DO NOTHING;
 
 -- 5. Create Users
 -- Password is 'password123' hashed: $2a$10$X.a/Q9E/zR.M/YQW99kC.ev3L2N6K2X2G1E1/I1v/x2tBf8U1o6lC

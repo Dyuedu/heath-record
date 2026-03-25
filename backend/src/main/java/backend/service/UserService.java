@@ -58,9 +58,10 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserResponse> listDoctors(String keyword) {
-        String normalized = trimToNull(keyword);
-        return userRepository.findDoctors(normalized)
+    public List<UserResponse> listDoctors(String keyword, String department) {
+        String normalizedKeyword = trimToNull(keyword);
+        String normalizedDepartment = trimToNull(department);
+        return userRepository.findDoctors(normalizedKeyword, normalizedDepartment)
                 .stream()
                 .map(this::mapToUserResponse)
                 .toList();
@@ -132,6 +133,9 @@ public class UserService {
         profile.setGender(normalizeGender(request.gender()));
         profile.setDateOfBirth(normalizeDate(request.dateOfBirth()));
         profile.setAddress(trimToNull(request.address()));
+        if (request.department() != null) {
+            profile.setDepartment(trimToNull(request.department()));
+        }
 
 
         userRepository.save(user);
@@ -191,6 +195,7 @@ public class UserService {
                 .gender(profile != null ? profile.getGender() : null)
                 .dateOfBirth(profile != null ? profile.getDateOfBirth() : null)
                 .address(profile != null ? profile.getAddress() : null)
+                .department(profile != null ? profile.getDepartment() : null)
                 .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
                 .status(user.getStatus() != null ? user.getStatus().name() : null)
                 .cccdFrontUrl(profile != null ? profile.getCccdFrontUrl() : null)
