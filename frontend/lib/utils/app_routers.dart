@@ -12,6 +12,8 @@ import 'package:frontend/views/home/home_page.dart';
 import 'package:frontend/views/user/link_requests_inbox_page.dart';
 import 'package:frontend/views/user/profile_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
+import 'package:frontend/views/doctor/doctor_schedule_page.dart';
+import 'package:frontend/views/patient/patient_book_appointment_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -31,6 +33,8 @@ class AppRouter {
   static const String adminCreateAccount = '/admin-create-account';
   static const String linkRequestsInbox = '/link-requests-inbox';
   static const String adminProfile = '/admin-profile';
+  static const String doctorSchedule = '/doctor-schedule';
+  static const String patientBookAppointment = '/patient-book-appointment';
   static const String activationResult = '/activation-result';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -101,6 +105,16 @@ class AppRouter {
           builder: (_) => const AdminProfilePage(),
           settings: settings,
         );
+      case doctorSchedule:
+        return MaterialPageRoute(
+          builder: (_) => const DoctorSchedulePage(),
+          settings: settings,
+        );
+      // case patientBookAppointment:
+      //   return MaterialPageRoute(
+      //     builder: (_) => const PatientBookAppointmentPage(),
+      //     settings: settings,
+      //   );
       case activationResult:
         final args = settings.arguments as Map<String, dynamic>?;
         final success = args?['success'] == true;

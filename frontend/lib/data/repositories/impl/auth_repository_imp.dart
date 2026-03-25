@@ -98,33 +98,43 @@ class AuthRepositoryImp implements AuthRepository {
         data: payload,
       );
 
-      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+      if (response.statusCode == 200 && response.data is Map) {
         return RegisterResultModel.fromMap(
-          response.data as Map<String, dynamic>,
+          Map<String, dynamic>.from(response.data as Map),
         );
       }
       if (response.statusCode == 200) {
         return RegisterResultModel.fallbackSuccess();
       }
+      throw Exception('Đăng ký thất bại. Vui lòng thử lại.');
     } on DioException catch (error) {
-      if (error.response?.data is Map) {
-        final data = error.response!.data;
-        if (data['validationErrors'] != null && data['validationErrors'] is Map) {
-          final errors = data['validationErrors'] as Map;
-          if (errors.isNotEmpty) {
-             throw Exception(errors.values.first.toString());
+      final data = error.response?.data;
+      if (data is Map) {
+        final map = Map<String, dynamic>.from(data);
+        final message = map['message']?.toString();
+        if (message != null && message.trim().isNotEmpty) {
+          throw Exception(message);
+        }
+
+        final validation = map['validationErrors'];
+        if (validation is Map && validation.isNotEmpty) {
+          final firstError = validation.values.first?.toString();
+          if (firstError != null && firstError.trim().isNotEmpty) {
+            throw Exception(firstError);
           }
         }
-        if (data['message'] != null) {
-          throw Exception(data['message'].toString());
-        }
       }
+
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.sendTimeout) {
+        throw Exception('Kết nối tới máy chủ bị timeout. Vui lòng thử lại.');
+      }
+
       throw Exception('Đăng ký thất bại. Vui lòng thử lại.');
-    } catch (error) {
-      print('Register error: $error');
+    } catch (_) {
       throw Exception('Đăng ký thất bại. Vui lòng thử lại.');
     }
-    return null;
   }
 
   @override

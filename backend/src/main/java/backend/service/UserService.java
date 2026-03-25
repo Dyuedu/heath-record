@@ -74,6 +74,15 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public List<UserResponse> listDoctors(String keyword) {
+        String normalized = trimToNull(keyword);
+        return userRepository.findDoctors(normalized)
+                .stream()
+                .map(this::mapToUserResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<UserResponse> searchPatients(String keyword) {
         String normalized = trimToNull(keyword);
         if (!StringUtils.hasText(normalized)) {
@@ -221,7 +230,7 @@ public class UserService {
                 .id(user.getId())
                 .phoneNumber(user.getPhoneNumber())
                 .email(user.getEmail())
-            .identityNumber(profile != null ? profile.getIdentityNumber() : null)
+                .identityNumber(profile != null ? profile.getIdentityNumber() : null)
                 .role(user.getRole() != null ? user.getRole().getName() : "user")
                 // Các thông tin nhân khẩu học lấy từ Profile object
                 .fullName(profile != null ? profile.getFullname() : "N/A")
@@ -233,6 +242,11 @@ public class UserService {
                 .chronicDisease(profile != null ? profile.getChronicDisease() : null)
                 .clinicalNotes(profile != null ? profile.getClinicalNotes() : null)
                 .bloodGroup(profile != null ? profile.getBloodGroup() : null)
+                .status(user.getStatus() != null ? user.getStatus().name() : null)
+                .cccdFrontUrl(profile != null ? profile.getCccdFrontUrl() : null)
+                .cccdBackUrl(profile != null ? profile.getCccdBackUrl() : null)
+                .diplomaUrl(profile != null ? profile.getDiplomaUrl() : null)
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 
