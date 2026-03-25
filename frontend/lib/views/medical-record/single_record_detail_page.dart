@@ -96,6 +96,21 @@ class _SingleRecordDetailPageState extends State<SingleRecordDetailPage> {
   Widget _buildEncounterCard(EncounterModel encounter) {
     final diagnostics = encounter.diagnostics;
 
+    String examType = 'Tái khám';
+    String doctorName = 'Không có thông tin';
+    if (diagnostics.isNotEmpty) {
+      if (diagnostics.first.type != null) {
+        switch (diagnostics.first.type) {
+          case 'INITIAL': examType = 'Khám mới'; break;
+          case 'FOLLOW_UP': examType = 'Tái khám'; break;
+          case 'ROUTINE_BACKUP': examType = 'Khám định kỳ'; break;
+        }
+      }
+      if (diagnostics.first.doctor != null && diagnostics.first.doctor!.isNotEmpty) {
+        doctorName = diagnostics.first.doctor!;
+      }
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -108,100 +123,83 @@ class _SingleRecordDetailPageState extends State<SingleRecordDetailPage> {
           ),
         ],
       ),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header inside card
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF246BFF).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.medical_services_outlined,
-                    color: Color(0xFF246BFF),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        encounter.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Color(0xFF1F2D3D),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _buildEncounterSubtitle(encounter),
-                        style: const TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
+          _buildSectionLabel(Icons.person_outline, 'BÁC SĨ CHẨN ĐOÁN'),
+          const SizedBox(height: 8),
+          _buildTextValue(doctorName),
+          const SizedBox(height: 24),
           
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if ((encounter.note ?? '').isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _buildSection(
-                      title: 'Ghi chú',
-                      child: Text(
-                        encounter.note ?? '',
-                        style: const TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF4A5568)),
-                      ),
-                    ),
-                  ),
-                if (encounter.tagNames.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _buildSection(
-                      title: 'Tags',
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: encounter.tagNames.map(_tagChip).toList(),
-                      ),
-                    ),
-                  ),
-                  
-                const Text(
-                  'Chi tiết chẩn đoán',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Color(0xFF1F2D3D),
-                  ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionLabel(Icons.calendar_today_outlined, 'NGÀY KHÁM'),
+                    const SizedBox(height: 8),
+                    _buildTextValue(_buildEncounterSubtitle(encounter)),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                
-                if (diagnostics.isEmpty)
-                  _buildEmptyDiagnostics()
-                else
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: diagnostics.map(_buildDiagnosticCard).toList(),
-                  ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionLabel(Icons.access_time_outlined, 'LOẠI KHÁM'),
+                    const SizedBox(height: 8),
+                    _buildTextValue(examType),
+                  ],
+                ),
+              ),
+            ],
           ),
+          
+          const SizedBox(height: 24),
+          _buildSectionLabel(Icons.description_outlined, 'TIÊU ĐỀ HỒ SƠ BỆNH ÁN'),
+          const SizedBox(height: 8),
+          _buildTextValue(encounter.title),
+          
+          if ((encounter.hospitalName ?? '').isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _buildSectionLabel(Icons.domain_outlined, 'BỆNH VIỆN / CƠ SỞ Y TẾ'),
+            const SizedBox(height: 8),
+            _buildTextValue(encounter.hospitalName!),
+          ],
+
+          if ((encounter.note ?? '').isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _buildSectionLabel(Icons.assignment_outlined, 'GHI CHÚ BÁC SĨ'),
+            const SizedBox(height: 8),
+            _buildTextValue(encounter.note!),
+          ],
+
+          if (encounter.tagNames.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _buildSectionLabel(Icons.local_offer_outlined, 'NHÃN PHÂN LOẠI CHUNG (TAGS)'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: encounter.tagNames.map(_tagChip).toList(),
+            ),
+          ],
+          
+          const SizedBox(height: 32),
+          _buildSectionLabel(Icons.medical_information_outlined, 'DANH MỤC CHẨN ĐOÁN'),
+          const SizedBox(height: 12),
+          
+          if (diagnostics.isEmpty)
+            _buildEmptyDiagnostics()
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: diagnostics.map(_buildDiagnosticCard).toList(),
+            ),
         ],
       ),
     );
@@ -209,86 +207,44 @@ class _SingleRecordDetailPageState extends State<SingleRecordDetailPage> {
 
   Widget _buildDiagnosticCard(DiagnosticModel diagnostic) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F9FF),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF246BFF).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  diagnostic.category,
-                  style: const TextStyle(
-                    color: Color(0xFF246BFF),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (diagnostic.tag != null && diagnostic.tag!.isNotEmpty)
-                Text(
-                  '#${diagnostic.tag}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              const Spacer(),
-              if (diagnostic.datetimeEnd != null)
-                Text(
-                  '${diagnostic.datetimeEnd!.day}/${diagnostic.datetimeEnd!.month}/${diagnostic.datetimeEnd!.year}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-            ],
-          ),
+          _buildSectionLabel(Icons.label_important_outline, 'TÊN CHẨN ĐOÁN'),
           const SizedBox(height: 8),
-          if ((diagnostic.data ?? '').isNotEmpty)
-            Text(
-              diagnostic.data!,
-              style: const TextStyle(fontSize: 13, height: 1.4),
+          _buildTextValue(diagnostic.category),
+          
+          if (diagnostic.tagNames.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildSectionLabel(Icons.local_offer_outlined, 'NHÃN PHÂN LOẠI (TAGS)'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: diagnostic.tagNames.map(_tagChip).toList(),
             ),
-          if (diagnostic.doctor != null && diagnostic.doctor!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'Bác sĩ: ${diagnostic.doctor}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF4E5D78)),
-              ),
-            ),
-          if (diagnostic.hospitalName != null &&
-              diagnostic.hospitalName!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'Cơ sở y tế: ${diagnostic.hospitalName}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF4E5D78)),
-              ),
-            ),
-          if (diagnostic.tagNames.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: diagnostic.tagNames.map(_tagChip).toList(),
-              ),
-            ),
-          if (diagnostic.attachmentUrls.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: _buildAttachmentImages(diagnostic.attachmentUrls),
-            ),
+          ],
+          
+          if ((diagnostic.data ?? '').isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildSectionLabel(Icons.notes_outlined, 'GHI CHÚ CHẨN ĐOÁN'),
+            const SizedBox(height: 8),
+            _buildTextValue(diagnostic.data!),
+          ],
+
+          if (diagnostic.attachmentUrls.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildSectionLabel(Icons.attach_file_outlined, 'TỆP ĐÍNH KÈM CHẨN ĐOÁN'),
+            const SizedBox(height: 8),
+            _buildAttachmentImages(diagnostic.attachmentUrls),
+          ],
         ],
       ),
     );
@@ -358,21 +314,37 @@ class _SingleRecordDetailPageState extends State<SingleRecordDetailPage> {
     );
   }
 
-  Widget _buildSection({required String title, required Widget child}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSectionLabel(IconData icon, String label) {
+    return Row(
       children: [
+        Icon(icon, size: 18, color: const Color(0xFF6B7280)),
+        const SizedBox(width: 6),
         Text(
-          title,
+          label,
           style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-            color: Color(0xFF246BFF),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF6B7280),
+            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 6),
-        child,
       ],
+    );
+  }
+
+  Widget _buildTextValue(String value) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Text(
+        value,
+        style: const TextStyle(fontSize: 14, color: Colors.black87),
+      ),
     );
   }
 
@@ -398,17 +370,42 @@ class _SingleRecordDetailPageState extends State<SingleRecordDetailPage> {
     );
   }
 
+  static const List<Color> _tagColors = [
+    Color(0xFF10B981), // green
+    Color(0xFFF59E0B), // amber
+    Color(0xFF3B82F6), // blue
+    Color(0xFFEF4444), // red
+    Color(0xFF8B5CF6), // purple
+    Color(0xFFEC4899), // pink
+    Color(0xFF06B6D4), // cyan
+    Color(0xFFF97316), // orange
+    Color(0xFF6366F1), // indigo
+    Color(0xFF14B8A6), // teal
+  ];
+
+  static final Map<String, Color> _assignedTagColors = {};
+
+  Color _getColorForTag(String tag) {
+    if (_assignedTagColors.containsKey(tag)) {
+      return _assignedTagColors[tag]!;
+    }
+    final color = _tagColors[tag.hashCode.abs() % _tagColors.length];
+    _assignedTagColors[tag] = color;
+    return color;
+  }
+
   Widget _tagChip(String text) {
+    final color = _getColorForTag(text);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF4FF),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         '#$text',
-        style: const TextStyle(
-          color: Color(0xFF246BFF),
+        style: TextStyle(
+          color: color,
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),

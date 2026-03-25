@@ -7,6 +7,7 @@ import lombok.Data;
 public class DiagnosticDTO {
     private String category;
     private String tag;
+    private String type;
     private String data;
     private List<String> imageUrls;
 }

@@ -13,4 +13,6 @@ public class RelativeSearchResponse {
     String dateOfBirth;
     String avatarUrl;
     String relationship;
+    String identityNumber;
+    String address;
 }
