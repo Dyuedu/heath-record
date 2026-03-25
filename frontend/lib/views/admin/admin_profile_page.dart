@@ -14,7 +14,7 @@ import '../../viewmodels/user_viewmodel.dart';
 import 'package:frontend/views/admin/admin_bottom_nav.dart';
 import 'package:frontend/views/admin/admin_dashboard_page.dart';
 import 'package:frontend/views/admin/admin_user_management_page.dart';
-import 'package:frontend/views/admin/admin_pending_list_page.dart';
+import 'package:frontend/views/admin/admin_statistics_page.dart';
 
 class AdminProfilePage extends StatefulWidget {
   const AdminProfilePage({super.key});
@@ -144,7 +144,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
         page = const AdminUserManagementPage();
         break;
       case 2:
-        page = const AdminPendingListPage();
+        page = const AdminStatisticsPage();
         break;
       default:
         return;

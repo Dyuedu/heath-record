@@ -5,7 +5,7 @@ import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/views/admin/admin_bottom_nav.dart';
 import 'package:frontend/views/admin/admin_create_account_page.dart';
 import 'package:frontend/views/admin/admin_dashboard_page.dart';
-import 'package:frontend/views/admin/admin_pending_list_page.dart';
+import 'package:frontend/views/admin/admin_statistics_page.dart';
 import 'package:frontend/views/admin/admin_user_detail_page.dart';
 import 'package:frontend/views/admin/admin_profile_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
@@ -30,12 +30,11 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
   };
 
   int _selectedStatus = 0;
-  static const List<String> _statusFilters = ['Tất cả', 'ACTIVE', 'LOCKED', 'PENDING'];
+  static const List<String> _statusFilters = ['Tất cả', 'ACTIVE', 'LOCKED'];
   static const Map<String, String> _statusLabels = {
     'Tất cả': 'Tất cả',
     'ACTIVE': 'Hoạt động',
     'LOCKED': 'Khóa',
-    'PENDING': 'Chờ duyệt',
   };
 
   @override
@@ -559,7 +558,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       case 2:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const AdminPendingListPage()),
+          MaterialPageRoute(builder: (_) => const AdminStatisticsPage()),
         );
         break;
       case 3:

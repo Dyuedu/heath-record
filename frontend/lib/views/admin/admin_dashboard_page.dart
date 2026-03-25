@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/views/admin/admin_bottom_nav.dart';
 import 'package:frontend/views/admin/admin_user_management_page.dart';
-import 'package:frontend/views/admin/admin_pending_list_page.dart';
 import 'package:frontend/views/admin/admin_statistics_page.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
@@ -52,16 +51,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   _buildHeader(context),
                   const SizedBox(height: 24),
 
-                  // Greeting + alert
-                  _buildGreetingSection(pendingCount),
+                  _buildGreetingSection(),
                   const SizedBox(height: 20),
 
                   // Stat cards row
-                  _buildStatCardsRow(userCount, pendingCount),
-                  const SizedBox(height: 16),
-
-                   // Monthly records stat
-                  _buildMonthlyRecordCard(recordsCount),
+                  _buildStatCardsRow(userCount, recordsCount),
                   const SizedBox(height: 20),
 
                   // Mini chart preview
@@ -102,19 +96,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       case 2:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const AdminPendingListPage()),
+          MaterialPageRoute(builder: (_) => const AdminStatisticsPage()),
         );
         break;
       case 3:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const AdminProfilePage()),
-        );
-        break;
-      case 3:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminStatisticsPage()),
         );
         break;
     }
@@ -176,7 +164,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  Widget _buildGreetingSection(int pendingCount) {
+  Widget _buildGreetingSection() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -208,7 +196,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Hôm nay có $pendingCount tài khoản mới đang chờ bạn phê duyệt.',
+            'Chào mừng bạn trở lại! Dưới đây là bức tranh tổng quan về hệ thống hôm nay.',
             style: TextStyle(
               color: Colors.white.withOpacity(0.85),
               fontSize: 13,
@@ -220,7 +208,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  Widget _buildStatCardsRow(int userCount, int pendingCount) {
+  Widget _buildStatCardsRow(int userCount, int recordsCount) {
     return Row(
       children: [
         Expanded(
@@ -237,12 +225,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         const SizedBox(width: 12),
         Expanded(
           child: _statCard(
-            icon: Icons.hourglass_top_rounded,
-            iconBgColor: const Color(0xFFFFF3E0),
-            iconColor: const Color(0xFFF59E0B),
-            label: 'CHỜ DUYỆT',
-            value: pendingCount.toString().padLeft(2, '0'),
-            change: '+1%',
+            icon: Icons.description_rounded,
+            iconBgColor: const Color(0xFFECFDF5),
+            iconColor: const Color(0xFF10B981),
+            label: 'BỆNH ÁN (THÁNG)',
+            value: recordsCount.toString(),
+            change: '+5%',
             changeColor: const Color(0xFF10B981),
           ),
         ),
@@ -328,62 +316,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  Widget _buildMonthlyRecordCard(int recordsCount) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFECFDF5),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.description_rounded, color: Color(0xFF10B981), size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'BỆNH ÁN MỚI (THÁNG NÀY)',
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  recordsCount.toString(),
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1F2A44),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildMiniChartPreview(AdminViewModel vm) {
     final rawData = vm.recordStats?['chartData'];
@@ -516,15 +449,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             const SizedBox(width: 12),
             Expanded(
               child: _shortcutItem(
-                icon: Icons.fact_check_rounded,
-                label: 'Duyệt hồ sơ',
-                subtitle: 'bác sĩ mới & bác sĩ',
+                icon: Icons.bar_chart_rounded,
+                label: 'Thống kê',
+                subtitle: 'bệnh án & biểu đồ',
                 bgColor: const Color(0xFFFFF3E0),
                 iconColor: const Color(0xFFF59E0B),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => AdminPendingListPage()),
+                    MaterialPageRoute(builder: (_) => const AdminStatisticsPage()),
                   );
                 },
               ),
@@ -536,59 +469,41 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           children: [
             Expanded(
               child: _shortcutItem(
-                icon: Icons.bar_chart_rounded,
-                label: 'Thống kê',
-                subtitle: 'bệnh án & biểu đồ',
+                icon: Icons.local_hospital_rounded,
+                label: 'Bệnh viện',
+                subtitle: 'quản lý danh sách',
                 bgColor: const Color(0xFFECFDF5),
                 iconColor: const Color(0xFF10B981),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const AdminStatisticsPage()),
+                    MaterialPageRoute(builder: (_) => const AdminHospitalManagementPage()),
                   );
                 },
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-                          child: _shortcutItem(
-                            icon: Icons.local_hospital_rounded,
-                            label: 'Bệnh viện',
-                            subtitle: 'quản lý danh sách',
-                            bgColor: const Color(0xFFECFDF5),
-                            iconColor: const Color(0xFF10B981),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const AdminHospitalManagementPage()),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _shortcutItem(
-                            icon: Icons.local_offer_rounded,
-                            label: 'Từ khóa',
-                            subtitle: 'quản lý tags',
-                            bgColor: const Color(0xFFF0F9FF),
-                            iconColor: const Color(0xFF06B6D4),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const AdminTagManagementPage()),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+              child: _shortcutItem(
+                icon: Icons.local_offer_rounded,
+                label: 'Từ khóa',
+                subtitle: 'quản lý tags',
+                bgColor: const Color(0xFFF0F9FF),
+                iconColor: const Color(0xFF06B6D4),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminTagManagementPage()),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
 
 
           ],
-        ),
-      ],
-    );
+        );
   }
 
   Widget _shortcutItem({
