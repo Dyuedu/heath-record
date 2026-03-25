@@ -121,8 +121,9 @@ class _PatientBookAppointmentPageState
           _selectedDepartmentFilter = null;
         }
         if (previousDoctorId != null) {
-          final matchedIndex =
-              doctors.indexWhere((doc) => doc.id == previousDoctorId);
+          final matchedIndex = doctors.indexWhere(
+            (doc) => doc.id == previousDoctorId,
+          );
           _selectedDoctor = matchedIndex == -1 ? null : doctors[matchedIndex];
         }
       });

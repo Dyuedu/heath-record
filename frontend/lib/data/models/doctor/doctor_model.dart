@@ -69,8 +69,8 @@ class DoctorModel {
         : profile.fullName.trim();
     final department = profile.department.trim();
     final resolvedSpecialty = department.isNotEmpty
-      ? department
-      : 'Bác sĩ đa khoa';
+        ? department
+        : 'Bác sĩ đa khoa';
     return DoctorModel(
       id: profile.id,
       name: fallbackName.isEmpty ? 'Bác sĩ' : fallbackName,
