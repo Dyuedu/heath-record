@@ -903,7 +903,7 @@ class _PatientBookAppointmentPageState
                 child: Container(
                   width: 65,
                   margin: const EdgeInsets.only(right: 12),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     gradient: isSelected
                         ? LinearGradient(
@@ -946,12 +946,13 @@ class _PatientBookAppointmentPageState
                               : Colors.grey.shade600,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
+                          height: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 30,
+                        height: 30,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: isSelected
@@ -970,7 +971,8 @@ class _PatientBookAppointmentPageState
                                   ? AppTheme.primaryColor
                                   : Colors.grey.shade700,
                               fontWeight: FontWeight.w700,
-                              fontSize: 14,
+                              fontSize: 13,
+                              height: 1.1,
                             ),
                           ),
                         ),
@@ -1117,7 +1119,7 @@ class _DoctorCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Container(
           width: 140,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: isSelected ? AppTheme.primaryColor : Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -1139,7 +1141,7 @@ class _DoctorCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withOpacity(0.2)
@@ -1149,26 +1151,28 @@ class _DoctorCard extends StatelessWidget {
                 child: Icon(
                   Icons.person,
                   color: isSelected ? Colors.white : AppTheme.primaryColor,
-                  size: 24,
+                  size: 20,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Text(
                 doctor.name,
                 style: TextStyle(
                   color: isSelected ? Colors.white : const Color(0xFF1A2C3E),
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: 13,
+                  height: 1.2,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 doctor.specialty,
                 style: TextStyle(
                   color: isSelected ? Colors.white70 : Colors.grey.shade600,
-                  fontSize: 11,
+                  fontSize: 10,
+                  height: 1.2,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
