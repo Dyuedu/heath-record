@@ -312,7 +312,10 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
               GestureDetector(
                 onTap: () => _changeStatus('ACTIVE'),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: isActive
                         ? const Color(0xFF10B981)
@@ -337,7 +340,10 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
               GestureDetector(
                 onTap: () => _changeStatus('LOCKED'),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: !isActive
                         ? const Color(0xFFEF4444)
@@ -376,7 +382,11 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
         // Section header
         Row(
           children: [
-            Icon(Icons.attach_file_rounded, size: 18, color: Colors.grey.shade600),
+            Icon(
+              Icons.attach_file_rounded,
+              size: 18,
+              color: Colors.grey.shade600,
+            ),
             const SizedBox(width: 8),
             Text(
               'HỒ SƠ ĐÍNH KÈM',
@@ -400,14 +410,29 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
   Widget _buildDocumentGrid() {
     final docs = <Map<String, String>>[];
 
-    if (_currentUser.cccdFrontUrl != null && _currentUser.cccdFrontUrl!.isNotEmpty) {
-      docs.add({'url': _currentUser.cccdFrontUrl!, 'title': 'CCCD Mặt trước', 'sub': 'ID CARD'});
+    if (_currentUser.cccdFrontUrl != null &&
+        _currentUser.cccdFrontUrl!.isNotEmpty) {
+      docs.add({
+        'url': _currentUser.cccdFrontUrl!,
+        'title': 'CCCD Mặt trước',
+        'sub': 'ID CARD',
+      });
     }
-    if (_currentUser.cccdBackUrl != null && _currentUser.cccdBackUrl!.isNotEmpty) {
-      docs.add({'url': _currentUser.cccdBackUrl!, 'title': 'CCCD Mặt sau', 'sub': 'ID CARD'});
+    if (_currentUser.cccdBackUrl != null &&
+        _currentUser.cccdBackUrl!.isNotEmpty) {
+      docs.add({
+        'url': _currentUser.cccdBackUrl!,
+        'title': 'CCCD Mặt sau',
+        'sub': 'ID CARD',
+      });
     }
-    if (_currentUser.diplomaUrl != null && _currentUser.diplomaUrl!.isNotEmpty) {
-      docs.add({'url': _currentUser.diplomaUrl!, 'title': 'Bằng cấp', 'sub': 'DIPLOMA'});
+    if (_currentUser.diplomaUrl != null &&
+        _currentUser.diplomaUrl!.isNotEmpty) {
+      docs.add({
+        'url': _currentUser.diplomaUrl!,
+        'title': 'Bằng cấp',
+        'sub': 'DIPLOMA',
+      });
     }
 
     if (docs.isEmpty) {
@@ -420,7 +445,11 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
         ),
         child: Column(
           children: [
-            Icon(Icons.folder_off_outlined, size: 40, color: Colors.grey.shade300),
+            Icon(
+              Icons.folder_off_outlined,
+              size: 40,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 8),
             Text(
               'Chưa có giấy tờ đính kèm',
@@ -435,9 +464,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
       children: docs.map((doc) {
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(
-              right: doc != docs.last ? 10 : 0,
-            ),
+            padding: EdgeInsets.only(right: doc != docs.last ? 10 : 0),
             child: _buildDocumentThumbnail(
               doc['url']!,
               doc['title']!,
@@ -481,8 +508,11 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
                   ),
                 ),
                 errorWidget: (_, __, ___) => Center(
-                  child: Icon(Icons.broken_image_outlined,
-                      size: 28, color: Colors.grey.shade400),
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    size: 28,
+                    color: Colors.grey.shade400,
+                  ),
                 ),
               ),
             ),
@@ -546,22 +576,27 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
           gender: _currentUser.gender,
           dateOfBirth: _currentUser.dateOfBirth,
           address: _currentUser.address,
+          department: _currentUser.department,
           avatarUrl: _currentUser.avatarUrl,
           status: newStatus,
           cccdFrontUrl: _currentUser.cccdFrontUrl,
           cccdBackUrl: _currentUser.cccdBackUrl,
           diplomaUrl: _currentUser.diplomaUrl,
-          createdAt: _currentUser.createdAt, 
+          createdAt: _currentUser.createdAt,
           identityNumber: '',
         );
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Đã chuyển trạng thái sang ${_displayStatus(newStatus)}'),
+          content: Text(
+            'Đã chuyển trạng thái sang ${_displayStatus(newStatus)}',
+          ),
           backgroundColor: const Color(0xFF10B981),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }

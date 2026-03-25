@@ -4,10 +4,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:frontend/data/models/doctor/appointment_slot_model.dart';
-import 'package:frontend/data/models/doctor/doctor_schedule_day_model.dart';
 import 'package:frontend/utils/app_theme.dart';
 import 'package:frontend/viewmodels/schedule_viewmodel.dart';
 
+// MARK: - Appointment Slot Widget
 class AppointmentSlotWidget extends StatefulWidget {
   final AppointmentSlotModel slot;
   final VoidCallback onTap;
@@ -32,97 +32,75 @@ class _AppointmentSlotWidgetState extends State<AppointmentSlotWidget> {
 
   bool get _canReject =>
       widget.showActions &&
-      (widget.slot.isPending || widget.slot.isBooked) &&
-      widget.slot.id != 0;
+          (widget.slot.isPending || widget.slot.isBooked) &&
+          widget.slot.id != 0;
 
-  Color get _statusColor {
-    if (widget.slot.isAvailable) return const Color(0xFFE8F0FE);
-    if (widget.slot.isPending) return const Color(0xFFFFF3E0);
-    return const Color(0xFFE8F5E9);
-  }
-
-  Color get _statusTextColor {
-    if (widget.slot.isAvailable) return const Color(0xFF1976D2);
-    if (widget.slot.isPending) return const Color(0xFFF57C00);
-    return const Color(0xFF2E7D32);
-  }
-
-  String get _statusText {
-    if (widget.slot.isAvailable) return 'Trống';
-    if (widget.slot.isPending) return 'Chờ duyệt';
-    return 'Đã đặt';
-  }
-
-  IconData get _statusIcon {
-    if (widget.slot.isAvailable) return Icons.access_time;
-    if (widget.slot.isPending) return Icons.hourglass_empty;
-    return Icons.check_circle;
+  _SlotStatus get _slotStatus {
+    if (widget.slot.isAvailable) return _SlotStatus.available;
+    if (widget.slot.isPending) return _SlotStatus.pending;
+    return _SlotStatus.booked;
   }
 
   Future<String?> _showRejectionReasonDialog(BuildContext context) {
     return showDialog<String>(
       context: context,
+      barrierDismissible: false,
       builder: (_) => const _RejectionReasonDialog(),
     );
   }
 
   Future<void> _handleDecision(bool approve) async {
-    final canApprove = _canApprove;
-    final canReject = _canReject;
-    if ((approve && !canApprove) || (!approve && !canReject) || _isProcessing) {
+    if ((approve && !_canApprove) || (!approve && !_canReject) || _isProcessing) {
       return;
     }
 
     String? rejectionReason;
     if (!approve) {
       rejectionReason = await _showRejectionReasonDialog(context);
-      if (rejectionReason == null) {
+      if (rejectionReason == null || rejectionReason.isEmpty) {
         return;
       }
     }
+
     setState(() => _isProcessing = true);
     final viewModel = context.read<ScheduleViewModel>();
+
     final success = approve
         ? await viewModel.approveAppointment(appointmentId: widget.slot.id)
         : await viewModel.rejectAppointment(
-            appointmentId: widget.slot.id,
-            reason: rejectionReason!,
-          );
+      appointmentId: widget.slot.id,
+      reason: rejectionReason!,
+    );
+
     if (!mounted) return;
     setState(() => _isProcessing = false);
 
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            approve ? 'Đã duyệt lịch khám' : 'Đã từ chối lịch khám',
-          ),
-          backgroundColor: approve
-              ? Colors.green.shade600
-              : Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-        ),
+    if (success) {
+      _showSnackBar(
+        approve ? 'Đã duyệt lịch khám' : 'Đã từ chối lịch khám',
+        approve ? Colors.green.shade600 : Colors.red.shade400,
       );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            viewModel.errorMessage ?? 'Không thể xử lý yêu cầu này',
-          ),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-        ),
+    } else {
+      _showSnackBar(
+        viewModel.errorMessage ?? 'Không thể xử lý yêu cầu này',
+        Colors.red.shade400,
       );
     }
   }
 
+  void _showSnackBar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final slot = widget.slot;
-    final patientName = slot.patientName?.trim();
-    final patientPhone = slot.patientPhone?.trim();
-    final notes = slot.notes?.trim();
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -143,178 +121,28 @@ class _AppointmentSlotWidgetState extends State<AppointmentSlotWidget> {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Time and Status
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.schedule,
-                          size: 14,
-                          color: AppTheme.primaryColor,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${slot.slotStartTime} - ${slot.slotEndTime}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _statusColor,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(_statusIcon, size: 14, color: _statusTextColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          _statusText,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: _statusTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              _SlotHeader(
+                startTime: widget.slot.slotStartTime,
+                endTime: widget.slot.slotEndTime,
+                status: _slotStatus,
               ),
-
               const SizedBox(height: 16),
-
-              // Content
-              if (slot.isAvailable)
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.add_circle_outline,
-                        size: 16,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Nhấn để tạo lịch khám mới',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else ...[
-                _InfoTile(
-                  icon: Icons.person_outline,
-                  label: 'Bệnh nhân',
-                  value: patientName ?? 'Chưa có',
-                ),
-                const SizedBox(height: 12),
-                _InfoTile(
-                  icon: Icons.phone_outlined,
-                  label: 'Điện thoại',
-                  value: patientPhone ?? 'Chưa có',
-                ),
-                if (notes != null && notes.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _InfoTile(
-                    icon: Icons.description_outlined,
-                    label: 'Ghi chú',
-                    value: notes,
-                    maxLines: 2,
-                  ),
-                ],
-              ],
-
-              // Actions
+              _SlotContent(
+                isAvailable: widget.slot.isAvailable,
+                patientName: widget.slot.patientName,
+                patientPhone: widget.slot.patientPhone,
+                notes: widget.slot.notes,
+              ),
               if (_canApprove || _canReject) ...[
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    if (_canReject)
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _isProcessing
-                              ? null
-                              : () => _handleDecision(false),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red.shade700,
-                            side: BorderSide(color: Colors.red.shade200),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: _isProcessing
-                              ? const SizedBox(
-                                  height: 18,
-                                  width: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  widget.slot.isBooked ? 'Hủy lịch' : 'Từ chối',
-                                ),
-                        ),
-                      ),
-                    if (_canApprove && _canReject) const SizedBox(width: 12),
-                    if (_canApprove)
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isProcessing
-                              ? null
-                              : () => _handleDecision(true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade600,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: _isProcessing
-                              ? const SizedBox(
-                                  height: 18,
-                                  width: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Text('Duyệt'),
-                        ),
-                      ),
-                  ],
+                _SlotActions(
+                  canApprove: _canApprove,
+                  canReject: _canReject,
+                  isProcessing: _isProcessing,
+                  onApprove: () => _handleDecision(true),
+                  onReject: () => _handleDecision(false),
                 ),
               ],
             ],
@@ -325,6 +153,256 @@ class _AppointmentSlotWidgetState extends State<AppointmentSlotWidget> {
   }
 }
 
+// MARK: - Slot Status Helper
+enum _SlotStatus { available, pending, booked }
+
+extension _SlotStatusExtension on _SlotStatus {
+  Color get backgroundColor {
+    switch (this) {
+      case _SlotStatus.available:
+        return const Color(0xFFE8F0FE);
+      case _SlotStatus.pending:
+        return const Color(0xFFFFF3E0);
+      case _SlotStatus.booked:
+        return const Color(0xFFE8F5E9);
+    }
+  }
+
+  Color get textColor {
+    switch (this) {
+      case _SlotStatus.available:
+        return const Color(0xFF1976D2);
+      case _SlotStatus.pending:
+        return const Color(0xFFF57C00);
+      case _SlotStatus.booked:
+        return const Color(0xFF2E7D32);
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case _SlotStatus.available:
+        return Icons.access_time;
+      case _SlotStatus.pending:
+        return Icons.hourglass_empty;
+      case _SlotStatus.booked:
+        return Icons.check_circle;
+    }
+  }
+
+  String get text {
+    switch (this) {
+      case _SlotStatus.available:
+        return 'Trống';
+      case _SlotStatus.pending:
+        return 'Chờ duyệt';
+      case _SlotStatus.booked:
+        return 'Đã đặt';
+    }
+  }
+}
+
+// MARK: - Slot Header Component
+class _SlotHeader extends StatelessWidget {
+  final String startTime;
+  final String endTime;
+  final _SlotStatus status;
+
+  const _SlotHeader({
+    required this.startTime,
+    required this.endTime,
+    required this.status,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.schedule, size: 14, color: AppTheme.primaryColor),
+              const SizedBox(width: 6),
+              Text(
+                '$startTime - $endTime',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: status.backgroundColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(status.icon, size: 14, color: status.textColor),
+              const SizedBox(width: 4),
+              Text(
+                status.text,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: status.textColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// MARK: - Slot Content Component
+class _SlotContent extends StatelessWidget {
+  final bool isAvailable;
+  final String? patientName;
+  final String? patientPhone;
+  final String? notes;
+
+  const _SlotContent({
+    required this.isAvailable,
+    this.patientName,
+    this.patientPhone,
+    this.notes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isAvailable) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              Icons.add_circle_outline,
+              size: 16,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Nhấn để tạo lịch khám mới',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _InfoTile(
+          icon: Icons.person_outline,
+          label: 'Bệnh nhân',
+          value: patientName?.trim() ?? 'Chưa có',
+        ),
+        const SizedBox(height: 12),
+        _InfoTile(
+          icon: Icons.phone_outlined,
+          label: 'Điện thoại',
+          value: patientPhone?.trim() ?? 'Chưa có',
+        ),
+        if (notes != null && notes!.trim().isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _InfoTile(
+            icon: Icons.description_outlined,
+            label: 'Ghi chú',
+            value: notes!.trim(),
+            maxLines: 2,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// MARK: - Slot Actions Component
+class _SlotActions extends StatelessWidget {
+  final bool canApprove;
+  final bool canReject;
+  final bool isProcessing;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+
+  const _SlotActions({
+    required this.canApprove,
+    required this.canReject,
+    required this.isProcessing,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (canReject)
+          Expanded(
+            child: OutlinedButton(
+              onPressed: isProcessing ? null : onReject,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade700,
+                side: BorderSide(color: Colors.red.shade200),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: isProcessing
+                  ? const _ProcessingIndicator(size: 18)
+                  : Text(canApprove ? 'Từ chối' : 'Hủy lịch'),
+            ),
+          ),
+        if (canApprove && canReject) const SizedBox(width: 12),
+        if (canApprove)
+          Expanded(
+            child: ElevatedButton(
+              onPressed: isProcessing ? null : onApprove,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: isProcessing
+                  ? const _ProcessingIndicator(
+                size: 18,
+                color: Colors.white,
+              )
+                  : const Text('Duyệt'),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// MARK: - Info Tile Component
 class _InfoTile extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -376,6 +454,7 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
+// MARK: - Rejection Reason Dialog
 class _RejectionReasonDialog extends StatefulWidget {
   const _RejectionReasonDialog();
 
@@ -384,14 +463,8 @@ class _RejectionReasonDialog extends StatefulWidget {
 }
 
 class _RejectionReasonDialogState extends State<_RejectionReasonDialog> {
-  late final TextEditingController _controller;
+  final TextEditingController _controller = TextEditingController();
   String? _errorText;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController();
-  }
 
   @override
   void dispose() {
@@ -415,9 +488,13 @@ class _RejectionReasonDialogState extends State<_RejectionReasonDialog> {
       content: TextField(
         controller: _controller,
         maxLines: 3,
+        autofocus: true,
         decoration: InputDecoration(
           hintText: 'Nhập lý do từ chối hoặc hủy lịch',
           errorText: _errorText,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
       actions: [
@@ -425,12 +502,19 @@ class _RejectionReasonDialogState extends State<_RejectionReasonDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Hủy'),
         ),
-        ElevatedButton(onPressed: _submit, child: const Text('Xác nhận')),
+        ElevatedButton(
+          onPressed: _submit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryColor,
+          ),
+          child: const Text('Xác nhận'),
+        ),
       ],
     );
   }
 }
 
+// MARK: - Appointment Detail Dialog
 class AppointmentDetailDialog extends StatefulWidget {
   final AppointmentSlotModel slot;
   final DateTime date;
@@ -453,45 +537,94 @@ class _AppointmentDetailDialogState extends State<AppointmentDetailDialog> {
 
   Future<void> _handleDecision(bool approve) async {
     if (!_canManage || _isProcessing) return;
+
     setState(() => _isProcessing = true);
     final viewModel = context.read<ScheduleViewModel>();
+
     final success = approve
         ? await viewModel.approveAppointment(appointmentId: widget.slot.id)
         : await viewModel.rejectAppointment(
-            appointmentId: widget.slot.id,
-            reason: '',
-          );
+      appointmentId: widget.slot.id,
+      reason: '',
+    );
+
     if (!mounted) return;
     setState(() => _isProcessing = false);
-    if (success && mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            approve ? 'Đã duyệt lịch khám' : 'Đã từ chối lịch khám',
-          ),
-          backgroundColor: approve
-              ? Colors.green.shade600
-              : Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-        ),
+
+    if (success) {
+      if (mounted) Navigator.pop(context);
+      _showSnackBar(
+        approve ? 'Đã duyệt lịch khám' : 'Đã từ chối lịch khám',
+        approve ? Colors.green.shade600 : Colors.red.shade400,
       );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            viewModel.errorMessage ?? 'Không thể xử lý yêu cầu này',
-          ),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-        ),
+    } else {
+      _showSnackBar(
+        viewModel.errorMessage ?? 'Không thể xử lý yêu cầu này',
+        Colors.red.shade400,
       );
     }
   }
 
+  void _showSnackBar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    const weekdayLabel = {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _BottomSheetHandle(),
+              _DetailHeader(
+                date: widget.date,
+                onClose: () => Navigator.pop(context),
+              ),
+              const SizedBox(height: 24),
+              _DetailContent(slot: widget.slot),
+              const SizedBox(height: 24),
+              _DetailActions(
+                canManage: _canManage,
+                isProcessing: _isProcessing,
+                onApprove: () => _handleDecision(true),
+                onReject: () => _handleDecision(false),
+                onClose: () => Navigator.pop(context),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// MARK: - Detail Header Component
+class _DetailHeader extends StatelessWidget {
+  final DateTime date;
+  final VoidCallback onClose;
+
+  const _DetailHeader({
+    required this.date,
+    required this.onClose,
+  });
+
+  String _getFormattedDate() {
+    const weekdayLabels = {
       DateTime.monday: 'Thứ 2',
       DateTime.tuesday: 'Thứ 3',
       DateTime.wednesday: 'Thứ 4',
@@ -500,197 +633,182 @@ class _AppointmentDetailDialogState extends State<AppointmentDetailDialog> {
       DateTime.saturday: 'Thứ 7',
       DateTime.sunday: 'Chủ nhật',
     };
-    final dateDisplay =
-        '${weekdayLabel[widget.date.weekday] ?? ''}, ${DateFormat('dd/MM/yyyy').format(widget.date)}';
+    final weekday = weekdayLabels[date.weekday] ?? '';
+    return '$weekday, ${DateFormat('dd/MM/yyyy').format(date)}';
+  }
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Chi tiết lịch khám',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A2C3E),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close, color: Colors.grey.shade500),
+            onPressed: onClose,
+            splashRadius: 24,
+          ),
+        ],
       ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+    );
+  }
+}
+
+// MARK: - Detail Content Component
+class _DetailContent extends StatelessWidget {
+  final AppointmentSlotModel slot;
+
+  const _DetailContent({required this.slot});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          _DetailItem(
+            label: 'Khung giờ',
+            value: '${slot.slotStartTime} - ${slot.slotEndTime}',
+            icon: Icons.schedule,
+          ),
+          const SizedBox(height: 16),
+          _DetailItem(
+            label: 'Trạng thái',
+            value: _getStatusText(),
+            icon: Icons.info_outline,
+            valueColor: slot.isPending
+                ? Colors.orange.shade600
+                : Colors.green.shade600,
+          ),
+          const SizedBox(height: 16),
+          _DetailItem(
+            label: 'Bệnh nhân',
+            value: slot.patientName?.trim() ?? 'Chưa có',
+            icon: Icons.person_outline,
+          ),
+          const SizedBox(height: 16),
+          _DetailItem(
+            label: 'Số điện thoại',
+            value: slot.patientPhone?.trim() ?? 'Chưa có',
+            icon: Icons.phone_outlined,
+          ),
+          if (_hasNotes) ...[
+            const SizedBox(height: 16),
+            _DetailItem(
+              label: 'Ghi chú',
+              value: slot.notes!.trim(),
+              icon: Icons.description_outlined,
+              maxLines: 3,
             ),
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Chi tiết lịch khám',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A2C3E),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: Colors.grey.shade500),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 14,
-                    color: Colors.grey.shade500,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    dateDisplay,
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Content
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  _DetailItem(
-                    label: 'Khung giờ',
-                    value:
-                        '${widget.slot.slotStartTime} - ${widget.slot.slotEndTime}',
-                    icon: Icons.schedule,
-                  ),
-                  const SizedBox(height: 16),
-                  _DetailItem(
-                    label: 'Trạng thái',
-                    value: widget.slot.status,
-                    icon: Icons.info_outline,
-                    valueColor: widget.slot.isPending
-                        ? Colors.orange.shade600
-                        : Colors.green.shade600,
-                  ),
-                  const SizedBox(height: 16),
-                  _DetailItem(
-                    label: 'Bệnh nhân',
-                    value: widget.slot.patientName ?? 'Chưa có',
-                    icon: Icons.person_outline,
-                  ),
-                  const SizedBox(height: 16),
-                  _DetailItem(
-                    label: 'Số điện thoại',
-                    value: widget.slot.patientPhone ?? 'Chưa có',
-                    icon: Icons.phone_outlined,
-                  ),
-                  if ((widget.slot.notes ?? '').trim().isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _DetailItem(
-                      label: 'Ghi chú',
-                      value: widget.slot.notes ?? '',
-                      icon: Icons.description_outlined,
-                      maxLines: 3,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Actions
-            if (_canManage)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _isProcessing
-                            ? null
-                            : () => _handleDecision(false),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red.shade600,
-                          side: BorderSide(color: Colors.red.shade200),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: _isProcessing
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text('Từ chối'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isProcessing
-                            ? null
-                            : () => _handleDecision(true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _isProcessing
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                            : const Text('Chấp thuận'),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text('Đóng'),
-                  ),
-                ),
-              ),
           ],
+        ],
+      ),
+    );
+  }
+
+  String _getStatusText() {
+    if (slot.isPending) return 'Chờ duyệt';
+    if (slot.isBooked) return 'Đã đặt';
+    return 'Trống';
+  }
+
+  bool get _hasNotes =>
+      slot.notes != null && slot.notes!.trim().isNotEmpty;
+}
+
+// MARK: - Detail Actions Component
+class _DetailActions extends StatelessWidget {
+  final bool canManage;
+  final bool isProcessing;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+  final VoidCallback onClose;
+
+  const _DetailActions({
+    required this.canManage,
+    required this.isProcessing,
+    required this.onApprove,
+    required this.onReject,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (canManage) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: isProcessing ? null : onReject,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red.shade600,
+                  side: BorderSide(color: Colors.red.shade200),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: isProcessing
+                    ? const _ProcessingIndicator(size: 20)
+                    : const Text('Từ chối'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: isProcessing ? null : onApprove,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade600,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                child: isProcessing
+                    ? const _ProcessingIndicator(
+                  size: 20,
+                  color: Colors.white,
+                )
+                    : const Text('Chấp thuận'),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      child: SizedBox(
+        width: double.infinity,
+        child: TextButton(
+          onPressed: onClose,
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: const Text('Đóng'),
         ),
       ),
     );
   }
 }
 
+// MARK: - Detail Item Component
 class _DetailItem extends StatelessWidget {
   final String label;
   final String value;
@@ -751,6 +869,7 @@ class _DetailItem extends StatelessWidget {
   }
 }
 
+// MARK: - Manual Appointment Sheet
 class ManualAppointmentSheet extends StatefulWidget {
   final DateTime date;
   final List<AppointmentSlotModel> slots;
@@ -788,16 +907,18 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
   late bool _autoApprove;
   bool _isSubmitting = false;
 
-  List<AppointmentSlotModel> get _slotOptions {
+  List<AppointmentSlotModel> get _availableSlots {
     final selected = _selectedSlot;
     return widget.slots
         .where(
           (slot) =>
-              slot.isAvailable ||
-              (selected != null && slot.slotNumber == selected),
-        )
+      slot.isAvailable ||
+          (selected != null && slot.slotNumber == selected),
+    )
         .toList();
   }
+
+  bool get _hasAvailableSlots => _availableSlots.isNotEmpty;
 
   @override
   void initState() {
@@ -825,14 +946,10 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     final slotNumber = _selectedSlot;
     if (slotNumber == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng chọn một khung giờ.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      _showSnackBar('Vui lòng chọn một khung giờ.', Colors.orange.shade400);
       return;
     }
 
@@ -855,14 +972,9 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
 
     if (createdSlot == null) {
       setState(() => _isSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            scheduleVM.errorMessage ?? 'Không thể tạo lịch khám mới',
-          ),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-        ),
+      _showSnackBar(
+        scheduleVM.errorMessage ?? 'Không thể tạo lịch khám mới',
+        Colors.red.shade400,
       );
       return;
     }
@@ -873,334 +985,484 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
-    Navigator.pop(context);
+
+    if (mounted) Navigator.pop(context);
+    _showSnackBar(
+      _autoApprove
+          ? 'Đã tạo và xác nhận lịch mới'
+          : 'Đã tạo yêu cầu lịch khám',
+      Colors.green.shade600,
+    );
+  }
+
+  void _showSnackBar(String message, Color backgroundColor) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          _autoApprove
-              ? 'Đã tạo và xác nhận lịch mới'
-              : 'Đã tạo yêu cầu lịch khám',
-        ),
-        backgroundColor: Colors.green.shade600,
+        content: Text(message),
+        backgroundColor: backgroundColor,
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final dateLabel = DateFormat('dd/MM/yyyy').format(widget.date);
-    final slots = _slotOptions;
-    final hasSlotOptions = slots.isNotEmpty;
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _BottomSheetHandle(),
+                _ManualAppointmentHeader(
+                  date: widget.date,
+                  onClose: () => Navigator.pop(context),
                 ),
-              ),
-              // Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Tạo lịch thủ công',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A2C3E),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Colors.grey.shade500),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
+                const SizedBox(height: 24),
+                _ManualAppointmentForm(
+                  availableSlots: _availableSlots,
+                  hasAvailableSlots: _hasAvailableSlots,
+                  selectedSlot: _selectedSlot,
+                  nameController: _nameController,
+                  phoneController: _phoneController,
+                  noteController: _noteController,
+                  lockPatientInfo: widget.lockPatientInfo,
+                  enableAutoApproveToggle: widget.enableAutoApproveToggle,
+                  autoApprove: _autoApprove,
+                  isSubmitting: _isSubmitting,
+                  onSlotChanged: (value) => setState(() => _selectedSlot = value),
+                  onAutoApproveChanged: (value) => setState(() => _autoApprove = value),
+                  onSubmit: _submit,
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 14,
-                      color: Colors.grey.shade500,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      dateLabel,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Form Fields
-              SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    if (hasSlotOptions)
-                      DropdownButtonFormField<int>(
-                        value: _selectedSlot,
-                        decoration: InputDecoration(
-                          labelText: 'Khung giờ',
-                          labelStyle: TextStyle(color: Colors.grey.shade600),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(
-                              color: AppTheme.primaryColor,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                        ),
-                        items: slots
-                            .map(
-                              (slot) => DropdownMenuItem<int>(
-                                value: slot.slotNumber,
-                                child: Text(
-                                  'Slot ${slot.slotNumber} • ${slot.slotStartTime}-${slot.slotEndTime}',
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: widget.initialSlot != null
-                            ? null
-                            : (value) => setState(() => _selectedSlot = value),
-                        validator: (value) =>
-                            value == null ? 'Vui lòng chọn khung giờ' : null,
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              color: Colors.orange.shade400,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Không còn slot trống trong ngày này',
-                                style: TextStyle(color: Colors.grey.shade600),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: _nameController,
-                      readOnly: widget.lockPatientInfo,
-                      enableInteractiveSelection: !widget.lockPatientInfo,
-                      decoration: InputDecoration(
-                        labelText: 'Tên bệnh nhân',
-                        labelStyle: TextStyle(color: Colors.grey.shade600),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty)
-                          ? 'Nhập tên bệnh nhân'
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _phoneController,
-                      readOnly: widget.lockPatientInfo,
-                      enableInteractiveSelection: !widget.lockPatientInfo,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Số điện thoại',
-                        labelStyle: TextStyle(color: Colors.grey.shade600),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty)
-                          ? 'Nhập số điện thoại'
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _noteController,
-                      decoration: InputDecoration(
-                        labelText: 'Ghi chú (tuỳ chọn)',
-                        labelStyle: TextStyle(color: Colors.grey.shade600),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 12),
-                    if (widget.enableAutoApproveToggle) ...[
-                      SwitchListTile.adaptive(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          'Tự động duyệt lịch sau khi tạo',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        value: _autoApprove,
-                        onChanged: (value) =>
-                            setState(() => _autoApprove = value),
-                        activeColor: AppTheme.primaryColor,
-                      ),
-                    ] else ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 16,
-                              color: Colors.grey.shade500,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Yêu cầu sẽ được gửi ở trạng thái chờ duyệt',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isSubmitting || !hasSlotOptions
-                            ? null
-                            : _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _isSubmitting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                            : const Text(
-                                'Lưu lịch mới',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ],
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// MARK: - Manual Appointment Header
+class _ManualAppointmentHeader extends StatelessWidget {
+  final DateTime date;
+  final VoidCallback onClose;
+
+  const _ManualAppointmentHeader({
+    required this.date,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Tạo lịch thủ công',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A2C3E),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close, color: Colors.grey.shade500),
+            onPressed: onClose,
+            splashRadius: 24,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// MARK: - Manual Appointment Form
+class _ManualAppointmentForm extends StatelessWidget {
+  final List<AppointmentSlotModel> availableSlots;
+  final bool hasAvailableSlots;
+  final int? selectedSlot;
+  final TextEditingController nameController;
+  final TextEditingController phoneController;
+  final TextEditingController noteController;
+  final bool lockPatientInfo;
+  final bool enableAutoApproveToggle;
+  final bool autoApprove;
+  final bool isSubmitting;
+  final Function(int?) onSlotChanged;
+  final Function(bool) onAutoApproveChanged;
+  final VoidCallback onSubmit;
+
+  const _ManualAppointmentForm({
+    required this.availableSlots,
+    required this.hasAvailableSlots,
+    required this.selectedSlot,
+    required this.nameController,
+    required this.phoneController,
+    required this.noteController,
+    required this.lockPatientInfo,
+    required this.enableAutoApproveToggle,
+    required this.autoApprove,
+    required this.isSubmitting,
+    required this.onSlotChanged,
+    required this.onAutoApproveChanged,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          if (hasAvailableSlots)
+            _SlotDropdown(
+              slots: availableSlots,
+              selectedSlot: selectedSlot,
+              isReadOnly: false,
+              onChanged: onSlotChanged,
+            )
+          else
+            _NoSlotWarning(),
+          const SizedBox(height: 20),
+          _TextField(
+            controller: nameController,
+            label: 'Tên bệnh nhân',
+            readOnly: lockPatientInfo,
+            validator: (value) =>
+            (value == null || value.trim().isEmpty)
+                ? 'Nhập tên bệnh nhân'
+                : null,
+          ),
+          const SizedBox(height: 16),
+          _TextField(
+            controller: phoneController,
+            label: 'Số điện thoại',
+            readOnly: lockPatientInfo,
+            keyboardType: TextInputType.phone,
+            validator: (value) =>
+            (value == null || value.trim().isEmpty)
+                ? 'Nhập số điện thoại'
+                : null,
+          ),
+          const SizedBox(height: 16),
+          _TextField(
+            controller: noteController,
+            label: 'Ghi chú (tuỳ chọn)',
+            maxLines: 3,
+          ),
+          const SizedBox(height: 12),
+          if (enableAutoApproveToggle)
+            _AutoApproveToggle(
+              value: autoApprove,
+              onChanged: onAutoApproveChanged,
+            )
+          else
+            _InfoMessage(
+              message: 'Yêu cầu sẽ được gửi ở trạng thái chờ duyệt',
+            ),
+          const SizedBox(height: 24),
+          _SubmitButton(
+            isSubmitting: isSubmitting,
+            isEnabled: hasAvailableSlots,
+            onSubmit: onSubmit,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// MARK: - Slot Dropdown Component
+class _SlotDropdown extends StatelessWidget {
+  final List<AppointmentSlotModel> slots;
+  final int? selectedSlot;
+  final bool isReadOnly;
+  final Function(int?) onChanged;
+
+  const _SlotDropdown({
+    required this.slots,
+    required this.selectedSlot,
+    required this.isReadOnly,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<int>(
+      value: selectedSlot,
+      decoration: _buildInputDecoration('Khung giờ'),
+      items: slots.map((slot) {
+        return DropdownMenuItem<int>(
+          value: slot.slotNumber,
+          child: Text(
+            'Slot ${slot.slotNumber} • ${slot.slotStartTime}-${slot.slotEndTime}',
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+      }).toList(),
+      onChanged: isReadOnly ? null : onChanged,
+      validator: (value) => value == null ? 'Vui lòng chọn khung giờ' : null,
+      isExpanded: true,
+    );
+  }
+
+  InputDecoration _buildInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.grey.shade600),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppTheme.primaryColor),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+}
+
+// MARK: - No Slot Warning
+class _NoSlotWarning extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.orange.shade400,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Không còn slot trống trong ngày này',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// MARK: - Text Field Component
+class _TextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final bool readOnly;
+  final int? maxLines;
+  final TextInputType? keyboardType;
+  final String? Function(String?)? validator;
+
+  const _TextField({
+    required this.controller,
+    required this.label,
+    this.readOnly = false,
+    this.maxLines = 1,
+    this.keyboardType,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      readOnly: readOnly,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey.shade600),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppTheme.primaryColor),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      validator: validator,
+    );
+  }
+}
+
+// MARK: - Auto Approve Toggle
+class _AutoApproveToggle extends StatelessWidget {
+  final bool value;
+  final Function(bool) onChanged;
+
+  const _AutoApproveToggle({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile.adaptive(
+      contentPadding: EdgeInsets.zero,
+      title: const Text(
+        'Tự động duyệt lịch sau khi tạo',
+        style: TextStyle(fontSize: 14),
+      ),
+      value: value,
+      onChanged: onChanged,
+      activeColor: AppTheme.primaryColor,
+    );
+  }
+}
+
+// MARK: - Info Message
+class _InfoMessage extends StatelessWidget {
+  final String message;
+
+  const _InfoMessage({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 16,
+            color: Colors.grey.shade500,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// MARK: - Submit Button
+class _SubmitButton extends StatelessWidget {
+  final bool isSubmitting;
+  final bool isEnabled;
+  final VoidCallback onSubmit;
+
+  const _SubmitButton({
+    required this.isSubmitting,
+    required this.isEnabled,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: isSubmitting || !isEnabled ? null : onSubmit,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.primaryColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          elevation: 0,
+        ),
+        child: isSubmitting
+            ? const _ProcessingIndicator(
+          size: 20,
+          color: Colors.white,
+        )
+            : const Text(
+          'Lưu lịch mới',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// MARK: - Bottom Sheet Handle
+class _BottomSheetHandle extends StatelessWidget {
+  const _BottomSheetHandle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      width: 40,
+      height: 4,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+}
+
+// MARK: - Processing Indicator
+class _ProcessingIndicator extends StatelessWidget {
+  final double size;
+  final Color? color;
+
+  const _ProcessingIndicator({
+    required this.size,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: size,
+      width: size,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        valueColor: color != null
+            ? AlwaysStoppedAnimation<Color>(color!)
+            : null,
       ),
     );
   }

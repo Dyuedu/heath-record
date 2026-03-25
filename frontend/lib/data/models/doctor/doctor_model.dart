@@ -44,7 +44,7 @@ class DoctorModel {
     return DoctorModel(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
-      specialty: json['specialty'] ?? '',
+      specialty: (json['department'] ?? json['specialty'] ?? '').toString(),
       rating: (json['rating'] ?? 0.0).toDouble(),
       heartCount: json['heartCount'] ?? 0,
       gender: json['gender'] == 'male' ? Gender.male : Gender.female,
@@ -67,12 +67,16 @@ class DoctorModel {
     final fallbackName = profile.fullName.trim().isEmpty
         ? profile.email.trim()
         : profile.fullName.trim();
+    final department = profile.department.trim();
+    final resolvedSpecialty = department.isNotEmpty
+        ? department
+        : (profile.address.trim().isNotEmpty
+              ? profile.address.trim()
+              : 'Bác sĩ đa khoa');
     return DoctorModel(
       id: profile.id,
       name: fallbackName.isEmpty ? 'Bác sĩ' : fallbackName,
-      specialty: profile.address.trim().isEmpty
-          ? 'Bác sĩ đa khoa'
-          : profile.address.trim(),
+      specialty: resolvedSpecialty,
       rating: 4.9,
       heartCount: 0,
       gender: gender,
