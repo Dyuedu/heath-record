@@ -218,8 +218,13 @@ class AdminViewModel extends ChangeNotifier {
       _successMessage = 'Tạo người dùng thành công.';
       notifyListeners();
       return true;
-    } catch (_) {
-      _errorMessage = 'Không thể tạo người dùng mới.';
+    } catch (e) {
+      print('AdminViewModel catch (Create): $e');
+      if (e is Exception && e.toString().startsWith('Exception: ')) {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      } else {
+        _errorMessage = 'VM fallback (Create): $e';
+      }
       return false;
     } finally {
       _setSaving(false);
@@ -243,8 +248,12 @@ class AdminViewModel extends ChangeNotifier {
       _successMessage = 'Cập nhật người dùng thành công.';
       notifyListeners();
       return true;
-    } catch (_) {
-      _errorMessage = 'Không thể cập nhật người dùng.';
+    } catch (e) {
+      if (e is Exception && e.toString().startsWith('Exception: ')) {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      } else {
+        _errorMessage = 'Không thể cập nhật người dùng.';
+      }
       return false;
     } finally {
       _setSaving(false);

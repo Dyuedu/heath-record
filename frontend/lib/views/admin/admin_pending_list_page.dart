@@ -6,6 +6,7 @@ import 'package:frontend/views/admin/admin_bottom_nav.dart';
 import 'package:frontend/views/admin/admin_dashboard_page.dart';
 import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_account_approval_page.dart';
+import 'package:frontend/views/admin/admin_profile_page.dart';
 import 'package:frontend/views/admin/admin_account_approval_page.dart';
 import 'package:frontend/views/user/user_profile_page.dart';
 import 'package:frontend/views/admin/admin_tag_management_page.dart';
@@ -47,6 +48,16 @@ class _AdminPendingListPageState extends State<AdminPendingListPage> {
     super.dispose();
   }
 
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return 'Không rõ';
+    try {
+      final DateTime dt = DateTime.parse(dateStr);
+      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+    } catch (e) {
+      return dateStr.split('T').first;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,7 +69,16 @@ class _AdminPendingListPageState extends State<AdminPendingListPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           color: const Color(0xFF1F2A44),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
+              );
+            }
+          },
         ),
         title: const Text(
           'Quản lý Chờ duyệt',
@@ -103,6 +123,8 @@ class _AdminPendingListPageState extends State<AdminPendingListPage> {
                         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
                         border: InputBorder.none,
                         isDense: true,
+                        filled: true,
+                        fillColor: Colors.transparent,
                         contentPadding: EdgeInsets.zero,
                       ),
                     ),
@@ -403,7 +425,7 @@ class _AdminPendingListPageState extends State<AdminPendingListPage> {
                 Icon(Icons.calendar_today_outlined, size: 13, color: Colors.grey.shade400),
                 const SizedBox(width: 5),
                 Text(
-                  'Đăng ký: ${user.createdAt ?? "Không rõ"}',
+                  'Đăng ký: ${_formatDate(user.createdAt)}',
                   style: TextStyle(
                     fontSize: 11,
                     color: Colors.grey.shade400,
@@ -515,6 +537,12 @@ class _AdminPendingListPageState extends State<AdminPendingListPage> {
         break;
       case 2:
         break; // Already here
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminProfilePage()),
+        );
+        break;
     }
   }
   Future<void> _onApproveTapped(String id) async {

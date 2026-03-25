@@ -76,6 +76,16 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
     }
   }
 
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return 'Không rõ';
+    try {
+      final DateTime dt = DateTime.parse(dateStr);
+      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+    } catch (e) {
+      return dateStr.split('T').first;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -209,7 +219,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
           if (_currentUser.createdAt != null)
             _profileInfoRow(
               Icons.calendar_today_outlined,
-              'Đăng ký ngày: ${_currentUser.createdAt}',
+              'Đăng ký ngày: ${_formatDate(_currentUser.createdAt)}',
             ),
         ],
       ),

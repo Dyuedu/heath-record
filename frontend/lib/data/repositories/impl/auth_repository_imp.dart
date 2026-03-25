@@ -4,6 +4,7 @@ import 'package:frontend/data/models/auth/register_request.dart';
 import 'package:frontend/data/models/auth/register_result_model.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
+import 'package:dio/dio.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:dio/dio.dart';
 
@@ -70,6 +71,12 @@ class AuthRepositoryImp implements AuthRepository {
         return false;
       }
     } catch (error) {
+      if (error is DioException && error.response?.data is Map) {
+        final message = error.response!.data['message'];
+        if (message != null) {
+          throw Exception(message);
+        }
+      }
       return false;
     }
   }
@@ -101,9 +108,22 @@ class AuthRepositoryImp implements AuthRepository {
         return RegisterResultModel.fallbackSuccess();
       }
     } on DioException catch (error) {
-      _captureErrorFromDio(error);
-    } catch (_) {
-      _lastErrorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
+      if (error.response?.data is Map) {
+        final data = error.response!.data;
+        if (data['validationErrors'] != null && data['validationErrors'] is Map) {
+          final errors = data['validationErrors'] as Map;
+          if (errors.isNotEmpty) {
+             throw Exception(errors.values.first.toString());
+          }
+        }
+        if (data['message'] != null) {
+          throw Exception(data['message'].toString());
+        }
+      }
+      throw Exception('Đăng ký thất bại. Vui lòng thử lại.');
+    } catch (error) {
+      print('Register error: $error');
+      throw Exception('Đăng ký thất bại. Vui lòng thử lại.');
     }
     return null;
   }

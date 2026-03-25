@@ -4,6 +4,7 @@ import 'package:frontend/views/admin/admin_dashboard_page.dart';
 import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_pending_list_page.dart';
 import 'package:frontend/views/admin/admin_create_account_page.dart';
+import 'package:frontend/views/admin/admin_profile_page.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/views/authentication/signup_page.dart';
 import 'package:frontend/views/home/home_page.dart';
@@ -28,6 +29,7 @@ class AppRouter {
   static const String adminPendingList = '/admin-pending-list';
   static const String adminCreateAccount = '/admin-create-account';
   static const String linkRequestsInbox = '/link-requests-inbox';
+  static const String adminProfile = '/admin-profile';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -85,6 +87,11 @@ class AppRouter {
       case linkRequestsInbox:
         return MaterialPageRoute(
           builder: (_) => const LinkRequestsInboxPage(),
+          settings: settings,
+        );
+      case adminProfile:
+        return MaterialPageRoute(
+          builder: (_) => const AdminProfilePage(),
           settings: settings,
         );
       case medicalRecords:
