@@ -5,12 +5,51 @@ import 'package:frontend/data/models/auth/register_result_model.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:dio/dio.dart';
 
 class AuthRepositoryImp implements AuthRepository {
   final DioClient _dioClient;
   final SecureStorageRepository _secureStorageRepository;
+  String? _lastErrorMessage;
+  Map<String, String> _lastValidationErrors = const {};
 
   AuthRepositoryImp(this._dioClient, this._secureStorageRepository);
+
+  @override
+  String? get lastErrorMessage => _lastErrorMessage;
+
+  @override
+  Map<String, String> get lastValidationErrors => _lastValidationErrors;
+
+  void _clearLastError() {
+    _lastErrorMessage = null;
+    _lastValidationErrors = const {};
+  }
+
+  void _captureErrorFromDio(DioException error) {
+    final data = error.response?.data;
+    if (data is Map) {
+      final map = Map<String, dynamic>.from(data);
+      final message = map['message']?.toString();
+      _lastErrorMessage = (message != null && message.trim().isNotEmpty)
+          ? message
+          : 'Đăng ký thất bại. Vui lòng thử lại.';
+
+      final validation = map['validationErrors'];
+      if (validation is Map) {
+        _lastValidationErrors = validation.map(
+          (key, value) => MapEntry(
+            key.toString(),
+            value?.toString() ?? 'Dữ liệu không hợp lệ',
+          ),
+        );
+      }
+      return;
+    }
+
+    _lastErrorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
+  }
+
   @override
   Future<bool> isLoggedIn() {
     return _secureStorageRepository.getToken().then((token) => token != null);
@@ -42,6 +81,7 @@ class AuthRepositoryImp implements AuthRepository {
 
   @override
   Future<RegisterResultModel?> register(RegisterRequest request) async {
+    _clearLastError();
     try {
       final payload = request.toMap();
       payload['role'] =
@@ -60,8 +100,10 @@ class AuthRepositoryImp implements AuthRepository {
       if (response.statusCode == 200) {
         return RegisterResultModel.fallbackSuccess();
       }
-    } catch (error) {
-      print('Register error: $error');
+    } on DioException catch (error) {
+      _captureErrorFromDio(error);
+    } catch (_) {
+      _lastErrorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
     }
     return null;
   }
