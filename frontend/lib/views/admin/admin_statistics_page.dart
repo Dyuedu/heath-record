@@ -137,31 +137,31 @@ class _AdminStatisticsPageState extends State<AdminStatisticsPage> {
   }
 
   Widget _buildHeader(BuildContext context, AdminViewModel vm) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF246BFF), Color(0xFF5B8DEF)],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 22),
-          ),
-          const SizedBox(width: 10),
-          const Text(
-            'Thống kê',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F2A44),
-            ),
-          ),
-        ],
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+        color: const Color(0xFF1F2A44),
+        onPressed: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
+            );
+          }
+        },
+      ),
+      title: const Text(
+        'Thống kê',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF1F2A44),
+        ),
       ),
     );
   }
