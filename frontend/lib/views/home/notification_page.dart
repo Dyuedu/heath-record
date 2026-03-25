@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/data/models/notification_model.dart';
+import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/viewmodels/notification_viewmodel.dart';
 import 'package:frontend/views/medical-record/single_record_detail_page.dart';
 import 'package:provider/provider.dart';
@@ -142,7 +144,10 @@ class NotificationPage extends StatelessWidget {
     );
   }
 
-  Future<void> _showNotificationDetail(BuildContext context, dynamic notif) async {
+  Future<void> _showNotificationDetail(BuildContext context, NotificationModel notif) async {
+    final hasRecord = notif.recordId != null && notif.recordId!.isNotEmpty;
+    final isLinkRequestNotification = _isLinkRequestNotification(notif);
+
     final patientName = (notif.patientName != null && notif.patientName!.isNotEmpty)
         ? notif.patientName!
         : 'Không xác định';
@@ -160,24 +165,26 @@ class NotificationPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(notif.message),
-              const SizedBox(height: 10),
-              RichText(
-                text: TextSpan(
-                  style: DefaultTextStyle.of(dialogContext).style,
-                  children: [
-                    const TextSpan(text: 'Bác sĩ: '),
-                    TextSpan(
-                      text: doctorName,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ],
+              if (hasRecord) ...[
+                const SizedBox(height: 10),
+                RichText(
+                  text: TextSpan(
+                    style: DefaultTextStyle.of(dialogContext).style,
+                    children: [
+                      const TextSpan(text: 'Bác sĩ: '),
+                      TextSpan(
+                        text: doctorName,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Người được thêm bệnh án: $patientName',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  'Người được thêm bệnh án: $patientName',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
             ],
           ),
           actions: [
@@ -185,7 +192,15 @@ class NotificationPage extends StatelessWidget {
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Đóng'),
             ),
-            if (notif.recordId != null && notif.recordId!.isNotEmpty)
+            if (isLinkRequestNotification)
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  Navigator.pushNamed(context, AppRouter.linkRequestsInbox);
+                },
+                child: const Text('Mở yêu cầu liên kết'),
+              ),
+            if (hasRecord)
               FilledButton(
                 onPressed: () {
                   Navigator.pop(dialogContext);
@@ -202,6 +217,12 @@ class NotificationPage extends StatelessWidget {
         );
       },
     );
+  }
+
+  bool _isLinkRequestNotification(NotificationModel notif) {
+    final title = notif.title.toLowerCase();
+    final message = notif.message.toLowerCase();
+    return title.contains('liên kết hồ sơ') || message.contains('liên kết hồ sơ');
   }
 
   String _formatDuration(DateTime timestamp) {

@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/data/models/tag/tag_model.dart';
 import 'package:frontend/viewmodels/admin_tag_viewmodel.dart';
-import 'package:frontend/views/admin/admin_bottom_nav.dart';
-import 'package:frontend/views/admin/admin_dashboard_page.dart';
-import 'package:frontend/views/admin/admin_user_management_page.dart';
-import 'package:frontend/views/admin/admin_pending_list_page.dart';
 import 'package:frontend/views/admin/widgets/tag_form_dialog.dart';
 
 class AdminTagManagementPage extends StatefulWidget {

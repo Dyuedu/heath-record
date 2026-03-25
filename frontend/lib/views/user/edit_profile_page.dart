@@ -216,14 +216,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
+          _buildRequiredLabel(label),
           const SizedBox(height: 8),
           TextFormField(
             controller: controller,
@@ -255,14 +248,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Giới tính:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
+          _buildRequiredLabel('Giới tính:'),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             initialValue: _selectedGender,
@@ -358,5 +344,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (value == 'nam') return 'Nam';
     if (value == 'nữ' || value == 'nu') return 'Nữ';
     return null;
+  }
+
+  Widget _buildRequiredLabel(String text) {
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+        children: [
+          TextSpan(text: text),
+          const TextSpan(
+            text: ' *',
+            style: TextStyle(color: Colors.redAccent),
+          ),
+        ],
+      ),
+    );
   }
 }

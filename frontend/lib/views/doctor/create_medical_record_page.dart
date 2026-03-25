@@ -411,7 +411,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
       controller: controller,
       maxLines: maxLines,
       decoration: InputDecoration(
-        labelText: '$label${required ? ' *' : ''}',
+        label: required ? _buildRequiredLabel(label) : Text(label),
         prefixIcon: Icon(icon, color: AppTheme.primaryColor),
         filled: true,
         fillColor: AppTheme.primaryLight.withOpacity(0.35),
@@ -501,7 +501,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
               controller: textEditingController,
               focusNode: focusNode,
               decoration: InputDecoration(
-                labelText: 'Bệnh nhân / Người thân (tìm theo tên/số ĐT) *',
+                label: _buildRequiredLabel('Bệnh nhân / Người thân (tìm theo tên/số ĐT)'),
                 prefixIcon: const Icon(
                   Icons.person,
                   color: AppTheme.primaryColor,
@@ -531,6 +531,21 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
                   _selectedRelative == null ? 'Vui lòng chọn bệnh nhân' : null,
             );
           },
+    );
+  }
+
+  Widget _buildRequiredLabel(String text) {
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(fontSize: 16, color: AppTheme.bodyTextColor),
+        children: [
+          TextSpan(text: text),
+          const TextSpan(
+            text: ' *',
+            style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
     );
   }
 

@@ -104,7 +104,7 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<bool> register(
     String fullname,
-    String? identityNumber,
+    String identityNumber,
     String email,
     String phone,
     String password, {
@@ -123,7 +123,7 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<RegisterResultModel?> registerWithResult(
     String fullname,
-    String? identityNumber,
+    String identityNumber,
     String email,
     String phone,
     String password, {

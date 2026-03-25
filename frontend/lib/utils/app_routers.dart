@@ -5,6 +5,7 @@ import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_pending_list_page.dart';
 import 'package:frontend/views/admin/admin_create_account_page.dart';
 import 'package:frontend/views/admin/admin_profile_page.dart';
+import 'package:frontend/views/authentication/activation_result_page.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/views/authentication/signup_page.dart';
 import 'package:frontend/views/home/home_page.dart';
@@ -34,8 +35,14 @@ class AppRouter {
   static const String adminProfile = '/admin-profile';
   static const String doctorSchedule = '/doctor-schedule';
   static const String patientBookAppointment = '/patient-book-appointment';
+  static const String activationResult = '/activation-result';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
+    final activationRoute = _tryBuildActivationRouteFromIncomingRoute(settings);
+    if (activationRoute != null) {
+      return activationRoute;
+    }
+
     switch (settings.name) {
       case home:
         return MaterialPageRoute(
@@ -108,6 +115,19 @@ class AppRouter {
       //     builder: (_) => const PatientBookAppointmentPage(),
       //     settings: settings,
       //   );
+      case activationResult:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final success = args?['success'] == true;
+        final message = (args?['message']?.toString() ?? '').trim();
+        return MaterialPageRoute(
+          builder: (_) => ActivationResultPage(
+            success: success,
+            message: message.isEmpty
+                ? (success ? 'Tai khoan da duoc kich hoat.' : 'Khong the kich hoat tai khoan.')
+                : message,
+          ),
+          settings: settings,
+        );
       case medicalRecords:
       // return MaterialPageRoute(
       //   builder: (_) => const MedicalRecordsPage(),
@@ -123,5 +143,47 @@ class AppRouter {
           ),
         );
     }
+  }
+
+  static Route<dynamic>? _tryBuildActivationRouteFromIncomingRoute(
+    RouteSettings settings,
+  ) {
+    final name = (settings.name ?? '').trim();
+    if (name.isEmpty) {
+      return null;
+    }
+
+    // Android can pass deep-link queries as initial route, e.g. /?status=success...
+    final looksLikeQueryRoute = name.startsWith('/?');
+    final looksLikeActivationPath = name.startsWith('/activation');
+    if (!looksLikeQueryRoute && !looksLikeActivationPath) {
+      return null;
+    }
+
+    final uri = Uri.tryParse(name);
+    if (uri == null) {
+      return null;
+    }
+
+    final status = (uri.queryParameters['status'] ?? '').toLowerCase();
+    final message = (uri.queryParameters['message'] ?? '').trim();
+    if (status.isEmpty && message.isEmpty) {
+      return null;
+    }
+
+    final success = status == 'success';
+    final resolvedMessage = message.isEmpty
+        ? (success
+            ? 'Tai khoan da duoc kich hoat.'
+            : 'Khong the kich hoat tai khoan.')
+        : message;
+
+    return MaterialPageRoute(
+      builder: (_) => ActivationResultPage(
+        success: success,
+        message: resolvedMessage,
+      ),
+      settings: settings,
+    );
   }
 }

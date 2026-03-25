@@ -67,6 +67,14 @@ public class AuthService {
         List<User> usersByPhone = normalizedPhone != null
                 ? userRepository.findAllByPhoneNumber(normalizedPhone)
                 : List.of();
+        Profile duplicated = null;
+        if (enableProfileLinkApproval) {
+            duplicated = linkRequestService.detectDuplicateProfile(
+                normalizedIdentity,
+                normalizedPhone
+            ).orElse(null);
+        }
+
         Profile existingByIdentity = normalizedIdentity != null
                 ? profileRepository.findFirstByIdentityNumber(normalizedIdentity).orElse(null)
                 : null;
@@ -76,10 +84,12 @@ public class AuthService {
         if (hasDuplicateConflict(usersByEmail, pendingUser)) {
             errors.add(new EmailDuplicateException(registerRequest.email()));
         }
-        if (hasDuplicateConflict(usersByPhone, pendingUser)) {
+        boolean hasPhoneConflict = hasDuplicateConflict(usersByPhone, pendingUser);
+        if (hasPhoneConflict && !isPhoneConflictAllowedForLinkRequest(usersByPhone, pendingUser, duplicated)) {
             errors.add(new PhoneDuplicateException(registerRequest.phone()));
         }
-        if (existingByIdentity != null && !isSameProfileOfUser(existingByIdentity, pendingUser)) {
+        boolean isIdentityConflict = existingByIdentity != null && !isSameProfileOfUser(existingByIdentity, pendingUser);
+        if (isIdentityConflict && duplicated == null) {
             errors.add(new IdentityDuplicateException(registerRequest.identityNumber()));
         }
         if (!errors.isEmpty()) {
@@ -95,14 +105,6 @@ public class AuthService {
                     .requestId(null)
                     .message("Tài khoản đang chờ xác thực đã được cập nhật. Vui lòng kiểm tra email để nhận mã OTP mới.")
                     .build();
-        }
-
-        Profile duplicated = null;
-        if (enableProfileLinkApproval) {
-            duplicated = linkRequestService.detectDuplicateProfile(
-                normalizedIdentity,
-                normalizedPhone
-            ).orElse(null);
         }
 
         boolean confirmLink = Boolean.TRUE.equals(registerRequest.confirmLinkRequest());
@@ -313,6 +315,27 @@ public class AuthService {
                 && user != null
                 && user.getProfile() != null
                 && profile.getId().equals(user.getProfile().getId());
+    }
+
+    private boolean isPhoneConflictAllowedForLinkRequest(List<User> usersByPhone, User pendingUser, Profile duplicated) {
+        if (duplicated == null) {
+            return false;
+        }
+
+        User ownerUser = relativeRepository.findFirstByProfileId(duplicated.getId())
+                .map(Relative::getUser)
+                .orElse(null);
+
+        for (User user : usersByPhone) {
+            if (isSameUser(user, pendingUser)) {
+                continue;
+            }
+            if (ownerUser != null && isSameUser(user, ownerUser)) {
+                continue;
+            }
+            return false;
+        }
+        return true;
     }
 
     private String generateOtp() {

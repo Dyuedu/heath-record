@@ -206,6 +206,7 @@ class AdminRepositoryImp implements AdminRepository {
       print('Unexpected error when creating user: $error');
       throw Exception('Repo unexpected error (Create)');
     }
+    return null;
   }
 
   @override
@@ -229,5 +230,6 @@ class AdminRepositoryImp implements AdminRepository {
       print('Unexpected error when updating user: $error');
       throw Exception('Không thể cập nhật người dùng.');
     }
+    return null;
   }
 }

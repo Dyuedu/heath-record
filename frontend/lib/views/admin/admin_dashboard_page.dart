@@ -4,7 +4,6 @@ import 'package:frontend/views/admin/admin_bottom_nav.dart';
 import 'package:frontend/views/admin/admin_user_management_page.dart';
 import 'package:frontend/views/admin/admin_statistics_page.dart';
 import 'package:frontend/viewmodels/admin_viewmodel.dart';
-import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/views/admin/admin_profile_page.dart';
 import 'package:frontend/views/authentication/login_page.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
@@ -56,7 +55,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   const SizedBox(height: 20),
 
                   // Stat cards row
-                  _buildStatCardsRow(userCount, recordsCount),
+                  _buildStatCardsRow(userCount, pendingCount),
+                  const SizedBox(height: 16),
+
+                  // Monthly records stat
+                  _buildMonthlyRecordCard(recordsCount),
                   const SizedBox(height: 20),
 
                   // Mini chart preview
@@ -123,7 +126,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             color: const Color(0xFF246BFF),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.shield_outlined, color: Colors.white, size: 22),
+          child: const Icon(
+            Icons.shield_outlined,
+            color: Colors.white,
+            size: 22,
+          ),
         ),
         const SizedBox(width: 10),
         const Text(
@@ -321,16 +328,78 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-
+  Widget _buildMonthlyRecordCard(int recordsCount) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.description_rounded,
+              color: Color(0xFF10B981),
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'BỆNH ÁN MỚI (THÁNG NÀY)',
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  recordsCount.toString(),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1F2A44),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildMiniChartPreview(AdminViewModel vm) {
     final rawData = vm.recordStats?['chartData'];
-    final List<Map<String, dynamic>> chartData =
-        rawData != null ? (rawData as List).cast<Map<String, dynamic>>() : [];
+    final List<Map<String, dynamic>> chartData = rawData != null
+        ? (rawData as List).cast<Map<String, dynamic>>()
+        : [];
 
     final hasData = chartData.isNotEmpty;
     final maxY = hasData
-        ? chartData.map((d) => (d['count'] as num).toDouble()).fold(0.0, (a, b) => a > b ? a : b)
+        ? chartData
+              .map((d) => (d['count'] as num).toDouble())
+              .fold(0.0, (a, b) => a > b ? a : b)
         : 1.0;
 
     return GestureDetector(
@@ -361,7 +430,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 18),
+                const Icon(
+                  Icons.bar_chart_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
@@ -373,7 +446,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ),
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white70,
+                  size: 14,
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -383,7 +460,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ? Center(
                       child: Text(
                         'Chưa có dữ liệu',
-                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 12,
+                        ),
                       ),
                     )
                   : BarChart(
@@ -397,7 +477,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 toY: (e.value['count'] as num).toDouble(),
                                 color: Colors.white.withOpacity(0.8),
                                 width: 8,
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(4),
+                                ),
                               ),
                             ],
                           );
@@ -405,10 +487,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         gridData: const FlGridData(show: false),
                         borderData: FlBorderData(show: false),
                         titlesData: const FlTitlesData(
-                          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          rightTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          topTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
                         ),
                         barTouchData: BarTouchData(enabled: false),
                       ),
@@ -543,7 +633,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const AdminUserManagementPage()),
+                    MaterialPageRoute(
+                      builder: (_) => const AdminUserManagementPage(),
+                    ),
                   );
                 },
               ),
@@ -579,7 +671,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const AdminHospitalManagementPage()),
+                    MaterialPageRoute(
+                      builder: (_) => const AdminHospitalManagementPage(),
+                    ),
                   );
                 },
               ),
@@ -595,17 +689,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const AdminTagManagementPage()),
+                    MaterialPageRoute(
+                      builder: (_) => const AdminTagManagementPage(),
+                    ),
                   );
                 },
               ),
             ),
           ],
         ),
-
-
-          ],
-        );
+      ],
+    );
   }
 
   Widget _shortcutItem({
@@ -658,10 +752,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey.shade400,
-              ),
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
             ),
           ],
         ),
@@ -769,12 +860,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     bool isLast = false,
   }) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        isFirst ? 16 : 12,
-        16,
-        isLast ? 16 : 12,
-      ),
+      padding: EdgeInsets.fromLTRB(16, isFirst ? 16 : 12, 16, isLast ? 16 : 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -821,7 +907,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.access_time_rounded, size: 13, color: Colors.grey.shade400),
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 13,
+                      color: Colors.grey.shade400,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       time,
@@ -840,4 +930,31 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
+  void _showLogoutDialog(BuildContext context, AuthViewModel vm) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Đăng xuất'),
+        content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await vm.logout();
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
+            },
+            child: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
+}

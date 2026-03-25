@@ -429,7 +429,7 @@ class _AdminStatisticsPageState extends State<AdminStatisticsPage> {
     }
 
     final List<Map<String, dynamic>> chartData =
-        (rawData as List).cast<Map<String, dynamic>>();
+        (rawData).cast<Map<String, dynamic>>();
 
     return chartType == 'bar'
         ? _buildBarChart(chartData, gradient)

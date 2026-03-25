@@ -53,7 +53,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildLabel('OTP:'),
+              _buildLabel('OTP:', isRequired: true),
               TextFormField(
                 controller: _otpController,
                 keyboardType: TextInputType.number,
@@ -99,7 +99,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 ],
               ),
               const SizedBox(height: 20),
-              _buildLabel('Mật khẩu mới:'),
+              _buildLabel('Mật khẩu mới:', isRequired: true),
               TextFormField(
                 controller: _newPasswordController,
                 obscureText: true,
@@ -120,7 +120,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildLabel('Xác nhận mật khẩu mới:'),
+              _buildLabel('Xác nhận mật khẩu mới:', isRequired: true),
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: true,
@@ -244,15 +244,24 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, {bool isRequired = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+          children: [
+            TextSpan(text: text),
+            if (isRequired)
+              const TextSpan(
+                text: ' *',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+          ],
         ),
       ),
     );
