@@ -34,6 +34,11 @@ class AppRouter {
   static const String activationResult = '/activation-result';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
+    final activationRoute = _tryBuildActivationRouteFromIncomingRoute(settings);
+    if (activationRoute != null) {
+      return activationRoute;
+    }
+
     switch (settings.name) {
       case home:
         return MaterialPageRoute(
@@ -124,5 +129,47 @@ class AppRouter {
           ),
         );
     }
+  }
+
+  static Route<dynamic>? _tryBuildActivationRouteFromIncomingRoute(
+    RouteSettings settings,
+  ) {
+    final name = (settings.name ?? '').trim();
+    if (name.isEmpty) {
+      return null;
+    }
+
+    // Android can pass deep-link queries as initial route, e.g. /?status=success...
+    final looksLikeQueryRoute = name.startsWith('/?');
+    final looksLikeActivationPath = name.startsWith('/activation');
+    if (!looksLikeQueryRoute && !looksLikeActivationPath) {
+      return null;
+    }
+
+    final uri = Uri.tryParse(name);
+    if (uri == null) {
+      return null;
+    }
+
+    final status = (uri.queryParameters['status'] ?? '').toLowerCase();
+    final message = (uri.queryParameters['message'] ?? '').trim();
+    if (status.isEmpty && message.isEmpty) {
+      return null;
+    }
+
+    final success = status == 'success';
+    final resolvedMessage = message.isEmpty
+        ? (success
+            ? 'Tai khoan da duoc kich hoat.'
+            : 'Khong the kich hoat tai khoan.')
+        : message;
+
+    return MaterialPageRoute(
+      builder: (_) => ActivationResultPage(
+        success: success,
+        message: resolvedMessage,
+      ),
+      settings: settings,
+    );
   }
 }
