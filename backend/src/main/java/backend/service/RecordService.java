@@ -92,8 +92,7 @@ public class RecordService {
     }
 
     public RelativeHealthHistoryResponse getRecordsByProfile(UUID userId, UUID profileId) {
-        Relative relative = relativeRepository.findFirstByUserIdAndProfileId(userId, profileId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người thân"));
+        Relative relative = getOwnedRelative(userId, profileId);
 
         List<MedicalRecord> records = medicalRecordRepository.findByProfileId(profileId);
         return medicalRecordMapper.toRelativeHistory(relative, records);
@@ -163,8 +162,19 @@ public class RecordService {
     }
 
     private Relative getOwnedRelative(UUID userId, UUID profileId) {
-        return relativeRepository.findFirstByUserIdAndProfileId(userId, profileId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ người thân"));
+        List<Relative> candidates = relativeRepository.findAllByUserIdAndProfileId(userId, profileId);
+        if (candidates.isEmpty()) {
+            throw new ResourceNotFoundException("Không tìm thấy hồ sơ người thân");
+        }
+
+        for (Relative candidate : candidates) {
+            String relationship = candidate.getRelationship();
+            if (!"ME".equalsIgnoreCase(relationship != null ? relationship.trim() : "")) {
+                return candidate;
+            }
+        }
+
+        return candidates.get(0);
     }
 
     private RelativeProfileDetailResponse mapToRelativeProfileDetail(Relative relative) {
