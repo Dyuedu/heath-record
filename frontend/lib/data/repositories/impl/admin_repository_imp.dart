@@ -9,6 +9,21 @@ class AdminRepositoryImp implements AdminRepository {
 
   AdminRepositoryImp(this._dioClient);
 
+  void _throwIfApiError(DioException error) {
+    if (error.response?.data is Map) {
+      final data = error.response!.data;
+      if (data['validationErrors'] != null && data['validationErrors'] is Map) {
+        final errors = data['validationErrors'] as Map;
+        if (errors.isNotEmpty) {
+          throw Exception(errors.values.first.toString());
+        }
+      }
+      if (data['message'] != null) {
+        throw Exception(data['message'].toString());
+      }
+    }
+  }
+
   @override
   Future<List<UserProfileModel>> getAllUsers() async {
     return searchUsers();
@@ -148,11 +163,13 @@ class AdminRepositoryImp implements AdminRepository {
         return UserProfileModel.fromMap(response.data);
       }
     } on DioException catch (error) {
-      print('Create user failed: ${error.message}');
+      print('Create user failed (DioException): ${error.message}, data: ${error.response?.data}');
+      _throwIfApiError(error);
+      throw Exception('Repo generic error (Create): ${error.response?.data}');
     } catch (error) {
       print('Unexpected error when creating user: $error');
+      throw Exception('Repo unexpected error (Create)');
     }
-    return null;
   }
 
   @override
@@ -170,9 +187,11 @@ class AdminRepositoryImp implements AdminRepository {
       }
     } on DioException catch (error) {
       print('Update user failed: ${error.message}');
+      _throwIfApiError(error);
+      throw Exception('Không thể cập nhật người dùng.');
     } catch (error) {
       print('Unexpected error when updating user: $error');
+      throw Exception('Không thể cập nhật người dùng.');
     }
-    return null;
   }
 }

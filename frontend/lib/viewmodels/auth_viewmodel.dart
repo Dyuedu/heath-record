@@ -43,7 +43,11 @@ class AuthViewModel extends ChangeNotifier {
       _setLoading(false);
       return success;
     } catch (e) {
-      _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
+      if (e is Exception && e.toString().startsWith("Exception: ")) {
+        _errorMessage = e.toString().replaceFirst("Exception: ", "");
+      } else {
+        _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
+      }
       _setLoading(false);
       return false;
     }
@@ -143,7 +147,11 @@ class AuthViewModel extends ChangeNotifier {
       _setLoading(false);
       return result;
     } catch (e) {
-      _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
+      if (e is Exception && e.toString().startsWith("Exception: ")) {
+        _errorMessage = e.toString().replaceFirst("Exception: ", "");
+      } else {
+        _errorMessage = "Đã xảy ra lỗi kết nối. Vui lòng thử lại.";
+      }
       _setLoading(false);
       return null;
     }

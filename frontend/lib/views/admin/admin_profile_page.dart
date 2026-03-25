@@ -11,17 +11,19 @@ import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/notification_viewmodel.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../../viewmodels/user_viewmodel.dart';
-import '../../widgets/bottom_nav.dart';
-import 'edit_profile_page.dart';
+import 'package:frontend/views/admin/admin_bottom_nav.dart';
+import 'package:frontend/views/admin/admin_dashboard_page.dart';
+import 'package:frontend/views/admin/admin_user_management_page.dart';
+import 'package:frontend/views/admin/admin_pending_list_page.dart';
 
-class UserProfilePage extends StatefulWidget {
-  const UserProfilePage({super.key});
+class AdminProfilePage extends StatefulWidget {
+  const AdminProfilePage({super.key});
 
   @override
-  State<UserProfilePage> createState() => _UserProfilePageState();
+  State<AdminProfilePage> createState() => _AdminProfilePageState();
 }
 
-class _UserProfilePageState extends State<UserProfilePage> {
+class _AdminProfilePageState extends State<AdminProfilePage> {
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -39,14 +41,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
     final profile = userVM.profile;
     final avatar = (profile?.avatarUrl ?? '').trim();
 
-    final isAdmin = profile?.role?.toUpperCase() == 'ADMIN';
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Nền xám nhạt như ảnh
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Hồ sơ', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text('Hồ sơ Quản trị viên', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
@@ -68,16 +68,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         _buildAvatar(avatar, userVM.isAvatarUploading),
                         const SizedBox(height: 16),
                         Text(
-                          profile?.fullName ?? 'Người dùng',
+                          profile?.fullName ?? 'Admin',
                           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A)),
                         ),
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(color: const Color(0xFFE8F1FF), borderRadius: BorderRadius.circular(20)),
+                          decoration: BoxDecoration(color: const Color(0xFFFFEEEE), borderRadius: BorderRadius.circular(20)),
                           child: Text(
-                            (profile?.role ?? 'Người dùng').toUpperCase(),
-                            style: const TextStyle(color: Color(0xFF007BFF), fontSize: 11, fontWeight: FontWeight.bold),
+                            (profile?.role ?? 'ADMIN').toUpperCase(),
+                            style: const TextStyle(color: Color(0xFFE53935), fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -89,17 +89,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   _buildSectionTitle('THÔNG TIN LIÊN HỆ'),
                   _buildInfoCard([
                     _buildInfoTile(Icons.email_outlined, 'Email', profile?.email ?? '-', Colors.blue),
-                    _buildInfoTile(Icons.phone_outlined, 'Số điện thoại', profile?.phoneNumber ?? '-', Colors.blue),
-                    _buildInfoTile(Icons.location_on_outlined, 'Địa chỉ', profile?.address ?? '-', Colors.blue, isLast: true),
+                    _buildInfoTile(Icons.phone_outlined, 'Số điện thoại', profile?.phoneNumber ?? '-', Colors.green),
+                    _buildInfoTile(Icons.location_on_outlined, 'Địa chỉ', profile?.address ?? '-', Colors.red, isLast: true),
                   ]),
 
                   // --- Section: TÀI KHOẢN & BẢO MẬT ---
                   _buildSectionTitle('TÀI KHOẢN & BẢO MẬT'),
                   _buildInfoCard([
-                    _buildActionTile(Icons.person_outline, 'Chỉnh sửa hồ sơ', _openEditProfile),
                     _buildActionTile(Icons.lock_outline, 'Đổi mật khẩu', () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordPage()));
-                    }),
+                    }, isLast: true),
                   ]),
 
                   // --- Logout Button ---
@@ -108,7 +107,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: ElevatedButton(
                       onPressed: () => _showLogoutDialog(context, authVM),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF05454), // Màu đỏ nhạt như ảnh
+                        backgroundColor: const Color(0xFFF05454),
                         foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 52),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -127,8 +126,30 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 ],
               ),
             ),
-      bottomNavigationBar: const CustomBottomNav(),
+      bottomNavigationBar: AdminBottomNav(
+        currentIndex: 3,
+        onTap: (index) => _onNavTap(context, index),
+      ),
     );
+  }
+
+  void _onNavTap(BuildContext context, int index) {
+    if (index == 3) return; // Already here
+    Widget page;
+    switch (index) {
+      case 0:
+        page = const AdminDashboardPage();
+        break;
+      case 1:
+        page = const AdminUserManagementPage();
+        break;
+      case 2:
+        page = const AdminPendingListPage();
+        break;
+      default:
+        return;
+    }
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => page));
   }
 
   // --- Widget Components ---
@@ -233,7 +254,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  // --- Giữ nguyên toàn bộ logic functions cũ ---
   Future<void> _onPickAvatar() async {
     try {
       final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
@@ -256,8 +276,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
         title: const Text('Đăng xuất'),
         content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Hủy')),
-          TextButton(
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Hủy', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53935)),
             onPressed: () async {
               await vm.logout();
               if (!context.mounted) return;
@@ -266,16 +287,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
               context.read<NotificationViewModel>().clearSessionData();
               Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
             },
-            child: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+            child: const Text('Đăng xuất', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
-  }
-
-  Future<void> _openEditProfile() async {
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfilePage()));
-    if (!mounted) return;
-    context.read<UserViewModel>().loadMyProfile();
   }
 }

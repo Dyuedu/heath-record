@@ -12,10 +12,10 @@ class DioClient {
   DioClient(this._storage) {
     final configuredBaseUrl = const String.fromEnvironment('API_BASE_URL');
     final fallbackBaseUrl = kIsWeb
-        ? 'http://192.168.1.22:8081'
+        ? 'http://10.0.2.2:8081'
         : defaultTargetPlatform == TargetPlatform.android
-        ? 'http://192.168.1.22:8081'
-        : 'http://192.168.1.22:8081';
+        ? 'http://10.0.2.2:8081'
+        : 'http://10.0.2.2:8081';
 
     _dio = Dio(
       BaseOptions(
@@ -50,8 +50,12 @@ class DioClient {
         onError: (DioException e, handler) async {
           // Xử lý khi Server trả về 401 Unauthorized
           if (e.response?.statusCode == 401) {
+            String? errorMessage;
+            if (e.response?.data is Map && e.response!.data['message'] != null) {
+              errorMessage = e.response!.data['message'];
+            }
             await _storage.deleteToken();
-            _redirectToLogin();
+            _redirectToLogin(errorMessage);
           }
           return handler.next(e);
         },
@@ -59,12 +63,22 @@ class DioClient {
     );
   }
 
+  static bool _isNavigatingToLogin = false;
+
   // Hàm điều hướng tập trung
-  void _redirectToLogin() {
+  void _redirectToLogin([String? message]) {
+    if (_isNavigatingToLogin) return;
+    _isNavigatingToLogin = true;
+
     navigatorKey.currentState?.pushNamedAndRemoveUntil(
       AppRouter.login,
       (route) => false,
+      arguments: message,
     );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      _isNavigatingToLogin = false;
+    });
   }
 
   Dio get dio => _dio;
