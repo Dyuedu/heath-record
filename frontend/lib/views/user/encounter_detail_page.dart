@@ -129,7 +129,6 @@ class EncounterDetailPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          _buildInfoRow('ID', diagnostic.id?.toString()),
           _buildInfoRow('Tag chính', diagnostic.tag),
           _buildInfoRow('Bác sĩ', diagnostic.doctor),
           _buildInfoRow('Cơ sở y tế', diagnostic.hospitalName),
