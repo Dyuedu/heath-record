@@ -1,3 +1,4 @@
+import 'package:frontend/data/models/appointment/appointment_detail_model.dart';
 import 'package:frontend/data/models/doctor/appointment_slot_model.dart';
 import 'package:frontend/data/models/doctor/doctor_schedule_day_model.dart';
 
@@ -34,4 +35,13 @@ abstract class AppointmentRepository {
     required bool approve,
     String? notes,
   });
+
+  /// Lấy số lượng lịch đang chờ duyệt của bác sĩ hiện tại
+  Future<int> getPendingAppointmentCount();
+
+  /// Lấy danh sách lịch khám của người dùng hiện tại
+  Future<List<AppointmentDetailModel>> getMyAppointments({String? status});
+
+  /// Lấy chi tiết một lịch khám cụ thể
+  Future<AppointmentDetailModel?> getAppointmentDetail(int appointmentId);
 }

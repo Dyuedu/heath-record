@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Thông báo cập nhật lịch khám</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f5f7fb;
+            margin: 0;
+            padding: 0;
+            color: #1f2a37;
+        }
+        .wrapper {
+            width: 100%;
+            padding: 24px 0;
+            background-color: #f5f7fb;
+        }
+        .container {
+            max-width: 560px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 32px;
+            box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+        }
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 30px;
+            background: #fee2e2;
+            color: #b91c1c;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        h1 {
+            font-size: 22px;
+            margin: 18px 0 8px;
+            color: #111827;
+        }
+        p {
+            line-height: 1.6;
+            margin: 14px 0;
+        }
+        .card {
+            border-radius: 16px;
+            background: #f8fafc;
+            padding: 18px;
+            margin-top: 20px;
+        }
+        .card-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .card-row span:first-child {
+            font-weight: 600;
+            color: #64748b;
+        }
+        .reason {
+            margin-top: 12px;
+            padding: 16px;
+            border-left: 4px solid #f87171;
+            background: #fff6f6;
+            border-radius: 12px;
+            color: #991b1b;
+        }
+        .footer {
+            margin-top: 28px;
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="container">
+        <span class="badge">Lịch khám bị từ chối</span>
+        <h1 th:text="'Xin chào ' + ${patientName} + ','">Xin chào bạn,</h1>
+        <p>
+            Bác sĩ <strong th:text="${doctorName}">Dr. Demo</strong> rất tiếc phải thông báo
+            rằng lịch khám của bạn đã bị từ chối ở khung giờ bên dưới. Bạn có thể chọn lại
+            một lịch hẹn khác phù hợp hơn trong ứng dụng.
+        </p>
+
+        <div class="card">
+            <div class="card-row">
+                <span>Ngày khám</span>
+                <span th:text="${appointmentDate}">01/01/2024</span>
+            </div>
+            <div class="card-row">
+                <span>Khung giờ</span>
+                <span th:text="${slotRange}">08:00 - 09:30</span>
+            </div>
+        </div>
+
+        <div class="reason">
+            <strong>Lý do từ chối:</strong>
+            <p th:text="${reason}">Bác sĩ bận đột xuất.</p>
+        </div>
+
+        <p>
+            Nếu cần hỗ trợ đặt lại lịch, vui lòng phản hồi email này hoặc sử dụng chức năng
+            đặt lịch trong ứng dụng Health Record.
+        </p>
+
+        <p>Trân trọng,<br/>Health Record Support</p>
+
+        <div class="footer">
+            Đây là email tự động, vui lòng không trả lời lại.
+        </div>
+    </div>
+</div>
+</body>
+</html>

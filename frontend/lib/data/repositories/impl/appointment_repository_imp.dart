@@ -1,4 +1,5 @@
 import 'package:frontend/data/dio/dio_client.dart';
+import 'package:frontend/data/models/appointment/appointment_detail_model.dart';
 import 'package:frontend/data/models/doctor/appointment_slot_model.dart';
 import 'package:frontend/data/models/doctor/doctor_schedule_day_model.dart';
 import 'package:frontend/data/repositories/appointment_repository.dart';
@@ -99,6 +100,70 @@ class AppointmentRepositoryImp implements AppointmentRepository {
       return null;
     } catch (e) {
       print('Error approving/rejecting appointment: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<int> getPendingAppointmentCount() async {
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/v1/appointments/doctor/pending/count',
+      );
+      if (response.statusCode == 200 && response.data is Map) {
+        return (response.data['pendingCount'] as num?)?.toInt() ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      print('Error fetching pending appointment count: $e');
+      return 0;
+    }
+  }
+
+  @override
+  Future<List<AppointmentDetailModel>> getMyAppointments({
+    String? status,
+  }) async {
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/v1/appointments/patient/me',
+        queryParameters: status == null || status.isEmpty
+            ? null
+            : {'status': status},
+      );
+
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map(
+              (e) => AppointmentDetailModel.fromMap(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
+            .toList();
+      }
+      return const [];
+    } catch (e) {
+      print('Error fetching appointments: $e');
+      return const [];
+    }
+  }
+
+  @override
+  Future<AppointmentDetailModel?> getAppointmentDetail(
+    int appointmentId,
+  ) async {
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/v1/appointments/$appointmentId',
+      );
+      if (response.statusCode == 200 && response.data is Map) {
+        return AppointmentDetailModel.fromMap(
+          Map<String, dynamic>.from(response.data as Map),
+        );
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching appointment detail: $e');
       return null;
     }
   }

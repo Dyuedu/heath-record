@@ -27,8 +27,13 @@ class AppointmentSlotWidget extends StatefulWidget {
 class _AppointmentSlotWidgetState extends State<AppointmentSlotWidget> {
   bool _isProcessing = false;
 
-  bool get _canManage =>
+  bool get _canApprove =>
       widget.showActions && widget.slot.isPending && widget.slot.id != 0;
+
+  bool get _canReject =>
+      widget.showActions &&
+      (widget.slot.isPending || widget.slot.isBooked) &&
+      widget.slot.id != 0;
 
   Color get _statusColor {
     if (widget.slot.isAvailable) return const Color(0xFFE8F0FE);
@@ -54,13 +59,35 @@ class _AppointmentSlotWidgetState extends State<AppointmentSlotWidget> {
     return Icons.check_circle;
   }
 
+  Future<String?> _showRejectionReasonDialog(BuildContext context) {
+    return showDialog<String>(
+      context: context,
+      builder: (_) => const _RejectionReasonDialog(),
+    );
+  }
+
   Future<void> _handleDecision(bool approve) async {
-    if (!_canManage || _isProcessing) return;
+    final canApprove = _canApprove;
+    final canReject = _canReject;
+    if ((approve && !canApprove) || (!approve && !canReject) || _isProcessing) {
+      return;
+    }
+
+    String? rejectionReason;
+    if (!approve) {
+      rejectionReason = await _showRejectionReasonDialog(context);
+      if (rejectionReason == null) {
+        return;
+      }
+    }
     setState(() => _isProcessing = true);
     final viewModel = context.read<ScheduleViewModel>();
     final success = approve
         ? await viewModel.approveAppointment(appointmentId: widget.slot.id)
-        : await viewModel.rejectAppointment(appointmentId: widget.slot.id);
+        : await viewModel.rejectAppointment(
+            appointmentId: widget.slot.id,
+            reason: rejectionReason!,
+          );
     if (!mounted) return;
     setState(() => _isProcessing = false);
 
@@ -70,7 +97,9 @@ class _AppointmentSlotWidgetState extends State<AppointmentSlotWidget> {
           content: Text(
             approve ? 'Đã duyệt lịch khám' : 'Đã từ chối lịch khám',
           ),
-          backgroundColor: approve ? Colors.green.shade600 : Colors.red.shade400,
+          backgroundColor: approve
+              ? Colors.green.shade600
+              : Colors.red.shade400,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -160,11 +189,7 @@ class _AppointmentSlotWidgetState extends State<AppointmentSlotWidget> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          _statusIcon,
-                          size: 14,
-                          color: _statusTextColor,
-                        ),
+                        Icon(_statusIcon, size: 14, color: _statusTextColor),
                         const SizedBox(width: 4),
                         Text(
                           _statusText,
@@ -228,55 +253,67 @@ class _AppointmentSlotWidgetState extends State<AppointmentSlotWidget> {
               ],
 
               // Actions
-              if (_canManage) ...[
+              if (_canApprove || _canReject) ...[
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _isProcessing ? null : () => _handleDecision(false),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red.shade600,
-                          side: BorderSide(color: Colors.red.shade200),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    if (_canReject)
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isProcessing
+                              ? null
+                              : () => _handleDecision(false),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red.shade700,
+                            side: BorderSide(color: Colors.red.shade200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
+                          child: _isProcessing
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  widget.slot.isBooked ? 'Hủy lịch' : 'Từ chối',
+                                ),
                         ),
-                        child: _isProcessing
-                            ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                            : const Text('Từ chối'),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isProcessing ? null : () => _handleDecision(true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    if (_canApprove && _canReject) const SizedBox(width: 12),
+                    if (_canApprove)
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isProcessing
+                              ? null
+                              : () => _handleDecision(true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
                           ),
-                          elevation: 0,
+                          child: _isProcessing
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text('Duyệt'),
                         ),
-                        child: _isProcessing
-                            ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                            : const Text('Duyệt'),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -339,6 +376,61 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
+class _RejectionReasonDialog extends StatefulWidget {
+  const _RejectionReasonDialog();
+
+  @override
+  State<_RejectionReasonDialog> createState() => _RejectionReasonDialogState();
+}
+
+class _RejectionReasonDialogState extends State<_RejectionReasonDialog> {
+  late final TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      setState(() => _errorText = 'Vui lòng nhập lý do');
+      return;
+    }
+    Navigator.pop(context, text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nhập lý do'),
+      content: TextField(
+        controller: _controller,
+        maxLines: 3,
+        decoration: InputDecoration(
+          hintText: 'Nhập lý do từ chối hoặc hủy lịch',
+          errorText: _errorText,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Hủy'),
+        ),
+        ElevatedButton(onPressed: _submit, child: const Text('Xác nhận')),
+      ],
+    );
+  }
+}
+
 class AppointmentDetailDialog extends StatefulWidget {
   final AppointmentSlotModel slot;
   final DateTime date;
@@ -365,7 +457,10 @@ class _AppointmentDetailDialogState extends State<AppointmentDetailDialog> {
     final viewModel = context.read<ScheduleViewModel>();
     final success = approve
         ? await viewModel.approveAppointment(appointmentId: widget.slot.id)
-        : await viewModel.rejectAppointment(appointmentId: widget.slot.id);
+        : await viewModel.rejectAppointment(
+            appointmentId: widget.slot.id,
+            reason: '',
+          );
     if (!mounted) return;
     setState(() => _isProcessing = false);
     if (success && mounted) {
@@ -375,7 +470,9 @@ class _AppointmentDetailDialogState extends State<AppointmentDetailDialog> {
           content: Text(
             approve ? 'Đã duyệt lịch khám' : 'Đã từ chối lịch khám',
           ),
-          backgroundColor: approve ? Colors.green.shade600 : Colors.red.shade400,
+          backgroundColor: approve
+              ? Colors.green.shade600
+              : Colors.red.shade400,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -450,7 +547,11 @@ class _AppointmentDetailDialogState extends State<AppointmentDetailDialog> {
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
               child: Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade500),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 14,
+                    color: Colors.grey.shade500,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     dateDisplay,
@@ -467,7 +568,8 @@ class _AppointmentDetailDialogState extends State<AppointmentDetailDialog> {
                 children: [
                   _DetailItem(
                     label: 'Khung giờ',
-                    value: '${widget.slot.slotStartTime} - ${widget.slot.slotEndTime}',
+                    value:
+                        '${widget.slot.slotStartTime} - ${widget.slot.slotEndTime}',
                     icon: Icons.schedule,
                   ),
                   const SizedBox(height: 16),
@@ -512,7 +614,9 @@ class _AppointmentDetailDialogState extends State<AppointmentDetailDialog> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: _isProcessing ? null : () => _handleDecision(false),
+                        onPressed: _isProcessing
+                            ? null
+                            : () => _handleDecision(false),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red.shade600,
                           side: BorderSide(color: Colors.red.shade200),
@@ -523,17 +627,21 @@ class _AppointmentDetailDialogState extends State<AppointmentDetailDialog> {
                         ),
                         child: _isProcessing
                             ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Text('Từ chối'),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _isProcessing ? null : () => _handleDecision(true),
+                        onPressed: _isProcessing
+                            ? null
+                            : () => _handleDecision(true),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green.shade600,
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -544,13 +652,15 @@ class _AppointmentDetailDialogState extends State<AppointmentDetailDialog> {
                         ),
                         child: _isProcessing
                             ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
                             : const Text('Chấp thuận'),
                       ),
                     ),
@@ -683,9 +793,9 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
     return widget.slots
         .where(
           (slot) =>
-      slot.isAvailable ||
-          (selected != null && slot.slotNumber == selected),
-    )
+              slot.isAvailable ||
+              (selected != null && slot.slotNumber == selected),
+        )
         .toList();
   }
 
@@ -829,11 +939,18 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade500),
+                    Icon(
+                      Icons.calendar_today,
+                      size: 14,
+                      color: Colors.grey.shade500,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       dateLabel,
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ],
                 ),
@@ -860,7 +977,9 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: AppTheme.primaryColor),
+                            borderSide: const BorderSide(
+                              color: AppTheme.primaryColor,
+                            ),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -870,18 +989,18 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
                         items: slots
                             .map(
                               (slot) => DropdownMenuItem<int>(
-                            value: slot.slotNumber,
-                            child: Text(
-                              'Slot ${slot.slotNumber} • ${slot.slotStartTime}-${slot.slotEndTime}',
-                            ),
-                          ),
-                        )
+                                value: slot.slotNumber,
+                                child: Text(
+                                  'Slot ${slot.slotNumber} • ${slot.slotStartTime}-${slot.slotEndTime}',
+                                ),
+                              ),
+                            )
                             .toList(),
                         onChanged: widget.initialSlot != null
                             ? null
                             : (value) => setState(() => _selectedSlot = value),
                         validator: (value) =>
-                        value == null ? 'Vui lòng chọn khung giờ' : null,
+                            value == null ? 'Vui lòng chọn khung giờ' : null,
                       )
                     else
                       Container(
@@ -892,7 +1011,10 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.warning_amber_rounded, color: Colors.orange.shade400),
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.orange.shade400,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
@@ -921,14 +1043,17 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppTheme.primaryColor),
+                          borderSide: const BorderSide(
+                            color: AppTheme.primaryColor,
+                          ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 14,
                         ),
                       ),
-                      validator: (value) => (value == null || value.trim().isEmpty)
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty)
                           ? 'Nhập tên bệnh nhân'
                           : null,
                     ),
@@ -951,14 +1076,17 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppTheme.primaryColor),
+                          borderSide: const BorderSide(
+                            color: AppTheme.primaryColor,
+                          ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 14,
                         ),
                       ),
-                      validator: (value) => (value == null || value.trim().isEmpty)
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty)
                           ? 'Nhập số điện thoại'
                           : null,
                     ),
@@ -978,7 +1106,9 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppTheme.primaryColor),
+                          borderSide: const BorderSide(
+                            color: AppTheme.primaryColor,
+                          ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -996,7 +1126,8 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
                           style: TextStyle(fontSize: 14),
                         ),
                         value: _autoApprove,
-                        onChanged: (value) => setState(() => _autoApprove = value),
+                        onChanged: (value) =>
+                            setState(() => _autoApprove = value),
                         activeColor: AppTheme.primaryColor,
                       ),
                     ] else ...[
@@ -1008,7 +1139,11 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.info_outline, size: 16, color: Colors.grey.shade500),
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: Colors.grey.shade500,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -1041,20 +1176,22 @@ class _ManualAppointmentSheetState extends State<ManualAppointmentSheet> {
                         ),
                         child: _isSubmitting
                             ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
                             : const Text(
-                          'Lưu lịch mới',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                                'Lưu lịch mới',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 20),

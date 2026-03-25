@@ -14,6 +14,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -54,7 +55,7 @@ public class AppointmentController {
      * GET /api/v1/appointments/doctor/{doctorId}/schedule?days_offset=0
      */
     @GetMapping("/doctor/{doctorId}/schedule")
-    @PreAuthorize("hasAnyRole('PATIENT','DOCTOR')")
+    @PreAuthorize("hasAnyRole('PATIENT','USER','DOCTOR')")
     public ResponseEntity<List<DoctorScheduleDayResponse>> getDoctorScheduleById(
             @PathVariable String doctorId,
             @RequestParam(value = "days_offset", defaultValue = "0") Integer daysOffset) {
@@ -76,7 +77,7 @@ public class AppointmentController {
      * POST /api/v1/appointments/request/{doctorId}
      */
     @PostMapping("/request/{doctorId}")
-    @PreAuthorize("hasAnyRole('PATIENT','DOCTOR')")
+    @PreAuthorize("hasAnyRole('PATIENT','USER','DOCTOR')")
     public ResponseEntity<AppointmentSlotResponse> requestAppointment(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable String doctorId,
@@ -154,5 +155,16 @@ public class AppointmentController {
                 status
         );
         return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/doctor/pending/count")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<Map<String, Integer>> getPendingCount(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        int count = appointmentService.getPendingAppointmentCount(userPrincipal.getId());
+        return ResponseEntity.ok(Map.of("pendingCount", count));
     }
 }

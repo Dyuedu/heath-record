@@ -55,6 +55,9 @@ public class Appointment {
 
     private String notes;
 
+    @Column(name = "decision_reason")
+    private String decisionReason;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

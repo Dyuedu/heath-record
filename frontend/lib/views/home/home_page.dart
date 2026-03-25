@@ -3,8 +3,10 @@ import 'package:frontend/data/models/user/user_profile_model.dart';
 import 'package:frontend/data/repositories/secure_storage_repository.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/views/doctor/create_medical_record_page.dart';
+import 'package:frontend/views/doctor/doctor_schedule_page.dart';
 import 'package:frontend/views/home/doctor_user_search_page.dart';
 import 'package:frontend/viewmodels/notification_viewmodel.dart';
+import 'package:frontend/viewmodels/schedule_viewmodel.dart';
 import 'package:frontend/views/home/notification_page.dart';
 import 'package:frontend/utils/app_routers.dart';
 import 'package:frontend/widgets/bottom_nav.dart';
@@ -75,10 +77,15 @@ class _HomePageState extends State<HomePage> {
       final token = await storage.getToken();
       if (token != null && token.isNotEmpty) {
         final decoded = JwtDecoder.decode(token);
+        final decodedRole = decoded['role']?.toString();
+        final bool isDoctorRole = _isDoctorRole(decodedRole);
         if (mounted) {
           setState(() {
-            _userRole = decoded['role']?.toString();
+            _userRole = decodedRole;
           });
+          if (isDoctorRole) {
+            context.read<ScheduleViewModel>().refreshPendingCount();
+          }
 
           // Connect to real-time notification socket for all roles
           final userId =
@@ -98,8 +105,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool get _isDoctor {
-    final role = (_userRole ?? '').trim().toLowerCase();
-    return role == 'doctor' || role == 'role_doctor';
+    return _isDoctorRole(_userRole);
+  }
+
+  bool _isDoctorRole(String? role) {
+    final normalized = (role ?? '').trim().toLowerCase();
+    return normalized == 'doctor' || normalized == 'role_doctor';
   }
 
   List<_MockMedicalHistoryItem> get _filteredHistoryItems {
@@ -160,6 +171,21 @@ class _HomePageState extends State<HomePage> {
                     );
                   },
                 ),
+                const SizedBox(height: 20),
+                Consumer<ScheduleViewModel>(
+                  builder: (_, scheduleVM, __) => _DoctorPendingOverviewCard(
+                    pendingCount: scheduleVM.pendingApprovalCount,
+                    onRefresh: scheduleVM.refreshPendingCount,
+                    onViewSchedule: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DoctorSchedulePage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 const SizedBox(height: 30),
               ] else
                 const SizedBox(height: 20),
@@ -180,6 +206,15 @@ class _HomePageState extends State<HomePage> {
                     setState(() {
                       _recordSearchQuery = value;
                     });
+                  },
+                ),
+                const SizedBox(height: 20),
+                _PatientAppointmentShortcut(
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      AppRouter.patientBookAppointment,
+                    );
                   },
                 ),
                 const SizedBox(height: 30),
@@ -399,6 +434,212 @@ class _DoctorSearchInput extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DoctorPendingOverviewCard extends StatelessWidget {
+  final int pendingCount;
+  final Future<void> Function() onRefresh;
+  final VoidCallback onViewSchedule;
+
+  const _DoctorPendingOverviewCard({
+    required this.pendingCount,
+    required this.onRefresh,
+    required this.onViewSchedule,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF246BFF).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.schedule, color: Color(0xFF246BFF)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Lịch cần xử lý',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF4A6074),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      pendingCount > 0
+                          ? '$pendingCount lịch đang chờ bác sĩ duyệt'
+                          : 'Hiện không có lịch chờ duyệt',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2A44),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  onRefresh();
+                },
+                icon: const Icon(Icons.refresh, color: Color(0xFF246BFF)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onViewSchedule,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    side: const BorderSide(color: Color(0xFF246BFF)),
+                  ),
+                  child: const Text(
+                    'Xem lịch bác sĩ',
+                    style: TextStyle(
+                      color: Color(0xFF246BFF),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: pendingCount > 0 ? onViewSchedule : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF246BFF),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text('Xử lý ngay'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PatientAppointmentShortcut extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _PatientAppointmentShortcut({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1ABC9C).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.calendar_month,
+                  color: Color(0xFF1ABC9C),
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Đặt lịch khám nhanh',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2A44),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Chọn bác sĩ, xem lịch trống và đặt ngay trong 3 bước.',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF4A6074)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1ABC9C),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text(
+                'Bắt đầu đặt lịch',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

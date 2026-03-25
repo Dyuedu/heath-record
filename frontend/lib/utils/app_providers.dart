@@ -19,6 +19,7 @@ import 'package:frontend/viewmodels/admin_viewmodel.dart';
 import 'package:frontend/viewmodels/auth_viewmodel.dart';
 import 'package:frontend/viewmodels/doctor_viewmodel.dart';
 import 'package:frontend/viewmodels/schedule_viewmodel.dart';
+import 'package:frontend/viewmodels/appointment_list_viewmodel.dart';
 import 'package:frontend/viewmodels/link_request_viewmodel.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
 import 'package:frontend/viewmodels/record_view_model.dart';
@@ -142,6 +143,15 @@ class AppProviders {
             ScheduleViewModel(context.read<AppointmentRepository>()),
         update: (context, appointmentRepository, previous) =>
             previous ?? ScheduleViewModel(appointmentRepository),
+      ),
+      ChangeNotifierProxyProvider<
+        AppointmentRepository,
+        AppointmentListViewModel
+      >(
+        create: (context) =>
+            AppointmentListViewModel(context.read<AppointmentRepository>()),
+        update: (context, appointmentRepository, previous) =>
+            previous ?? AppointmentListViewModel(appointmentRepository),
       ),
       ChangeNotifierProxyProvider<AdminRepository, AdminViewModel>(
         create: (context) =>

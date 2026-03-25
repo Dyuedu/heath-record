@@ -110,11 +110,11 @@ class AppRouter {
           builder: (_) => const DoctorSchedulePage(),
           settings: settings,
         );
-      // case patientBookAppointment:
-      //   return MaterialPageRoute(
-      //     builder: (_) => const PatientBookAppointmentPage(),
-      //     settings: settings,
-      //   );
+      case patientBookAppointment:
+        return MaterialPageRoute(
+          builder: (_) => const PatientBookAppointmentPage(),
+          settings: settings,
+        );
       case activationResult:
         final args = settings.arguments as Map<String, dynamic>?;
         final success = args?['success'] == true;
@@ -123,7 +123,9 @@ class AppRouter {
           builder: (_) => ActivationResultPage(
             success: success,
             message: message.isEmpty
-                ? (success ? 'Tai khoan da duoc kich hoat.' : 'Khong the kich hoat tai khoan.')
+                ? (success
+                      ? 'Tai khoan da duoc kich hoat.'
+                      : 'Khong the kich hoat tai khoan.')
                 : message,
           ),
           settings: settings,
@@ -174,15 +176,13 @@ class AppRouter {
     final success = status == 'success';
     final resolvedMessage = message.isEmpty
         ? (success
-            ? 'Tai khoan da duoc kich hoat.'
-            : 'Khong the kich hoat tai khoan.')
+              ? 'Tai khoan da duoc kich hoat.'
+              : 'Khong the kich hoat tai khoan.')
         : message;
 
     return MaterialPageRoute(
-      builder: (_) => ActivationResultPage(
-        success: success,
-        message: resolvedMessage,
-      ),
+      builder: (_) =>
+          ActivationResultPage(success: success, message: resolvedMessage),
       settings: settings,
     );
   }

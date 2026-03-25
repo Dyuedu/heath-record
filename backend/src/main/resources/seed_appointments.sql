@@ -2,9 +2,11 @@
 -- SEED APPOINTMENTS (FIX VERSION)
 -- ================================
 
--- ⚠️ Đảm bảo có unique constraint (chạy 1 lần)
-CREATE UNIQUE INDEX IF NOT EXISTS unique_slot 
-ON appointments (doctor_user_id, appointment_date, slot_number);
+-- ⚠️ Đảm bảo unique chỉ áp dụng cho slot đang hoạt động (AVAILABLE/PENDING/BOOKED)
+DROP INDEX IF EXISTS unique_slot;
+CREATE UNIQUE INDEX IF NOT EXISTS unique_active_slot 
+ON appointments (doctor_user_id, appointment_date, slot_number)
+WHERE status IN ('AVAILABLE','PENDING','BOOKED');
 
 -- ================================
 -- ===== HÔM NAY (CURRENT_DATE) ===
@@ -141,4 +143,53 @@ FROM (
 ) AS s(slot_num, start_time, end_time)
 CROSS JOIN users u
 WHERE u.email = 'doctor@health.com'
+ON CONFLICT DO NOTHING;
+
+-- ================================
+-- ===== TEST PATIENT BOOKINGS ====
+-- ================================
+
+-- Booking for vutrggiang@gmail.com
+INSERT INTO appointments (
+    doctor_user_id, patient_user_id, appointment_date, slot_number,
+    slot_start_time, slot_end_time,
+    status, patient_name, patient_phone, notes,
+    created_at, updated_at, version
+)
+SELECT d.id, p.id, CURRENT_DATE + 3, 1,
+       '08:00'::time, '09:30'::time,
+       'BOOKED', 'Vũ Trí Giang', '0901112223', 'Theo dõi hậu phẫu',
+       NOW(), NOW(), 0
+FROM users d
+JOIN users p ON LOWER(d.email) = 'doctor@health.com' AND LOWER(p.email) = 'vutrggiang@gmail.com'
+ON CONFLICT DO NOTHING;
+
+-- Booking for vugiangtruong04@gmail.com
+INSERT INTO appointments (
+    doctor_user_id, patient_user_id, appointment_date, slot_number,
+    slot_start_time, slot_end_time,
+    status, patient_name, patient_phone, notes,
+    created_at, updated_at, version
+)
+SELECT d.id, p.id, CURRENT_DATE + 3, 2,
+       '09:30'::time, '11:00'::time,
+       'PENDING', 'Vũ Giang Trường', '0903334445', 'Khám tiêu hóa',
+       NOW(), NOW(), 0
+FROM users d
+JOIN users p ON LOWER(d.email) = 'doctor@health.com' AND LOWER(p.email) = 'vugiangtruong04@gmail.com'
+ON CONFLICT DO NOTHING;
+
+-- Booking for thgmatngu@gmail.com
+INSERT INTO appointments (
+    doctor_user_id, patient_user_id, appointment_date, slot_number,
+    slot_start_time, slot_end_time,
+    status, patient_name, patient_phone, notes,
+    created_at, updated_at, version
+)
+SELECT d.id, p.id, CURRENT_DATE + 4, 1,
+       '08:00'::time, '09:30'::time,
+       'BOOKED', 'Thắng Mặt Ngủ', '0917778889', 'Khám hô hấp',
+       NOW(), NOW(), 0
+FROM users d
+JOIN users p ON LOWER(d.email) = 'doctor@health.com' AND LOWER(p.email) = 'thgmatngu@gmail.com'
 ON CONFLICT DO NOTHING;
