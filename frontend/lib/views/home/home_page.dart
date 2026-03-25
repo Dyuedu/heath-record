@@ -285,11 +285,13 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 30),
               ],
 
-              // 3. Featured Categories/Services
-              const _SectionHeader(title: "Dịch vụ y tế", showViewAll: false),
-              const SizedBox(height: 15),
-              _QuickServicesGrid(isDoctor: _isDoctor),
-              const SizedBox(height: 30),
+              // 3. Featured Categories/Services (doctor only)
+              if (_isDoctor) ...[
+                const _SectionHeader(title: "Dịch vụ y tế", showViewAll: false),
+                const SizedBox(height: 15),
+                _QuickServicesGrid(isDoctor: _isDoctor),
+                const SizedBox(height: 30),
+              ],
 
               // 4. User medical history / doctor specific content
               if (!_isDoctor) ...[
@@ -754,18 +756,20 @@ class _QuickServicesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = <Map<String, dynamic>>[
-      {
-        'icon': Icons.folder_shared_rounded,
-        'label': 'Hồ sơ',
-        'color': const Color(0xFFFFF1E8),
-        'onTap': () {},
-      },
-      {
-        'icon': Icons.local_hospital_rounded,
-        'label': 'Bệnh viện',
-        'color': const Color(0xFFE8FFF1),
-        'onTap': () {},
-      },
+      if (!isDoctor)
+        {
+          'icon': Icons.folder_shared_rounded,
+          'label': 'Hồ sơ',
+          'color': const Color(0xFFFFF1E8),
+          'onTap': () {},
+        },
+      if (!isDoctor)
+        {
+          'icon': Icons.local_hospital_rounded,
+          'label': 'Bệnh viện',
+          'color': const Color(0xFFE8FFF1),
+          'onTap': () {},
+        },
       if (!isDoctor)
         {
           'icon': Icons.calendar_month_rounded,
@@ -788,13 +792,6 @@ class _QuickServicesGrid extends StatelessWidget {
               ),
             );
           },
-        },
-      if (isDoctor)
-        {
-          'icon': Icons.assignment_ind_rounded,
-          'label': 'Bệnh nhân',
-          'color': const Color(0xFFFFF8E1),
-          'onTap': () {},
         },
       if (isDoctor)
         {

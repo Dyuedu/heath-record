@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/models/record/encounter_model.dart';
+import 'package:frontend/data/models/relative_search_response.dart';
 import 'package:frontend/data/models/user/doctor_patient_detail_model.dart';
 import 'package:frontend/utils/app_theme.dart';
 import 'package:frontend/viewmodels/profile_viewmodel.dart';
+import 'package:frontend/views/doctor/create_medical_record_page.dart';
 import 'package:frontend/views/user/doctor_patient_records_page.dart';
 import 'package:provider/provider.dart';
 
@@ -80,6 +82,20 @@ class _DoctorPatientDetailPageState extends State<DoctorPatientDetailPage> {
       if (doc != null && doc.isNotEmpty) return 'BS. $doc';
     }
     return 'Bác sĩ';
+  }
+
+  ProfileSearchResponse _mapPatientToSearchResponse() {
+    final patient = _detail!.patient;
+    return ProfileSearchResponse(
+      id: patient.id,
+      fullName: patient.fullName,
+      phoneNumber: patient.phoneNumber,
+      dateOfBirth: patient.dateOfBirth,
+      avatarUrl: patient.avatarUrl,
+      relationship: 'patient',
+      identityNumber: patient.identityNumber,
+      address: patient.address,
+    );
   }
 
   @override
@@ -268,8 +284,13 @@ class _DoctorPatientDetailPageState extends State<DoctorPatientDetailPage> {
                     icon: Icons.add_circle_outline,
                     label: 'Tạo bệnh án',
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Chức năng Tạo bệnh án đang phát triển')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CreateMedicalRecordPage(
+                            initialPatient: _mapPatientToSearchResponse(),
+                          ),
+                        ),
                       );
                     },
                   ),

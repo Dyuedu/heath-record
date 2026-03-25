@@ -30,7 +30,12 @@ class DiagnosticFormModel {
 }
 
 class CreateMedicalRecordPage extends StatefulWidget {
-  const CreateMedicalRecordPage({super.key});
+  final ProfileSearchResponse? initialPatient;
+
+  const CreateMedicalRecordPage({
+    super.key,
+    this.initialPatient,
+  });
 
   @override
   State<CreateMedicalRecordPage> createState() => _CreateMedicalRecordPageState();
@@ -67,6 +72,7 @@ class _CreateMedicalRecordPageState extends State<CreateMedicalRecordPage> {
   @override
   void initState() {
     super.initState();
+    _selectedRelative = widget.initialPatient;
     _diagnostics.add(DiagnosticFormModel());
     _hospitalFieldController = TextEditingController();
     _hospitalFieldController!.addListener(_handleHospitalQueryChanged);
